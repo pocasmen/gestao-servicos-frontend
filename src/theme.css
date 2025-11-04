@@ -1,0 +1,97 @@
+/* theme.css - Estilo inspirado em microatomo.pt */
+
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&display=swap');
+
+:root {
+  --primary-color: #0d6efd; /* Azul forte para destaque */
+  --text-color: #333;
+  --background-color: #f8f9fa; /* Fundo ligeiramente cinza */
+  --header-background: #FFFFFF;
+  --border-color: #dee2e6;
+  --font-family: 'Montserrat', sans-serif;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+/* Cabeçalho */
+.app-header {
+  background-color: var(--header-background) !important;
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.app-header .navbar-brand {
+  font-weight: 700;
+  color: var(--primary-color) !important;
+}
+
+.app-header .nav-link {
+  color: var(--text-color) !important;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.app-header .nav-link:hover, .app-header .nav-link.active {
+  color: var(--primary-color) !important;
+}
+
+/* Conteúdo Principal */
+.container {
+  background-color: #FFFFFF;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+  margin-top: 2rem;
+}
+
+/* Formulários */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-control {
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Botões */
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  font-weight: 500;
+  border-radius: 4px;
+  padding: 0.5rem 1.5rem;
+}
+
+/* Tabelas */
+.table {
+  border-top: 1px solid var(--border-color);
+}
+
+.table thead th {
+  font-weight: 700;
+  color: #555;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.table tbody tr:hover {
+  background-color: var(--background-color);
+}
+
+h2 {
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--primary-color);
+    display: inline-block;
+}
