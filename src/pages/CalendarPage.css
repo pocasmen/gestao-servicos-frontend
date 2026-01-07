@@ -1,0 +1,42 @@
+.rbc-event.event-completed {
+  background-color: #198754;
+  /* Verde escuro */
+  color: white !important;
+  border: none;
+}
+
+.rbc-event.event-completed .rbc-event-content {
+  text-decoration: none;
+  /* Sem rasurado */
+}
+
+.rbc-event.event-with-report {
+  background-color: #6c757d !important;
+  /* Cinzento (Bootstrap secondary) */
+  opacity: 0.7;
+  color: white !important;
+  border: none !important;
+}
+
+
+/* Container para posicionamento da barra flutuante */
+.calendar-container {
+  position: relative;
+  height: 700px;
+}
+
+/* Barra de ferramentas flutuante para guardar/cancelar */
+.floating-toolbar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}

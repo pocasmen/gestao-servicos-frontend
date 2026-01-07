@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import apiClient from '../apiClient'; // Usar o apiClient
 import './ReportPrintPage.css'; // CSS para o layout
+import { PartItem } from '../types'; // Importar PartItem
 
 // Interface para os dados completos do relatório
 interface DetailedReport {
   id: number;
   serviceDate: string;
-  serviceType: string;
+  serviceType: string[]; // Alterado para array de strings
   description: string;
-  parts: string;
+  parts: PartItem[];
   hours: number;
   clientName: string;
   clientAddress: string;
@@ -17,6 +18,8 @@ interface DetailedReport {
   equipmentBrand: string;
   equipmentModel: string;
   equipmentSerialNumber: string;
+  damage: string; // Novo campo
+  technicianName: string; // Novo campo
 }
 
 const ReportPrintPage: React.FC = () => {
@@ -58,10 +61,11 @@ const ReportPrintPage: React.FC = () => {
             <div className="field-box report-date">Data: {new Date(report.serviceDate).toLocaleDateString('pt-PT')}</div>
           </div>
           <div className="service-type">
-            <span>Reparação <input type="checkbox" checked={report.serviceType === 'reparacao'} readOnly /></span>
-            <span>Instalação <input type="checkbox" checked={report.serviceType === 'instalacao'} readOnly /></span>
-            <span>Assistência <input type="checkbox" checked={report.serviceType === 'assistencia'} readOnly /></span>
-            <span>Manutenção <input type="checkbox" checked={report.serviceType === 'manutencao'} readOnly /></span>
+            <span>Reparação <input type="checkbox" checked={report.serviceType?.includes('reparacao')} readOnly /></span>
+            <span>Instalação <input type="checkbox" checked={report.serviceType?.includes('instalacao')} readOnly /></span>
+            <span>Assistência <input type="checkbox" checked={report.serviceType?.includes('assistencia')} readOnly /></span>
+            <span>Manutenção <input type="checkbox" checked={report.serviceType?.includes('manutencao')} readOnly /></span>
+            <span>Remota <input type="checkbox" checked={report.serviceType?.includes('remota')} readOnly /></span>
           </div>
         </section>
 
@@ -83,28 +87,47 @@ const ReportPrintPage: React.FC = () => {
         {/* Corpo do Relatório */}
         <main className="report-body">
           <div className="report-main-content">
-            <div className="report-title">RELATÓRIO:</div>
+		  {report.damage && ( // Display Avaria section only if avaria exists
+              <>
+                <div className="report-title">AVARIA:</div>
+                <div className="report-text-area">
+                  <div className="report-line">{report.damage}</div>
+                </div>
+              
+            <div className="report-title mt-3">DESCRIÇÃO DO SERVIÇO:</div>
             <div className="report-text-area">
               {reportLines.map((line, index) => (
                 <div key={index} className="report-line">{line}</div>
               ))}
             </div>
+            </>
+            )}
           </div>
           <div className="report-side-content">
             <div className="parts-table">
                 <div className="table-header">
                     <div className="col-qt">QT.</div>
+                    <div className="col-ref">REF.</div>
                     <div className="col-desc">DESCRIÇÃO</div>
-                    <div className="col-val">VALOR</div>
                 </div>
                 <div className="table-body">
-                    <div className="table-row">
-                        <div className="col-qt"></div>
-                        <div className="col-desc">{report.parts}</div>
-                        <div className="col-val"></div>
-                    </div>
+                    {report.parts && report.parts.length > 0 ? (
+                        report.parts.map((part, index) => (
+                            <div className="table-row" key={index}>
+                                <div className="col-qt">{part.quantity}</div>
+                                <div className="col-ref">{part.reference}</div>
+                                <div className="col-desc">{part.designation}</div>
+                            </div>
+                        ))
+                    ) : (
+                        <div className="table-row">
+                            <div className="col-qt"></div>
+                            <div className="col-ref"></div>
+                            <div className="col-desc">Nenhuma peça utilizada.</div>
+                        </div>
+                    )}
                      {/* Linhas vazias para preenchimento */}
-                    {[...Array(10)].map((_, i) => <div key={i} className="table-row empty-row"><div className="col-qt"></div><div className="col-desc"></div><div className="col-val"></div></div>)}
+                    {[...Array(Math.max(0, 10 - (report.parts?.length || 0)))].map((_, i) => <div key={`empty-${i}`} className="table-row empty-row"><div className="col-qt"></div><div className="col-ref"></div><div className="col-desc"></div></div>)}
                 </div>
             </div>
           </div>
@@ -123,7 +146,7 @@ const ReportPrintPage: React.FC = () => {
                 </div>
             </div>
             <div className="signatures">
-                <div className="field-box signature-box">O Técnico</div>
+                <div className="field-box signature-box">O Técnico: {report.technicianName}</div>
                 <div className="field-box signature-box">O Cliente</div>
             </div>
              <div className="total-summary">

@@ -1,29 +1,333 @@
 import { Event as BigCalendarEvent } from 'react-big-calendar';
 
-// Interface para o evento do calendário, estendendo o tipo base
-export interface ScheduleEvent extends BigCalendarEvent {
+export interface ScheduleEvent {
   id: number;
-  title: string; // Garantir que o título é uma string
+  title: string;
+  start: Date;
+  end: Date;
   clientId: number;
   equipmentId: number;
-  technicianId: number;
-  // O `title` já vem do BigCalendarEvent como string opcional
-  // `start` e `end` também já vêm
+  technicians: Technician[]; // Changed from technicianId
+  isCompleted: boolean;
+  hasReport: boolean;
+  ticketId?: number;
+  internalNotes?: string;
+  serviceType?: string;
+  acknowledgementState?: 'pending' | 'accepted' | 'rejected';
+  parts?: PartItem[]; // Adicionado
 }
 
-// Outras interfaces partilhadas
+
+
 export interface Client {
+
+
+
   id: number;
+
+
+
   name: string;
+
+
+
+  address: string;
+
+
+
+  nif: string;
+
+
+
+  contactName?: string;
+
+
+
+  contactEmail?: string;
+
+
+
+  contactPhone?: string;
+
+
+
 }
+
+
+
+
+
+
 
 export interface Equipment {
+
+
+
   id: number;
+
+
+
   brand: string;
+
+
+
   model: string;
+
+
+
+  serialNumber: string;
+
+
+
+  clientId: number;
+
+
+
 }
 
+
+
+
+
+
+
 export interface Technician {
+
+
+
+
+
+
+
   id: number;
+
+
+
+
+
+
+
   name: string;
+
+
+
+
+
+
+
+  color: string;
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export interface User {
+
+
+
+
+
+
+
+  id: number;
+
+
+
+
+
+
+  client_id: number;
+
+
+
+
+
+
+  email: string;
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export interface Ticket {
+  id: number;
+  client_id: number;
+  equipmentId: number;
+  title: string;
+  faultDescription: string;
+  status: 'open' | 'scheduled' | 'closed' | 'deleted';
+  scheduleId?: number;
+  createdAt: string;
+  updatedAt: string;
+  created_by_user_id?: string;
+  // Campos preenchidos por JOINs
+  clientName?: string;
+  equipmentInfo?: string;
+  userFirstName?: string;
+  userLastName?: string;
+  // Campos do agendamento associado
+  startDate?: string;
+  endDate?: string;
+  internalNotes?: string;
+  hasReport?: boolean;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export interface Part {
+
+
+
+
+
+
+
+  id?: number;
+
+
+
+
+
+
+
+  reference: string;
+
+
+
+  designation: string;
+
+
+
+}
+
+
+
+
+
+
+
+export interface PartItem {
+
+
+
+
+
+
+
+  id?: number;
+
+
+
+
+
+
+
+  quantity: number;
+
+
+
+
+
+
+
+  reference: string;
+
+
+
+
+
+
+
+  designation: string;
+
+
+
+
+
+
+
+  isDesignationLocked?: boolean;
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+export interface Report {
+  id?: number;
+  clientId: number;
+  equipmentId: number;
+  scheduleId?: number;
+  technicians: Technician[];
+  serviceDate: string;
+  hours: number;
+  parts: PartItem[];
+  description: string;
+  serviceType: string[];
+  damage?: string;
+  internalNotes?: string;
+  // Campos preenchidos por JOINs para a visualização do relatório
+  clientName?: string;
+  clientAddress?: string;
+  clientNif?: string;
+  equipmentBrand?: string;
+  equipmentModel?: string;
+  equipmentSerialNumber?: string;
 }

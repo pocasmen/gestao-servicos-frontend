@@ -1,0 +1,105 @@
+import React, { useState, useContext } from 'react';
+import { Navigate, Link } from 'react-router-dom';
+import { supabase } from '../supabase';
+import { AuthContext } from '../App';
+
+const CompleteRegistrationPage: React.FC = () => {
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [error, setError] = useState('');
+    const [success, setSuccess] = useState('');
+    const [loading, setLoading] = useState(false);
+    const { user } = useContext(AuthContext);
+
+    // If no user is in context, they shouldn't be here.
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    // If user is here but not pending, redirect them appropriately
+    if (user.user_metadata.role !== 'pending_client') {
+        return <Navigate to="/" replace />;
+    }
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+        setSuccess('');
+
+        if (password !== confirmPassword) {
+            setError('As passwords não coincidem.');
+            return;
+        }
+        if (password.length < 6) {
+            setError('A password deve ter no mínimo 6 caracteres.');
+            return;
+        }
+
+        setLoading(true);
+        try {
+            const { error: updateError } = await supabase.auth.updateUser({ password });
+            if (updateError) {
+                throw updateError;
+            }
+            setSuccess('A sua password foi definida com sucesso. A sua conta aguarda agora a aprovação de um administrador. Será notificado quando for ativada.');
+        } catch (err: any) {
+            console.error(err);
+            setError(err.message || 'Ocorreu um erro ao definir a sua password.');
+        } finally {
+            setLoading(false);
+        }
+    };
+    
+    return (
+        <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+            <div className="card shadow-sm" style={{ width: '100%', maxWidth: '500px' }}>
+                <div className="card-body p-4">
+                    <h3 className="card-title text-center mb-4">Finalizar Registo</h3>
+                    
+                    {success ? (
+                        <div className="alert alert-success">
+                            <p>{success}</p>
+                            <div className="text-center mt-3">
+                                <Link to="/login" className="btn btn-primary">Voltar ao Login</Link>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <p className="text-muted text-center">Bem-vindo(a), {user.email}. Por favor, defina a sua password para completar o registo.</p>
+                            <form onSubmit={handleSubmit}>
+                                <div className="form-group mb-3">
+                                    <label htmlFor="password">Password</label>
+                                    <input
+                                        type="password"
+                                        className="form-control"
+                                        id="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                <div className="form-group mb-3">
+                                    <label htmlFor="confirmPassword">Confirmar Password</label>
+                                    <input
+                                        type="password"
+                                        className="form-control"
+                                        id="confirmPassword"
+                                        value={confirmPassword}
+                                        onChange={(e) => setConfirmPassword(e.target.value)}
+                                        required
+                                    />
+                                </div>
+                                {error && <div className="alert alert-danger">{error}</div>}
+                                <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+                                    {loading ? 'A guardar...' : 'Definir Password e Concluir'}
+                                </button>
+                            </form>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default CompleteRegistrationPage;
