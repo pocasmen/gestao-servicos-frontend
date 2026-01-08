@@ -64,14 +64,28 @@ const CalendarPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const serviceTypeLabels: Record<string, string> = {
+    reparacao: 'Reparação',
+    instalacao: 'Instalação',
+    assistencia: 'Assistência',
+    manutencao: 'Manutenção',
+    remota: 'Remota',
+  };
+
   const fetchSchedules = useCallback(() => {
     apiClient.get('/api/schedules').then(response => {
-      const fetchedEvents = response.data.map((schedule: any): ScheduleEvent => ({
-        ...schedule,
-        start: new Date(schedule.startDate),
-        end: new Date(schedule.endDate),
-        // The 'technicians' array now comes directly from the API
-      }));
+      const fetchedEvents = response.data.map((schedule: any): ScheduleEvent => {
+        const serviceLabel = serviceTypeLabels[schedule.serviceType] || schedule.serviceType || 'Serviço';
+        const equipLabel = schedule.equipmentInfo || 'Mod. Desconhecido';
+        const clientLabel = schedule.clientName || 'Cliente Desconhecido';
+
+        return {
+          ...schedule,
+          title: `${serviceLabel} - ${equipLabel} - ${clientLabel}`,
+          start: new Date(schedule.startDate),
+          end: new Date(schedule.endDate),
+        };
+      });
       setEvents(fetchedEvents);
     }).catch(console.error);
   }, []);
@@ -116,7 +130,7 @@ const CalendarPage: React.FC = () => {
       };
       const newEvent: ScheduleEvent = {
         id: 0,
-        title: extractTitle(t.faultDescription),
+        title: '', // Será gerado dinamicamente no map se recarregado, mas para o modal usamos vazio
         start: now,
         end: addHours(now, 1),
         clientId: t.client_id,
@@ -126,6 +140,8 @@ const CalendarPage: React.FC = () => {
         hasReport: false,
         ticketId: t.id,
         serviceType: 'remota',
+        clientName: t.clientName,
+        equipmentInfo: t.equipmentInfo,
       };
       setSelectedEvent(newEvent);
       setIsModalOpen(true);
@@ -173,7 +189,7 @@ const CalendarPage: React.FC = () => {
   }, []);
 
   const handleSelectSlot = useCallback(({ start, end }: { start: Date, end: Date }) => {
-    setSelectedEvent({ id: 0, title: '', start, end, clientId: 0, equipmentId: 0, technicians: [], isCompleted: false, hasReport: false });
+    setSelectedEvent({ id: 0, title: '', start, end, clientId: 0, equipmentId: 0, technicians: [], isCompleted: false, hasReport: false, clientName: '', equipmentInfo: '' });
     setIsModalOpen(true);
   }, []);
 

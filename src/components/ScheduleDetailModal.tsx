@@ -16,7 +16,6 @@ interface ScheduleDetailModalProps {
 }
 
 const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClose, event, onScheduleUpdated, onManageReport }) => {
-  const [title, setTitle] = useState('');
   const [start, setStart] = useState(new Date());
   const [end, setEnd] = useState(new Date());
   const [clientId, setClientId] = useState<string>('');
@@ -38,7 +37,6 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const isTicketScheduling = isCreating && !!event?.ticketId;
 
   useEffect(() => {
-    setTitle(event?.title || '');
     setStart(event?.start || new Date());
     setEnd(event?.end || new Date());
     setClientId(event?.clientId !== undefined ? String(event.clientId) : '');
@@ -150,7 +148,6 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
     const scheduleData = {
       ...event,
-      title,
       startDate: start.toISOString(),
       endDate: end.toISOString(),
       clientId: Number(clientId),
@@ -207,7 +204,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       return;
     }
 
-    const scheduleData = { ...event, title, startDate: start.toISOString(), endDate: end.toISOString(), clientId: Number(clientId), equipmentId: Number(equipmentId), technicianIds, isCompleted: true, ticketId: event?.ticketId, internalNotes, serviceType };
+    const scheduleData = { ...event, startDate: start.toISOString(), endDate: end.toISOString(), clientId: Number(clientId), equipmentId: Number(equipmentId), technicianIds, isCompleted: true, ticketId: event?.ticketId, internalNotes, serviceType };
     console.log('[DEBUG_SCHEDULE_MODAL] handleComplete - sending:', scheduleData);
     // @ts-ignore
     delete scheduleData.technicians;
@@ -253,10 +250,6 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
               <button type="button" className="btn-close" onClick={onClose}></button>
             </div>
             <div className="modal-body">
-              <div className="form-group">
-                <label>Título</label>
-                <input type="text" className="form-control" value={title} onChange={e => setTitle(e.target.value)} required disabled={isPastOrCompleted} />
-              </div>
               <div className="form-group">
                 <label>Tipo de Serviço</label>
                 <select className="form-control" value={serviceType} onChange={e => setServiceType(e.target.value)} disabled={isPastOrCompleted}>

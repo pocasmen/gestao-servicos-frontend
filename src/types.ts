@@ -15,6 +15,8 @@ export interface ScheduleEvent {
   serviceType?: string;
   acknowledgementState?: 'pending' | 'accepted' | 'rejected';
   parts?: PartItem[]; // Adicionado
+  clientName?: string;
+  equipmentInfo?: string;
 }
 
 

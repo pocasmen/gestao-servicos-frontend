@@ -40,3 +40,17 @@
   align-items: center;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
+
+/* Ajuste do tamanho da fonte dos agendamentos */
+.rbc-event-label,
+.rbc-event-content,
+.rbc-agenda-view table tbody tr td {
+  font-size: 14px !important;
+}
+
+.rbc-time-gutter .rbc-label,
+.rbc-time-header .rbc-label,
+.rbc-header {
+  font-size: 14px !important;
+  font-weight: bold;
+}
