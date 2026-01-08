@@ -25,6 +25,7 @@ import SettingsPage from './pages/SettingsPage';
 import SelfRegisterPage from './pages/SelfRegisterPage';
 import PendingUsersPage from './pages/PendingUsersPage';
 import CompleteRegistrationPage from './pages/CompleteRegistrationPage';
+import ProfilePage from './pages/ProfilePage';
 import './index.css';
 import './theme.css';
 
@@ -151,6 +152,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/tickets" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><TicketsPage /></ProtectedRoute>} />
           <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><TicketDetailPage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin']}><SettingsPage /></ProtectedRoute>} /> {/* Apenas Admin pode mexer nas configs */}
+          <Route path="/profile" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><ProfilePage /></ProtectedRoute>} />
 
           {/* Rotas de Cliente (Flattened) */}
           <Route path="/portal" element={<Navigate to="/portal/tickets" replace />} />

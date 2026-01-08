@@ -5,12 +5,12 @@ import { AuthContext } from '../App';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const isInternalUser = (user: SupabaseUser | null) => {
-    const role = user?.user_metadata?.role;
-    return role === 'technician' || role === 'admin';
+  const role = user?.user_metadata?.role;
+  return role === 'technician' || role === 'admin';
 };
 
 const isAdmin = (user: SupabaseUser | null) => {
-    return user?.user_metadata?.role === 'admin';
+  return user?.user_metadata?.role === 'admin';
 }
 
 const Header: React.FC = () => {
@@ -21,7 +21,7 @@ const Header: React.FC = () => {
     await supabase.auth.signOut();
     navigate('/login');
   };
-  
+
   const displayName = user?.user_metadata?.first_name ? `${user.user_metadata.first_name} ${user.user_metadata.last_name || ''}`.trim() : user?.email;
 
   return (
@@ -43,7 +43,8 @@ const Header: React.FC = () => {
               <li className="nav-item"><NavLink className="nav-link" to="/inventory">Inventário</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/reports">Relatórios</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/tickets">Tickets</NavLink></li>
-              
+              <li className="nav-item"><NavLink className="nav-link" to="/profile">Perfil</NavLink></li>
+
               {/* Admin-only Links */}
               {isAdmin(user) && (
                 <>
