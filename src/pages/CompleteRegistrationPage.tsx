@@ -16,8 +16,11 @@ const CompleteRegistrationPage: React.FC = () => {
         return <Navigate to="/login" replace />;
     }
 
-    // If user is here but not pending, redirect them appropriately
-    if (user.user_metadata.role !== 'pending_client') {
+    // If user is here but not pending and doesn't need to set password, redirect them
+    const isPending = user.user_metadata.role === 'pending_client';
+    const mustSet = user.user_metadata.must_set_password === true;
+
+    if (!isPending && !mustSet) {
         return <Navigate to="/" replace />;
     }
 
@@ -37,7 +40,10 @@ const CompleteRegistrationPage: React.FC = () => {
 
         setLoading(true);
         try {
-            const { error: updateError } = await supabase.auth.updateUser({ password });
+            const { error: updateError } = await supabase.auth.updateUser({
+                password,
+                data: { must_set_password: false } // Limpa o flag nos metadados
+            });
             if (updateError) {
                 throw updateError;
             }
@@ -49,13 +55,13 @@ const CompleteRegistrationPage: React.FC = () => {
             setLoading(false);
         }
     };
-    
+
     return (
         <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
             <div className="card shadow-sm" style={{ width: '100%', maxWidth: '500px' }}>
                 <div className="card-body p-4">
                     <h3 className="card-title text-center mb-4">Finalizar Registo</h3>
-                    
+
                     {success ? (
                         <div className="alert alert-success">
                             <p>{success}</p>

@@ -41,7 +41,7 @@ export const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
-  setSession: () => {},
+  setSession: () => { },
 });
 
 // Helper para verificar a role do utilizador
@@ -50,12 +50,16 @@ const userHasRole = (user: SupabaseUser | null, role: UserRole) => {
 };
 
 const isInternalUser = (user: SupabaseUser | null) => {
-    const role = user?.user_metadata?.role;
-    return role === 'technician' || role === 'admin';
+  const role = user?.user_metadata?.role;
+  return role === 'technician' || role === 'admin';
 }
 
 const isPendingClient = (user: SupabaseUser | null) => {
-    return user?.user_metadata?.role === 'pending_client';
+  return user?.user_metadata?.role === 'pending_client';
+}
+
+const mustSetPassword = (user: SupabaseUser | null) => {
+  return user?.user_metadata?.must_set_password === true;
 }
 
 // Componente para Rotas Protegidas
@@ -120,19 +124,19 @@ const AppRoutes: React.FC = () => {
           <Route path="/complete-registration" element={<CompleteRegistrationPage />} />
           <Route path="/unauthorized" element={<div>Acesso Negado</div>} />
 
-          <Route 
-            path="/" 
+          <Route
+            path="/"
             element={
-              !user 
-                ? <Navigate to="/login" /> 
-                : isPendingClient(user)
-                ? <Navigate to="/complete-registration" />
-                : isInternalUser(user) 
-                ? <Navigate to="/dashboard" /> 
-                : <Navigate to="/portal" />
-            } 
+              !user
+                ? <Navigate to="/login" />
+                : (isPendingClient(user) || mustSetPassword(user))
+                  ? <Navigate to="/complete-registration" />
+                  : isInternalUser(user)
+                    ? <Navigate to="/dashboard" />
+                    : <Navigate to="/portal" />
+            }
           />
-          
+
           {/* Rotas de Admin/Técnico */}
           <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><DashboardPage /></ProtectedRoute>} />
           <Route path="/calendar" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><CalendarPage /></ProtectedRoute>} />
