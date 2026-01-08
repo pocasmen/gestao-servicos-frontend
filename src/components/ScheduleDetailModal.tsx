@@ -60,17 +60,53 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   }, []);
 
   useEffect(() => {
-    if (clientId && Number(clientId) > 0) {
-      apiClient.get(`/api/clients/${Number(clientId)}/equipments`).then(res => setEquipments(res.data));
+    if (clientId) {
+      console.log(`[DEBUG] Fetching equipments for client ${clientId}`);
+      apiClient.get(`/api/clients/${clientId}/equipments`)
+        .then(res => {
+          console.log(`[DEBUG] Equipments fetched:`, res.data);
+          setEquipments(res.data);
+        })
+        .catch(err => console.error("Error fetching equipments:", err));
     } else {
       setEquipments([]);
     }
-    // Apenas limpar a seleção de equipamento quando o utilizador altera o cliente
-    // Evita limpar no ciclo inicial em que clientId ainda é vazio
-    if (event && clientId && String(event.clientId) !== String(clientId)) {
-      setEquipmentId('');
+  }, [clientId]);
+
+  // Handle equipment selection logic when equipments list or event changes
+  useEffect(() => {
+    if (event && event.equipmentId) {
+      // If we are editing an event, we want to keep the equipment selected if it exists in the list
+      // OR if the list is loading, we might need to wait. 
+      // But simpler: if clientId changed by user, clear equipment. 
+      // If clientId is same as event, keep equipment.
+      if (String(event.clientId) === String(clientId)) {
+        setEquipmentId(String(event.equipmentId));
+      } else {
+        // User changed client, so clear equipment
+        setEquipmentId('');
+      }
+    } else {
+      // Creating new event or no equipment set
+      // If user manually changed client, we should clear equipment if it doesn't belong to new client?
+      // Actually, if simply clientId changed and it's not the initial load matching the event, clear it.
+      // We can track if clientId matches event.clientId.
+
+      // Let's simplify: if the current equipmentId is NOT in the new equipments list, clear it.
+      // But we need equipments to be loaded first.
+      // Effectively, if equipments changed, check if equipmentId is valid.
     }
-  }, [clientId, event]);
+  }, [clientId, event]); // Simplified logic, real clearing happens in next effect
+
+  useEffect(() => {
+    // Validate selected equipment against loaded equipments
+    if (equipmentId && equipments.length > 0) {
+      const exists = equipments.find(e => String(e.id) === String(equipmentId));
+      if (!exists) {
+        setEquipmentId('');
+      }
+    }
+  }, [equipments, equipmentId]);
 
   const handleTechnicianChange = (technicianId: string) => {
     setTechnicianIds(prevIds =>
