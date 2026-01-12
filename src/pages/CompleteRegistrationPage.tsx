@@ -24,6 +24,23 @@ const CompleteRegistrationPage: React.FC = () => {
         return <Navigate to="/" replace />;
     }
 
+    if (isPending && !mustSet) {
+        return (
+            <div className="container d-flex justify-content-center align-items-center" style={{ minHeight: '100vh' }}>
+                <div className="card shadow-sm" style={{ width: '100%', maxWidth: '500px' }}>
+                    <div className="card-body p-4 text-center">
+                        <h3 className="card-title mb-3">Registo Pendente</h3>
+                        <p className="card-text mb-4">
+                            A sua conta aguarda aprovação de um administrador.
+                            Será notificado por email assim que a sua conta for ativada.
+                        </p>
+                        <Link to="/login" className="btn btn-primary">Voltar ao Login</Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');

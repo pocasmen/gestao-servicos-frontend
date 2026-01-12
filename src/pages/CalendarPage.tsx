@@ -59,7 +59,7 @@ const CalendarPage: React.FC = () => {
   const [reportToEdit, setReportToEdit] = useState<Report | null>(null);
   const [date, setDate] = useState(new Date());
   const [view, setView] = useState(Views.WEEK);
-  const [dirtyEventIds, setDirtyEventIds] = useState<Set<number>>(new Set());
+  const [dirtyEventIds, setDirtyEventIds] = useState<Set<string | number>>(new Set());
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -74,17 +74,38 @@ const CalendarPage: React.FC = () => {
 
   const fetchSchedules = useCallback(() => {
     apiClient.get('/api/schedules').then(response => {
-      const fetchedEvents = response.data.map((schedule: any): ScheduleEvent => {
+      const fetchedEvents: ScheduleEvent[] = [];
+
+      response.data.forEach((schedule: any) => {
         const serviceLabel = serviceTypeLabels[schedule.serviceType] || schedule.serviceType || 'Serviço';
         const equipLabel = schedule.equipmentInfo || 'Mod. Desconhecido';
         const clientLabel = schedule.clientName || 'Cliente Desconhecido';
+        const title = `${serviceLabel} - ${equipLabel} - ${clientLabel}`;
 
-        return {
+        const baseEvent = {
           ...schedule,
-          title: `${serviceLabel} - ${equipLabel} - ${clientLabel}`,
-          start: new Date(schedule.startDate),
-          end: new Date(schedule.endDate),
+          scheduleId: schedule.id,
+          title,
         };
+
+        if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
+          schedule.timeBlocks.forEach((tb: any, index: number) => {
+            fetchedEvents.push({
+              ...baseEvent,
+              id: tb.id ? `blk_${tb.id}` : `s${schedule.id}_idx${index}`, // Unique ID for calendar
+              // Store DB block id if available, handled via virtual ID for now
+              start: new Date(tb.start),
+              end: new Date(tb.end),
+            });
+          });
+        } else {
+          fetchedEvents.push({
+            ...baseEvent,
+            id: schedule.id,
+            start: new Date(schedule.startDate),
+            end: new Date(schedule.endDate),
+          });
+        }
       });
       setEvents(fetchedEvents);
     }).catch(console.error);
@@ -248,24 +269,61 @@ const CalendarPage: React.FC = () => {
   }, [fetchSchedules, handleCloseReportModal]);
 
   const handleSaveAll = useCallback(async () => {
-    const dirtyEvents = events.filter(e => dirtyEventIds.has(e.id));
-    if (dirtyEvents.length === 0) return;
+    if (dirtyEventIds.size === 0) return;
 
-    if (!window.confirm(`Tem a certeza que quer guardar ${dirtyEvents.length} alteração(ões)?`)) {
+    if (!window.confirm(`Tem a certeza que quer guardar alterações em ${dirtyEventIds.size} bloco(s)?`)) {
       return;
     }
 
-    const updatePromises = dirtyEvents.map(event => {
-      const payload = {
-        ...event,
-        startDate: event.start.toISOString(),
-        endDate: event.end.toISOString(),
-        technicianIds: event.technicians.map(t => t.id), // Map technicians to an array of IDs
-      };
-      // @ts-ignore
-      delete payload.technicians; // Remove the full technicians array from the payload
+    // 1. Identify distinct schedules that need update
+    const dirtyScheduleIds = new Set<number>();
+    dirtyEventIds.forEach(id => {
+      const ev = events.find(e => e.id === id);
+      if (ev) {
+        // Use scheduleId if available (for virtual events), or fallback to id (for legacy/single events)
+        const realId = ev.scheduleId !== undefined ? ev.scheduleId : (typeof ev.id === 'number' ? ev.id : Number(ev.id));
+        dirtyScheduleIds.add(realId);
+      }
+    });
 
-      return apiClient.put(`/api/schedules/${event.id}`, payload);
+    const updatePromises = Array.from(dirtyScheduleIds).map(schId => {
+      // 2. Gather all blocks for this schedule
+      const scheduleEvents = events.filter(e => (e.scheduleId === schId) || (e.id === schId));
+
+      if (scheduleEvents.length === 0) return Promise.resolve();
+
+      // 3. Calculate Min/Max for the parent schedule container
+      const times = scheduleEvents.flatMap(e => [e.start.getTime(), e.end.getTime()]);
+      const minTime = new Date(Math.min(...times));
+      const maxTime = new Date(Math.max(...times));
+
+      // 4. Construct payload
+      const baseEvent = scheduleEvents[0];
+
+      const timeBlocks = scheduleEvents.map(e => ({
+        start: e.start.toISOString(),
+        end: e.end.toISOString()
+      }));
+
+      const payload = {
+        ...baseEvent,
+        startDate: minTime.toISOString(),
+        endDate: maxTime.toISOString(),
+        technicianIds: baseEvent.technicians ? baseEvent.technicians.map((t: any) => t.id) : [],
+        timeBlocks
+      };
+
+      // Cleanup payload
+      // @ts-ignore
+      delete payload.technicians;
+      // @ts-ignore
+      delete payload.scheduleId;
+      // @ts-ignore
+      delete payload.id;
+      // @ts-ignore
+      delete payload.timeBlocks_raw; // just in case
+
+      return apiClient.put(`/api/schedules/${schId}`, payload);
     });
 
     try {
@@ -276,7 +334,7 @@ const CalendarPage: React.FC = () => {
       alert('Ocorreu um erro ao guardar as alterações.');
     } finally {
       setDirtyEventIds(new Set());
-      fetchSchedules(); // Re-sincronizar com o servidor
+      fetchSchedules();
     }
   }, [events, dirtyEventIds, fetchSchedules]);
 
@@ -291,19 +349,54 @@ const CalendarPage: React.FC = () => {
   const handleView = useCallback((newView: any) => setView(newView), []);
 
   const eventStyleGetter = useCallback((event: ScheduleEvent) => {
-    // Use the color of the first technician, or a default color.
-    const backgroundColor = event.technicians && event.technicians.length > 0 ? event.technicians[0].color : '#3174ad';
-
     let style: React.CSSProperties = {
-      backgroundColor: backgroundColor,
       borderRadius: '5px',
-      opacity: 0.8,
+      opacity: 0.9, // Aumentar opacidade para melhor impacto visual das cores
       color: 'white',
       border: '0px',
       display: 'block',
       boxShadow: 'none',
       transition: 'all 0.2s ease-in-out',
+      // Opção: Sombra Suave (Drop Shadow) - Mais elegante que o outline
+      textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
     };
+
+    // Lógica para Cores com Múltiplos Técnicos (Listras Diagonais)
+    if (event.technicians && event.technicians.length > 0) {
+      if (event.technicians.length === 1) {
+        // Apenas um técnico: cor sólida
+        style.backgroundColor = event.technicians[0].color || '#3174ad';
+      } else {
+        // Múltiplos técnicos: Listras diagonais
+        const stripeWidth = 20; // Largura das listras em px
+        // Gerar o gradiente
+        // Padrão: Cor1 0px, Cor1 20px, Cor2 20px, Cor2 40px, ...
+
+        let gradientStops = [];
+        for (let i = 0; i < event.technicians.length; i++) {
+          const tech = event.technicians[i];
+          const color = tech.color || '#3174ad';
+          const start = i * stripeWidth;
+          const end = (i + 1) * stripeWidth;
+          gradientStops.push(`${color} ${start}px`);
+          gradientStops.push(`${color} ${end}px`);
+        }
+
+        // Construir a string do gradiente repetitivo
+        // Para que se repita corretamente, precisamos percorrer todos os técnicos e depois o 'repeating' cuida do resto
+        // Mas o repeating-linear-gradient aceita comprimentos.
+        // Ex: repeating-linear-gradient(45deg, A 0, A 20px, B 20px, B 40px);
+
+        const stops = event.technicians.map((t, idx) => {
+          const c = t.color || '#3174ad';
+          return `${c} ${idx * stripeWidth}px, ${c} ${(idx + 1) * stripeWidth}px`;
+        }).join(', ');
+
+        style.backgroundImage = `repeating-linear-gradient(45deg, ${stops})`;
+      }
+    } else {
+      style.backgroundColor = '#3174ad'; // Default se não houver técnicos
+    }
 
     if (event.isCompleted) {
       if (event.hasReport) {

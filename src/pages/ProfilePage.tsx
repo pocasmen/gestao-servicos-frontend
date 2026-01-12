@@ -105,7 +105,12 @@ const ProfilePage: React.FC = () => {
                             </div>
                             <div className="col-md-6 mb-3">
                                 <label className="form-label">Função</label>
-                                <input type="text" className="form-control bg-light" value={user.role === 'admin' ? 'Administrador' : 'Técnico'} disabled readOnly />
+                                <input type="text" className="form-control bg-light" value={
+                                    user.role === 'super_admin' ? 'Super Administrador' :
+                                        user.role === 'admin' ? 'Administrador' :
+                                            user.role === 'office_staff' ? 'Administrativo' :
+                                                'Técnico'
+                                } disabled readOnly />
                             </div>
                         </div>
 

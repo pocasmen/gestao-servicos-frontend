@@ -8,13 +8,14 @@ interface ModalProps {
   user: AppUser | null;
   onUserUpdated: () => void;
   onUserDeleted: () => void;
+  currentUserRole: string;
 }
 
-const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUpdated, onUserDeleted }) => {
+const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUpdated, onUserDeleted, currentUserRole }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [color, setColor] = useState('#3174ad');
-  const [role, setRole] = useState<'technician' | 'admin'>('technician');
+  const [role, setRole] = useState<'technician' | 'admin' | 'office_staff' | 'super_admin'>('technician');
   const [telegramchatid, setTelegramchatid] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [botUsername, setBotUsername] = useState('');
@@ -138,10 +139,14 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
                   <select
                     className="form-select"
                     value={role}
-                    onChange={e => setRole(e.target.value as 'technician' | 'admin')}
+                    onChange={e => setRole(e.target.value as any)}
                   >
                     <option value="technician">Técnico</option>
+                    <option value="office_staff">Administrativo</option>
                     <option value="admin">Admin</option>
+                    {currentUserRole === 'super_admin' && (
+                      <option value="super_admin">Super Admin</option>
+                    )}
                   </select>
                 </div>
                 <div className="col-md-6 mb-3">

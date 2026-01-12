@@ -3,7 +3,7 @@ import DatePicker, { registerLocale } from 'react-datepicker';
 import { pt } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
 import apiClient, { searchPartByReference } from '../apiClient';
-import { ScheduleEvent, Client, Equipment, Technician, PartItem } from '../types';
+import { ScheduleEvent, Client, Equipment, Technician, PartItem, TimeBlock } from '../types';
 
 registerLocale('pt', pt);
 
@@ -16,8 +16,7 @@ interface ScheduleDetailModalProps {
 }
 
 const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClose, event, onScheduleUpdated, onManageReport }) => {
-  const [start, setStart] = useState(new Date());
-  const [end, setEnd] = useState(new Date());
+  const [timeBlocks, setTimeBlocks] = useState<{ start: Date; end: Date }[]>([{ start: new Date(), end: new Date() }]);
   const [clientId, setClientId] = useState<string>('');
   const [equipmentId, setEquipmentId] = useState<string>('');
   const [technicianIds, setTechnicianIds] = useState<string[]>([]);
@@ -32,31 +31,39 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
   const isCreating = !event || !event.id;
   const now = new Date();
+
+  // Derived start/end for logic checks
+  const derivedStart = timeBlocks.length > 0
+    ? new Date(Math.min(...timeBlocks.map(b => b.start.getTime())))
+    : new Date();
+
   const isPastOrCompleted = !isCreating && isCompleted;
-  const canComplete = !isCreating && !isCompleted && event && new Date(event.start) <= now;
+  const canComplete = !isCreating && !isCompleted && event && new Date(derivedStart) <= now;
   const isTicketScheduling = isCreating && !!event?.ticketId;
 
   useEffect(() => {
-    setStart(event?.start || new Date());
-    setEnd(event?.end || new Date());
+    if (event?.timeBlocks && event.timeBlocks.length > 0) {
+      setTimeBlocks(event.timeBlocks.map(tb => ({ start: new Date(tb.start), end: new Date(tb.end) })));
+    } else {
+      setTimeBlocks([{ start: event?.start || new Date(), end: event?.end || new Date() }]);
+    }
+
     setClientId(event?.clientId !== undefined ? String(event.clientId) : '');
     setEquipmentId(event?.equipmentId !== undefined ? String(event.equipmentId) : '');
     setTechnicianIds(event?.technicians?.map(t => String(t.id)) || []);
     setIsCompleted(event?.isCompleted || false);
     setInternalNotes(event?.internalNotes || '');
     setServiceType(event?.serviceType || (isTicketScheduling ? 'remota' : ''));
-    // Para agendamento de ticket novo, não criar linha de peças
     if (isTicketScheduling) {
       setParts([]);
     } else {
-      // Garante que há sempre uma linha de peça vazia se não houver peças
       setParts(event?.parts && event.parts.length > 0 ? event.parts : [{ id: undefined, quantity: 1, reference: '', designation: '' }]);
     }
   }, [event, isTicketScheduling]);
 
   useEffect(() => {
     apiClient.get('/api/clients').then(res => setClients(res.data));
-    apiClient.get('/api/technicians').then(res => setTechnicians((res.data || []).filter((t: any) => t.role === 'technician' || t.role === 'admin')));
+    apiClient.get('/api/technicians').then(res => setTechnicians((res.data || []).filter((t: any) => t.role === 'technician' || t.role === 'office_staff' || t.role === 'admin' || t.role === 'super_admin')));
   }, []);
 
   useEffect(() => {
@@ -107,6 +114,26 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       }
     }
   }, [equipments, equipmentId]);
+
+  const handleAddBlock = () => {
+    const lastBlock = timeBlocks[timeBlocks.length - 1];
+    // Default new block to start 1 hour after the last block ends?
+    // Or simply same day?
+    // Let's use simple new Date() but maybe aligned if possible.
+    setTimeBlocks([...timeBlocks, { start: new Date(), end: new Date() }]);
+  };
+
+  const handleRemoveBlock = (index: number) => {
+    if (timeBlocks.length <= 1) return;
+    setTimeBlocks(timeBlocks.filter((_, i) => i !== index));
+  };
+
+  const handleBlockChange = (index: number, field: 'start' | 'end', value: Date | null) => {
+    if (!value) return;
+    const newBlocks = [...timeBlocks];
+    newBlocks[index] = { ...newBlocks[index], [field]: value };
+    setTimeBlocks(newBlocks);
+  };
 
   const handleTechnicianChange = (technicianId: string) => {
     setTechnicianIds(prevIds =>
@@ -177,15 +204,24 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       alert('É obrigatório selecionar pelo menos um técnico/admin.');
       return;
     }
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+
+    if (timeBlocks.length === 0) {
+      alert('É obrigatório definir pelo menos um bloco de horário.');
+      return;
+    }
+
+    const sTime = new Date(Math.min(...timeBlocks.map(b => b.start.getTime())));
+    const eTime = new Date(Math.max(...timeBlocks.map(b => b.end.getTime())));
+
+    if (isNaN(sTime.getTime()) || isNaN(eTime.getTime())) {
       alert('Por favor, insira datas e horas válidas para o início e fim do agendamento.');
       return;
     }
 
     const scheduleData = {
       ...event,
-      startDate: start.toISOString(),
-      endDate: end.toISOString(),
+      startDate: sTime.toISOString(),
+      endDate: eTime.toISOString(),
       clientId: Number(clientId),
       equipmentId: Number(equipmentId),
       technicianIds,
@@ -193,6 +229,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       ticketId: event?.ticketId,
       internalNotes,
       serviceType,
+      timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
       parts: parts
         .filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '')
         .map(p => ({
@@ -205,11 +242,18 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     console.log('[DEBUG_SCHEDULE_MODAL] handleSave - sending:', scheduleData);
     // @ts-ignore
     delete scheduleData.technicians;
+    // @ts-ignore
+    delete scheduleData.scheduleId;
+    // @ts-ignore
+    delete scheduleData.id;
+
+    // Determine correct ID for PUT
+    const scheduleId = event?.scheduleId !== undefined ? event.scheduleId : (event?.id && typeof event.id === 'number' ? event.id : undefined);
 
     try {
       const response = isCreating
         ? await apiClient.post('/api/schedules', scheduleData)
-        : await apiClient.put(`/api/schedules/${event!.id}`, scheduleData);
+        : await apiClient.put(`/api/schedules/${scheduleId}`, scheduleData);
       console.log('[DEBUG_SCHEDULE_MODAL] handleSave - response:', response.data);
       onScheduleUpdated(response.data);
       onClose();
@@ -235,17 +279,36 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       alert('É obrigatório selecionar pelo menos um técnico/admin.');
       return;
     }
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      alert('Por favor, insira datas e horas válidas para o início e fim do agendamento.');
+
+    const sTime = new Date(Math.min(...timeBlocks.map(b => b.start.getTime())));
+    const eTime = new Date(Math.max(...timeBlocks.map(b => b.end.getTime())));
+
+    if (isNaN(sTime.getTime()) || isNaN(eTime.getTime())) {
+      alert('Por favor, insira datas e horas válidas.');
       return;
     }
 
-    const scheduleData = { ...event, startDate: start.toISOString(), endDate: end.toISOString(), clientId: Number(clientId), equipmentId: Number(equipmentId), technicianIds, isCompleted: true, ticketId: event?.ticketId, internalNotes, serviceType };
+    const scheduleData = {
+      ...event,
+      startDate: sTime.toISOString(),
+      endDate: eTime.toISOString(),
+      clientId: Number(clientId),
+      equipmentId: Number(equipmentId),
+      technicianIds,
+      isCompleted: true,
+      ticketId: event?.ticketId,
+      internalNotes,
+      serviceType,
+      timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() }))
+    };
     console.log('[DEBUG_SCHEDULE_MODAL] handleComplete - sending:', scheduleData);
     // @ts-ignore
     delete scheduleData.technicians;
+
+    const scheduleId = event?.scheduleId !== undefined ? event.scheduleId : (event?.id && typeof event.id === 'number' ? event.id : undefined);
+
     try {
-      const response = await apiClient.post(`/api/schedules/${event.id}/complete`, scheduleData);
+      const response = await apiClient.post(`/api/schedules/${scheduleId}/complete`, scheduleData);
       console.log('[DEBUG_SCHEDULE_MODAL] handleComplete - response:', response.data);
       onScheduleUpdated(response.data);
       onClose();
@@ -297,43 +360,61 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                   <option value="remota">Remota</option>
                 </select>
               </div>
-              <div className="row">
-                <div className="col-md-6">
-                  <div className="form-group">
-                    <label>Início</label>
-                    <DatePicker
-                      selected={start}
-                      onChange={(date: Date | null) => setStart(date || new Date())}
-                      showTimeSelect
-                      dateFormat="dd/MM/yyyy HH:mm"
-                      timeFormat="HH:mm"
-                      timeIntervals={15}
-                      locale="pt"
-                      className="form-control"
-                      disabled={isPastOrCompleted}
-                      required
-                    />
-
-                  </div>
+              <div className="form-group mb-3">
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <label>Horários do Serviço</label>
+                  {!isPastOrCompleted && (
+                    <button type="button" className="btn btn-sm btn-outline-primary" onClick={handleAddBlock}>
+                      + Adicionar Horário
+                    </button>
+                  )}
                 </div>
-                <div className="col-md-6">
-                  <div className="form-group">
-                    <label>Fim</label>
-                    <DatePicker
-                      selected={end}
-                      onChange={(date: Date | null) => setEnd(date || new Date())}
-                      showTimeSelect
-                      dateFormat="dd/MM/yyyy HH:mm"
-                      timeFormat="HH:mm"
-                      timeIntervals={15}
-                      locale="pt"
-                      className="form-control"
-                      disabled={isPastOrCompleted}
-                      required
-                    />
 
+                {timeBlocks.map((block, index) => (
+                  <div key={index} className="row mb-3 align-items-end border-bottom pb-3">
+                    <div className="col-md-5">
+                      <div className="form-group mb-0">
+                        <label className="small text-muted">Início ({index + 1})</label>
+                        <DatePicker
+                          selected={block.start}
+                          onChange={(date: Date | null) => handleBlockChange(index, 'start', date)}
+                          showTimeSelect
+                          dateFormat="dd/MM/yyyy HH:mm"
+                          timeFormat="HH:mm"
+                          timeIntervals={15}
+                          locale="pt"
+                          className="form-control"
+                          disabled={isPastOrCompleted}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-5">
+                      <div className="form-group mb-0">
+                        <label className="small text-muted">Fim ({index + 1})</label>
+                        <DatePicker
+                          selected={block.end}
+                          onChange={(date: Date | null) => handleBlockChange(index, 'end', date)}
+                          showTimeSelect
+                          dateFormat="dd/MM/yyyy HH:mm"
+                          timeFormat="HH:mm"
+                          timeIntervals={15}
+                          locale="pt"
+                          className="form-control"
+                          disabled={isPastOrCompleted}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-2">
+                      {!isPastOrCompleted && timeBlocks.length > 1 && (
+                        <button type="button" className="btn btn-outline-danger btn-sm w-100" onClick={() => handleRemoveBlock(index)}>
+                          X
+                        </button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
               <div className="form-group">
                 <label>Cliente</label>

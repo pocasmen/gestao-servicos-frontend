@@ -6,6 +6,8 @@ interface Client {
   id: number;
   name: string;
   address: string;
+  city: string;
+  postCode: string;
   nif: string;
 }
 
@@ -13,16 +15,21 @@ interface Client {
 const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) => {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [postCode, setPostCode] = useState('');
   const [nif, setNif] = useState('');
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    apiClient.post('/api/clients', { name, address, nif })
+    apiClient.post('/api/clients', { name, address, city, postCode, nif })
       .then(() => {
         // Limpa o formulário e notifica o componente pai
         setName('');
         setAddress('');
+        setCity('');
+        setPostCode('');
         setNif('');
+        alert('Cliente criado com sucesso!');
         onClientAdded();
       })
       .catch((error: any) => {
@@ -37,21 +44,32 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
       <div className="card-body">
         <form onSubmit={handleSubmit}>
           <div className="row">
-            <div className="col-md-4 mb-2">
+            <div className="col-md-10 mb-2">
               <label className="form-label">Nome</label>
               <input type="text" className="form-control" value={name} onChange={e => setName(e.target.value)} required />
             </div>
-            <div className="col-md-4 mb-2">
-              <label className="form-label">Morada</label>
-              <input type="text" className="form-control" value={address} onChange={e => setAddress(e.target.value)} />
-            </div>
-            <div className="col-md-3 mb-2">
+            <div className="col-md-2 mb-2">
               <label className="form-label">NIF</label>
               <input type="text" className="form-control" value={nif} onChange={e => setNif(e.target.value)} />
             </div>
-            <div className="col-md-1 mb-2 d-flex align-items-end">
-              <button type="submit" className="btn btn-success w-100">Criar</button>
+          </div>
+          <div className="row">
+            <div className="col-md-7 mb-2">
+              <label className="form-label">Morada</label>
+              <input type="text" className="form-control" value={address} onChange={e => setAddress(e.target.value)} />
             </div>
+            <div className="col-md-2 mb-2">
+              <label className="form-label">Cód. Postal</label>
+              <input type="text" className="form-control" value={postCode} onChange={e => setPostCode(e.target.value)} />
+            </div>
+            <div className="col-md-3 mb-2">
+              <label className="form-label">Localidade</label>
+              <input type="text" className="form-control" value={city} onChange={e => setCity(e.target.value)} />
+            </div>
+            <div className="col-md-12 mb-2 d-flex justify-content-end">
+              <button type="submit" className="btn btn-success">Criar Cliente</button>
+            </div>
+
           </div>
         </form>
       </div>
@@ -89,7 +107,10 @@ const ClientList: React.FC<{
                 clients.map(client => (
                   <tr key={client.id}>
                     <td>{client.name}</td>
-                    <td>{client.address}</td>
+                    <td>
+                      <div>{client.address}</div>
+                      <small className="text-muted">{client.postCode} {client.city}</small>
+                    </td>
                     <td>{client.nif}</td>
                     <td className="text-end">
                       <button className="btn btn-sm btn-outline-primary me-2" onClick={() => onInvite(client)} title="Convidar Utilizador">
@@ -122,12 +143,16 @@ const EditClientModal: React.FC<{
 }> = ({ isOpen, onClose, client, onSave }) => {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [postCode, setPostCode] = useState('');
   const [nif, setNif] = useState('');
 
   useEffect(() => {
     if (client) {
       setName(client.name);
       setAddress(client.address || '');
+      setCity(client.city || '');
+      setPostCode(client.postCode || '');
       setNif(client.nif || '');
     }
   }, [client]);
@@ -135,7 +160,7 @@ const EditClientModal: React.FC<{
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (client) {
-      onSave({ ...client, name, address, nif });
+      onSave({ ...client, name, address, city, postCode, nif });
     }
   };
 
@@ -158,6 +183,16 @@ const EditClientModal: React.FC<{
               <div className="mb-3">
                 <label className="form-label">Morada</label>
                 <input type="text" className="form-control" value={address} onChange={e => setAddress(e.target.value)} />
+              </div>
+              <div className="row">
+                <div className="col-md-8 mb-3">
+                  <label className="form-label">Localidade</label>
+                  <input type="text" className="form-control" value={city} onChange={e => setCity(e.target.value)} />
+                </div>
+                <div className="col-md-4 mb-3">
+                  <label className="form-label">Cód. Postal</label>
+                  <input type="text" className="form-control" value={postCode} onChange={e => setPostCode(e.target.value)} />
+                </div>
               </div>
               <div className="mb-3">
                 <label className="form-label">NIF</label>

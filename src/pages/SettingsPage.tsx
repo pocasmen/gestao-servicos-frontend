@@ -9,12 +9,21 @@ const SettingsPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [emailTemplates, setEmailTemplates] = useState<Record<string, any>>({});
+  const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>('');
+  const [templateLoading, setTemplateLoading] = useState(false);
 
   const fetchSettings = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await apiClient.get('/api/settings');
       setSettings(response.data);
+
+      const templatesResponse = await apiClient.get('/api/admin/email-templates');
+      setEmailTemplates(templatesResponse.data);
+      if (Object.keys(templatesResponse.data).length > 0) {
+        setSelectedTemplateKey(Object.keys(templatesResponse.data)[0]);
+      }
     } catch (err) {
       console.error("Erro ao carregar configurações:", err);
       setError('Não foi possível carregar as configurações.');
@@ -29,7 +38,7 @@ const SettingsPage: React.FC = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    
+
     let finalValue = value;
     if (type === 'checkbox') {
       finalValue = (e.target as HTMLInputElement).checked.toString();
@@ -38,11 +47,26 @@ const SettingsPage: React.FC = () => {
     setSettings(prev => ({ ...prev, [name]: finalValue }));
   };
 
+  const handleTemplateChange = (field: 'subject' | 'body', value: string) => {
+    if (!selectedTemplateKey) return;
+    setEmailTemplates(prev => ({
+      ...prev,
+      [selectedTemplateKey]: {
+        ...prev[selectedTemplateKey],
+        [field]: value
+      }
+    }));
+  };
+
   const handleSave = async () => {
     setError('');
     setSuccess('');
     try {
       await apiClient.put('/api/settings', settings);
+
+      // Save templates
+      await apiClient.put('/api/admin/email-templates', emailTemplates);
+
       setSuccess('Configurações guardadas com sucesso!');
     } catch (err) {
       console.error("Erro ao guardar configurações:", err);
@@ -54,6 +78,8 @@ const SettingsPage: React.FC = () => {
     return <div className="container mt-4"><p>A carregar configurações...</p></div>;
   }
 
+  const selectedTemplate = emailTemplates[selectedTemplateKey];
+
   return (
     <div className="container mt-4">
       <h2>Configurações Gerais</h2>
@@ -61,7 +87,7 @@ const SettingsPage: React.FC = () => {
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      <div className="card">
+      <div className="card mb-4">
         <div className="card-header">
           Notificações de Tickets Pendentes
         </div>
@@ -97,8 +123,62 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      <button className="btn btn-primary mt-3" onClick={handleSave}>
-        Guardar Alterações
+      <div className="card mb-4">
+        <div className="card-header">
+          Modelos de Email
+        </div>
+        <div className="card-body">
+          <div className="mb-3">
+            <label htmlFor="templateSelect" className="form-label">Selecionar Template</label>
+            <select
+              id="templateSelect"
+              className="form-select"
+              value={selectedTemplateKey}
+              onChange={(e) => setSelectedTemplateKey(e.target.value)}
+            >
+              {Object.entries(emailTemplates).map(([key, tpl]: [string, any]) => (
+                <option key={key} value={key}>{tpl.name || key}</option>
+              ))}
+            </select>
+          </div>
+
+          {selectedTemplate && (
+            <>
+              <div className="mb-3">
+                <label className="form-label">Assunto</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={selectedTemplate.subject || ''}
+                  onChange={(e) => handleTemplateChange('subject', e.target.value)}
+                />
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Corpo (HTML)</label>
+                <textarea
+                  className="form-control"
+                  rows={10}
+                  value={selectedTemplate.body || ''}
+                  onChange={(e) => handleTemplateChange('body', e.target.value)}
+                />
+                <div className="form-text">
+                  Pode usar HTML. Variáveis disponíveis: <code>{"{{login_url}}"}</code>
+                </div>
+              </div>
+              <div className="mb-3">
+                <label className="form-label">Pré-visualização</label>
+                <div
+                  style={{ border: '1px solid #ced4da', padding: '15px', borderRadius: '4px', backgroundColor: '#fff', minHeight: '150px' }}
+                  dangerouslySetInnerHTML={{ __html: selectedTemplate.body?.replace(/{{login_url}}/g, '#') || '' }}
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      <button className="btn btn-primary" onClick={handleSave}>
+        Guardar Todas as Alterações
       </button>
     </div>
   );

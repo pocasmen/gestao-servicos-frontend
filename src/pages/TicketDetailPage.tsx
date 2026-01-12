@@ -33,6 +33,7 @@ export interface DetailedTicket extends Ticket {
 interface PresenceMessage {
   text: string;
   type: 'online' | 'offline';
+  userId?: string;
 }
 
 const TicketDetailPage: React.FC = () => {
@@ -232,10 +233,10 @@ const TicketDetailPage: React.FC = () => {
           const isNowOnline = p.ts > 0 && (Date.now() - p.ts < 60000);
 
           if (wasOnline !== isNowOnline) {
-            const userName = getUserDisplayNameRef.current(p.userId);
-            const msg = `${userName} está agora ${isNowOnline ? 'online' : 'offline'}.`;
+            const tempName = getUserDisplayNameRef.current(p.userId);
+            const msg = `${tempName} está agora ${isNowOnline ? 'online' : 'offline'}.`;
             setPresenceQueue(q => {
-              const newQueue: PresenceMessage[] = [...q, { text: msg, type: isNowOnline ? 'online' : 'offline' }];
+              const newQueue: PresenceMessage[] = [...q, { text: msg, type: isNowOnline ? 'online' : 'offline', userId: p.userId }];
               return newQueue.length > 10 ? newQueue.slice(-10) : newQueue;
             });
           }
@@ -337,9 +338,11 @@ const TicketDetailPage: React.FC = () => {
 
     const techMsgs = (ticket?.responses || []).map(r => {
       const dateMs = new Date(r.created_at).getTime();
-      const isUnread = !!(r as any).isNew && r.role === 'client';
+      const role = r.role || 'gestor';
+      const isClient = role === 'client' || role === 'pending_client';
+      const isUnread = !!(r as any).isNew && isClient;
       return {
-        isClient: r.role === 'client',
+        isClient,
         content: r.message,
         dateMs,
         displayTs: format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }),
@@ -515,7 +518,10 @@ const TicketDetailPage: React.FC = () => {
           style={{ width: 'fit-content', zIndex: 1050, cursor: 'pointer' }}
           onClick={() => setShowPresencePopup(false)}
         >
-          {currentPresenceMsg.text}
+          {(() => {
+            const name = currentPresenceMsg.userId ? (userNameCache[currentPresenceMsg.userId] || userIdToNameMap[currentPresenceMsg.userId]) : null;
+            return name ? `${name} está agora ${currentPresenceMsg.type === 'online' ? 'online' : 'offline'}.` : currentPresenceMsg.text;
+          })()}
         </div>
       )}
       <div className="row">
@@ -619,8 +625,8 @@ const TicketDetailPage: React.FC = () => {
                       <div className="thread-meta d-flex flex-column">
                         <strong className="thread-author mb-0">{(m as any).authorName || (m.isClient ? 'Cliente' : 'Gestor')}</strong>
                         <small className="thread-role d-block mb-0">
-                          {m.role === 'client' ? <img src="/images/client-icon.png" alt="Cliente" className="me-2" style={{ width: '1.5em', height: '1.5em' }} /> : <img src="/images/technician-icon.png" alt="Técnico" className="me-2" style={{ width: '1.5em', height: '1.5em' }} />}
-                          {m.role === 'client' ? 'Cliente' : 'Técnico'}
+                          {m.role === 'client' || m.role === 'pending_client' ? <img src="/images/client-icon.png" alt="Cliente" className="me-2" style={{ width: '1.5em', height: '1.5em' }} /> : <img src="/images/technician-icon.png" alt="Técnico" className="me-2" style={{ width: '1.5em', height: '1.5em' }} />}
+                          {m.role === 'client' || m.role === 'pending_client' ? 'Cliente' : 'Técnico'}
                         </small>
                         <small className="thread-timestamp">{m.displayTs}</small>
                       </div>

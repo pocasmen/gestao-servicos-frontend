@@ -34,6 +34,7 @@ interface DetailedTicket extends Ticket {
 interface PresenceMessage {
   text: string;
   type: 'online' | 'offline';
+  userId?: string;
 }
 
 const ClientTicketDetailPage: React.FC = () => {
@@ -177,10 +178,10 @@ const ClientTicketDetailPage: React.FC = () => {
           const isNowOnline = p.ts > 0 && (Date.now() - p.ts < 60000);
 
           if (wasOnline !== isNowOnline) {
-            const userName = getUserDisplayNameRef.current(p.userId);
-            const msg = `${userName} está agora ${isNowOnline ? 'online' : 'offline'}.`;
+            const tempName = getUserDisplayNameRef.current(p.userId);
+            const msg = `${tempName} está agora ${isNowOnline ? 'online' : 'offline'}.`;
             setPresenceQueue(q => {
-              const newQueue: PresenceMessage[] = [...q, { text: msg, type: isNowOnline ? 'online' : 'offline' }];
+              const newQueue: PresenceMessage[] = [...q, { text: msg, type: isNowOnline ? 'online' : 'offline', userId: p.userId }];
               return newQueue.length > 10 ? newQueue.slice(-10) : newQueue;
             });
           }
@@ -335,7 +336,7 @@ const ClientTicketDetailPage: React.FC = () => {
       const authorName = r.authorName || 'Técnico';
       const avatarText = authorName.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2);
       const isUnread = !!(r as any).isNew;
-      const isClient = r.role === 'client';
+      const isClient = r.role === 'client' || r.role === 'pending_client';
       return { isClient, authorName, avatarText, content: r.message, dateMs, displayTs: format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }), isUnread, role: r.role || 'gestor', authorId: r.user_id || r.technician_id };
     });
 
@@ -507,7 +508,10 @@ const ClientTicketDetailPage: React.FC = () => {
           style={{ width: 'fit-content', zIndex: 1050, cursor: 'pointer' }}
           onClick={() => setShowPresencePopup(false)}
         >
-          {currentPresenceMsg.text}
+          {(() => {
+            const name = currentPresenceMsg.userId ? (userNameCache[currentPresenceMsg.userId] || userIdToNameMap[currentPresenceMsg.userId]) : null;
+            return name ? `${name} está agora ${currentPresenceMsg.type === 'online' ? 'online' : 'offline'}.` : currentPresenceMsg.text;
+          })()}
         </div>
       )}
       <div className="row">

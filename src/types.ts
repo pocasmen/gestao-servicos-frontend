@@ -1,7 +1,8 @@
 import { Event as BigCalendarEvent } from 'react-big-calendar';
 
 export interface ScheduleEvent {
-  id: number;
+  id: number | string;
+  scheduleId?: number; // Real DB ID if 'id' is virtual
   title: string;
   start: Date;
   end: Date;
@@ -17,6 +18,13 @@ export interface ScheduleEvent {
   parts?: PartItem[]; // Adicionado
   clientName?: string;
   equipmentInfo?: string;
+  timeBlocks?: TimeBlock[];
+}
+
+export interface TimeBlock {
+  id?: number;
+  start: Date;
+  end: Date;
 }
 
 

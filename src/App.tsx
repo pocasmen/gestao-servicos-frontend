@@ -29,7 +29,7 @@ import ProfilePage from './pages/ProfilePage';
 import './index.css';
 import './theme.css';
 
-type UserRole = 'client' | 'technician' | 'admin';
+type UserRole = 'client' | 'technician' | 'office_staff' | 'admin' | 'super_admin';
 
 interface AuthContextType {
   user: SupabaseUser | null;
@@ -52,7 +52,7 @@ const userHasRole = (user: SupabaseUser | null, role: UserRole) => {
 
 const isInternalUser = (user: SupabaseUser | null) => {
   const role = user?.user_metadata?.role;
-  return role === 'technician' || role === 'admin';
+  return role === 'technician' || role === 'office_staff' || role === 'admin' || role === 'super_admin';
 }
 
 const isPendingClient = (user: SupabaseUser | null) => {
@@ -139,20 +139,20 @@ const AppRoutes: React.FC = () => {
           />
 
           {/* Rotas de Admin/Técnico */}
-          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><DashboardPage /></ProtectedRoute>} />
-          <Route path="/calendar" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><CalendarPage /></ProtectedRoute>} />
-          <Route path="/clients" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><ClientsPage /></ProtectedRoute>} />
-          <Route path="/equipments" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><EquipmentsPage /></ProtectedRoute>} />
-          <Route path="/equipments/:id/history" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><EquipmentHistoryPage /></ProtectedRoute>} />
-          <Route path="/inventory" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><InventoryPage /></ProtectedRoute>} />
-          <Route path="/technicians" element={<ProtectedRoute allowedRoles={['admin']}><TechniciansPage /></ProtectedRoute>} />
-          <Route path="/admin/pending-users" element={<ProtectedRoute allowedRoles={['admin']}><PendingUsersPage /></ProtectedRoute>} />
-          <Route path="/reports" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><ReportsPage /></ProtectedRoute>} />
-          <Route path="/report/print/:id" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><ReportPrintPage /></ProtectedRoute>} />
-          <Route path="/tickets" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><TicketsPage /></ProtectedRoute>} />
-          <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><TicketDetailPage /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute allowedRoles={['admin']}><SettingsPage /></ProtectedRoute>} /> {/* Apenas Admin pode mexer nas configs */}
-          <Route path="/profile" element={<ProtectedRoute allowedRoles={['technician', 'admin']}><ProfilePage /></ProtectedRoute>} />
+          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><DashboardPage /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><CalendarPage /></ProtectedRoute>} />
+          <Route path="/clients" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ClientsPage /></ProtectedRoute>} />
+          <Route path="/equipments" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><EquipmentsPage /></ProtectedRoute>} />
+          <Route path="/equipments/:id/history" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><EquipmentHistoryPage /></ProtectedRoute>} />
+          <Route path="/inventory" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><InventoryPage /></ProtectedRoute>} />
+          <Route path="/technicians" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']}><TechniciansPage /></ProtectedRoute>} />
+          <Route path="/admin/pending-users" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']}><PendingUsersPage /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ReportsPage /></ProtectedRoute>} />
+          <Route path="/report/print/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ReportPrintPage /></ProtectedRoute>} />
+          <Route path="/tickets" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><TicketsPage /></ProtectedRoute>} />
+          <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><TicketDetailPage /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute allowedRoles={['super_admin']}><SettingsPage /></ProtectedRoute>} /> {/* Apenas SuperAdmin pode mexer nas configs */}
+          <Route path="/profile" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ProfilePage /></ProtectedRoute>} />
 
           {/* Rotas de Cliente (Flattened) */}
           <Route path="/portal" element={<Navigate to="/portal/tickets" replace />} />

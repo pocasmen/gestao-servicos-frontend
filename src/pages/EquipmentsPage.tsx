@@ -21,7 +21,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
-  const [clientId, setClientId] = useState<number | string>('');
+  const [clientName, setClientName] = useState('');
   const [clients, setClients] = useState<Client[]>([]);
 
   useEffect(() => {
@@ -33,16 +33,19 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!clientId) {
-      alert('Por favor, selecione um cliente.');
+    const selectedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase().trim());
+    if (!selectedClient) {
+      alert('Por favor, selecione um cliente válido da lista.');
       return;
     }
-    apiClient.post('/api/equipments', { brand, model, serialNumber, clientId: Number(clientId) })
+
+    apiClient.post('/api/equipments', { brand, model, serialNumber, clientId: selectedClient.id })
       .then(() => {
         setBrand('');
         setModel('');
         setSerialNumber('');
-        setClientId('');
+        setClientName('');
+        alert('Equipamento criado com sucesso!');
         onEquipmentAdded();
       })
       .catch((error: any) => {
@@ -56,23 +59,30 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
       <div className="card-header bg-primary text-white">Novo Equipamento</div>
       <div className="card-body">
         <form onSubmit={handleSubmit}>
-          <div className="row">
-            <div className="col-md-3 mb-2">
+          <div className="d-flex flex-wrap align-items-end">
+            <div className="pe-2 mb-2" style={{ width: '40%' }}>
               <label className="form-label">Cliente (Proprietário)</label>
-              <select className="form-control" value={clientId} onChange={e => setClientId(e.target.value)} required>
-                <option value="">Selecione...</option>
-                {clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
-              </select>
+              <input
+                className="form-control"
+                list="clientOptions"
+                value={clientName}
+                onChange={e => setClientName(e.target.value)}
+                placeholder="Pesquisar cliente..."
+                required
+              />
+              <datalist id="clientOptions">
+                {clients.map(client => <option key={client.id} value={client.name} />)}
+              </datalist>
             </div>
-            <div className="col-md-3 mb-2">
+            <div className="pe-2 mb-2" style={{ width: '20%' }}>
               <label className="form-label">Marca</label>
               <input type="text" className="form-control" value={brand} onChange={e => setBrand(e.target.value)} required />
             </div>
-            <div className="col-md-3 mb-2">
+            <div className="pe-2 mb-2" style={{ width: '20%' }}>
               <label className="form-label">Modelo</label>
               <input type="text" className="form-control" value={model} onChange={e => setModel(e.target.value)} required />
             </div>
-            <div className="col-md-3 mb-2">
+            <div className="mb-2" style={{ width: '20%' }}>
               <label className="form-label">Nº de Série</label>
               <input type="text" className="form-control" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} required />
             </div>

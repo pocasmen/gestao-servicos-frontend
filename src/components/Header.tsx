@@ -6,11 +6,17 @@ import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const isInternalUser = (user: SupabaseUser | null) => {
   const role = user?.user_metadata?.role;
-  return role === 'technician' || role === 'admin';
+  return role === 'technician' || role === 'office_staff' || role === 'admin' || role === 'super_admin';
 };
 
-const isAdmin = (user: SupabaseUser | null) => {
-  return user?.user_metadata?.role === 'admin';
+const isUserAdmin = (user: SupabaseUser | null) => {
+  const role = user?.user_metadata?.role;
+  return role === 'admin' || role === 'super_admin';
+}
+
+const isSystemAdmin = (user: SupabaseUser | null) => {
+  const role = user?.user_metadata?.role;
+  return role === 'super_admin';
 }
 
 const Header: React.FC = () => {
@@ -45,13 +51,17 @@ const Header: React.FC = () => {
               <li className="nav-item"><NavLink className="nav-link" to="/tickets">Tickets</NavLink></li>
               <li className="nav-item"><NavLink className="nav-link" to="/profile">Perfil</NavLink></li>
 
-              {/* Admin-only Links */}
-              {isAdmin(user) && (
+              {/* User Management (Admin & SuperAdmin) */}
+              {isUserAdmin(user) && (
                 <>
                   <li className="nav-item"><NavLink className="nav-link" to="/technicians">Utilizadores</NavLink></li>
                   <li className="nav-item"><NavLink className="nav-link" to="/admin/pending-users">Aprovações</NavLink></li>
-                  <li className="nav-item"><NavLink className="nav-link" to="/settings">Configurações</NavLink></li>
                 </>
+              )}
+
+              {/* System Settings (SuperAdmin Only) */}
+              {isSystemAdmin(user) && (
+                <li className="nav-item"><NavLink className="nav-link" to="/settings">Configurações</NavLink></li>
               )}
             </ul>
           )}
