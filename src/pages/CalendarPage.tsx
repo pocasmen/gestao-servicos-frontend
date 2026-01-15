@@ -123,8 +123,13 @@ const CalendarPage: React.FC = () => {
   const handleManageReport = useCallback(async (event: ScheduleEvent) => {
     handleCloseModal();
     setSelectedEvent(event);
+    const numericId = event.scheduleId || (typeof event.id === 'number' ? event.id : undefined);
+    if (!numericId) {
+      alert("Não foi possível identificar o agendamento associado.");
+      return;
+    }
     try {
-      const response = await apiClient.get<Report>(`/api/reports/by-schedule/${event.id}`);
+      const response = await apiClient.get<Report>(`/api/reports/by-schedule/${numericId}`);
       setReportToEdit(response.data);
     } catch (error: any) {
       if (error.response && error.response.status === 404) {
@@ -186,7 +191,7 @@ const CalendarPage: React.FC = () => {
         navigate(location.pathname, { replace: true, state: {} });
       }
     } else if (ticketToReport) {
-      const scheduleEvent = events.find(e => e.id === (ticketToReport as Ticket).scheduleId);
+      const scheduleEvent = events.find(e => (e.scheduleId === (ticketToReport as Ticket).scheduleId) || (e.id === (ticketToReport as Ticket).scheduleId));
       if (scheduleEvent) {
         handleManageReport(scheduleEvent);
         navigate(location.pathname, { replace: true, state: {} });

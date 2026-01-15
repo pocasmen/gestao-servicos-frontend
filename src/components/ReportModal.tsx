@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../apiClient';
+import { AuthContext } from '../App';
 import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician } from '../types';
+import SignaturePad from './SignaturePad';
+
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -60,11 +63,16 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [description, setDescription] = useState('');
   const [serviceTypes, setServiceTypes] = useState<string[]>([]); // Alterado para array
   const [internalNotes, setInternalNotes] = useState(''); // Novo campo interno
+  const [signature, setSignature] = useState<string | undefined>(undefined);
+  const [technicianSignature, setTechnicianSignature] = useState<string | undefined>(undefined);
+
+  const { user: authUser } = useContext(AuthContext);
+
 
   const [allClients, setAllClients] = useState<Client[]>([]);
   const [clientEquipments, setClientEquipments] = useState<Equipment[]>([]);
   const [allTechnicians, setAllTechnicians] = useState<Technician[]>([]);
-  const [technicianIds, setTechnicianIds] = useState<number[]>([]);
+  const [technicianIds, setTechnicianIds] = useState<string[]>([]);
 
   const isEditing = reportToEdit !== null;
 
@@ -87,6 +95,9 @@ const ReportModal: React.FC<ReportModalProps> = ({
       setInternalNotes(reportToEdit.internalNotes || ''); // Carregar notas internas
       const loadedParts = reportToEdit.parts && reportToEdit.parts.length > 0 ? reportToEdit.parts : [];
       setParts([...loadedParts, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }]);
+      setSignature(reportToEdit.signature);
+      setTechnicianSignature(reportToEdit.technician_signature);
+
 
     } else if (!isEditing && schedule) {
       // Modo de Criação: preencher com dados do agendamento
@@ -94,8 +105,16 @@ const ReportModal: React.FC<ReportModalProps> = ({
       setEquipmentId(schedule.equipmentId);
       setTechnicianIds(schedule.technicians?.map(t => t.id) || []); // Pre-fill from schedule
       setServiceDate(new Date(schedule.start!).toISOString().slice(0, 16));
-      const calculatedHours = calculateHours(new Date(schedule.start!), new Date(schedule.end!));
-      setHours(calculatedHours);
+
+      let totalCalculatedHours = 0;
+      if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
+        schedule.timeBlocks.forEach(block => {
+          totalCalculatedHours += calculateHours(new Date(block.start), new Date(block.end));
+        });
+      } else {
+        totalCalculatedHours = calculateHours(new Date(schedule.start!), new Date(schedule.end!));
+      }
+      setHours(totalCalculatedHours);
 
       const scheduledParts = (schedule.parts || []).map(p => ({
         ...p,
@@ -116,7 +135,19 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
       // Passar as notas internas do agendamento para o relatório
       setInternalNotes(schedule.internalNotes || '');
+      setSignature(undefined);
+
+      // Buscar assinatura do técnico logado para inclusão automática
+      if (authUser) {
+        apiClient.get('/api/technicians').then(res => {
+          const profile = res.data.find((p: any) => p.id === authUser.id);
+          if (profile && profile.signature) {
+            setTechnicianSignature(profile.signature);
+          }
+        });
+      }
     }
+
   }, [schedule, reportToEdit, isEditing]);
 
   useEffect(() => {
@@ -178,7 +209,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
     );
   };
 
-  const handleTechnicianChange = (technicianId: number) => {
+  const handleTechnicianChange = (technicianId: string) => {
     setTechnicianIds(prevIds =>
       prevIds.includes(technicianId)
         ? prevIds.filter(id => id !== technicianId)
@@ -189,7 +220,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!signature) {
+      alert("Por favor, capture a assinatura do cliente antes de guardar o relatório.");
+      return;
+    }
+
     const partsToSubmit = parts.filter(p => p.reference || p.designation);
+
 
     for (const part of partsToSubmit) {
       if (part.reference && part.designation && !part.isDesignationLocked) {
@@ -204,7 +241,9 @@ const ReportModal: React.FC<ReportModalProps> = ({
     const reportData = {
       clientId: Number(clientId),
       equipmentId: Number(equipmentId),
-      scheduleId: isEditing ? reportToEdit.scheduleId : schedule!.id,
+      scheduleId: isEditing
+        ? reportToEdit.scheduleId
+        : (schedule?.scheduleId || (typeof schedule?.id === 'number' ? schedule.id : undefined)),
       technicianIds: technicianIds,
       serviceDate,
       hours: Number(hours),
@@ -212,8 +251,11 @@ const ReportModal: React.FC<ReportModalProps> = ({
       description,
       damage, // Incluir o novo campo
       serviceType: serviceTypes, // Enviar o array
-      internalNotes // Enviar notas internas
+      internalNotes, // Enviar notas internas
+      signature, // Enviar assinatura
+      technician_signature: technicianSignature // Enviar assinatura do técnico
     };
+
 
     const saveRequest = isEditing
       ? apiClient.put(`/api/reports/${reportToEdit.id}`, reportData)
@@ -305,6 +347,20 @@ const ReportModal: React.FC<ReportModalProps> = ({
                 <label>Data e Hora do Serviço</label>
                 <input type="datetime-local" className="form-control" value={serviceDate} onChange={e => setServiceDate(e.target.value)} required />
               </div>
+
+              {schedule?.timeBlocks && schedule.timeBlocks.length > 0 && (
+                <div className="alert alert-info py-1 px-2 mt-2" style={{ fontSize: '0.85rem' }}>
+                  <strong>Blocos de Horário do Agendamento:</strong>
+                  <ul className="mb-0 ps-3">
+                    {schedule.timeBlocks.map((tb, idx) => (
+                      <li key={idx}>
+                        {new Date(tb.start).toLocaleDateString('pt-PT')} das {new Date(tb.start).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} às {new Date(tb.end).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               <div className="form-group">
                 <label>Horas Trabalhadas</label>
                 <input type="number" className="form-control" value={hours} onChange={e => setHours(Number(e.target.value))} required min="0" step="1" />
@@ -382,6 +438,22 @@ const ReportModal: React.FC<ReportModalProps> = ({
                   </tbody>
                 </table>
               </div>
+
+              <div className="form-group mt-4">
+                <SignaturePad
+                  onConfirm={(dataUrl) => setSignature(dataUrl)}
+                  onClear={() => setSignature(undefined)}
+                  initialSignature={signature}
+                />
+
+                {signature && (
+                  <div className="alert alert-success mt-2 py-1 px-2 d-flex align-items-center" style={{ fontSize: '0.85rem' }}>
+                    <i className="bi bi-check-circle-fill me-2"></i>
+                    Assinatura capturada com sucesso!
+                  </div>
+                )}
+              </div>
+
 
 
             </div>

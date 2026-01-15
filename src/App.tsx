@@ -98,6 +98,30 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectP
 // Componente Interno para conter a lógica das rotas
 const AppRoutes: React.FC = () => {
   const { user, loading } = useContext(AuthContext);
+  const [urlError, setUrlError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Verificar se existem erros no hash da URL (formato do Supabase)
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#')) {
+      const params = new URLSearchParams(hash.substring(1));
+      const errorCode = params.get('error_code');
+      const errorDescription = params.get('error_description');
+
+      if (errorCode === 'otp_expired' || errorCode === 'access_denied') {
+        let message = 'O link que utilizou expirou ou é inválido.';
+
+        if (errorDescription?.includes('expired')) {
+          message = 'O link de acesso expirou. Por favor, peça um novo link ou tente fazer login.';
+        }
+
+        setUrlError(message);
+
+        // Limpar o hash da URL para não mostrar o erro novamente ao atualizar
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    }
+  }, []);
 
   if (loading) {
     return <div className="d-flex justify-content-center align-items-center vh-100">A carregar sessão...</div>;
@@ -117,7 +141,13 @@ const AppRoutes: React.FC = () => {
   return (
     <>
       {renderHeader()}
-      <div className="container-fluid">
+      <div className="container-fluid mt-3">
+        {urlError && (
+          <div className="alert alert-warning alert-dismissible fade show mx-auto" role="alert" style={{ maxWidth: '600px' }}>
+            <strong>Aviso:</strong> {urlError}
+            <button type="button" className="btn-close" onClick={() => setUrlError(null)} aria-label="Close"></button>
+          </div>
+        )}
         <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />

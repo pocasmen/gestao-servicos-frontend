@@ -109,7 +109,7 @@ export interface Technician {
 
 
 
-  id: number;
+  id: string; // Changed from number to string for UUID
 
 
 
@@ -322,6 +322,7 @@ export interface PartItem {
 
 export interface Report {
   id?: number;
+  report_number?: number | string;
   clientId: number;
   equipmentId: number;
   scheduleId?: number;
@@ -333,6 +334,8 @@ export interface Report {
   serviceType: string[];
   damage?: string;
   internalNotes?: string;
+  signature?: string; // Campo para armazenar a assinatura em Base64 ou URL
+  technician_signature?: string; // Assinatura do técnico no momento do relatório
   // Campos preenchidos por JOINs para a visualização do relatório
   clientName?: string;
   clientAddress?: string;
@@ -340,4 +343,6 @@ export interface Report {
   equipmentBrand?: string;
   equipmentModel?: string;
   equipmentSerialNumber?: string;
+  timeBlocks?: TimeBlock[];
 }
+

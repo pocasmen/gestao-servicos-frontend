@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../apiClient';
 import { AuthContext } from '../App';
 import { AppUser } from './TechniciansPage';
+import SignaturePad from '../components/SignaturePad';
 
 const ProfilePage: React.FC = () => {
     const { user: authUser } = useContext(AuthContext);
@@ -10,6 +11,7 @@ const ProfilePage: React.FC = () => {
     const [lastName, setLastName] = useState('');
     const [color, setColor] = useState('#3174ad');
     const [telegramchatid, setTelegramchatid] = useState('');
+    const [signature, setSignature] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [successMessage, setSuccessMessage] = useState('');
     const [botUsername, setBotUsername] = useState('');
@@ -32,6 +34,7 @@ const ProfilePage: React.FC = () => {
                 setLastName(currentUser.last_name || '');
                 setColor(currentUser.color || '#3174ad');
                 setTelegramchatid(currentUser.telegramchatid || '');
+                setSignature(currentUser.signature || '');
             }
         }).catch(err => {
             console.error("Erro ao carregar perfil:", err);
@@ -71,7 +74,8 @@ const ProfilePage: React.FC = () => {
             first_name: firstName,
             last_name: lastName,
             color,
-            telegramchatid
+            telegramchatid,
+            signature
         };
 
         apiClient.put(`/api/technicians/${user.id}`, updatedData)
@@ -185,6 +189,25 @@ const ProfilePage: React.FC = () => {
                                     </div>
                                 )}
                             </div>
+                        </div>
+
+                        <hr />
+
+                        <div className="mb-3">
+                            <label className="form-label">Minha Assinatura</label>
+                            <p className="text-muted small">Esta assinatura será incluída automaticamente nos seus relatórios de serviço.</p>
+                            <SignaturePad
+                                title="Minha Assinatura"
+                                onConfirm={(dataUrl) => setSignature(dataUrl)}
+                                onClear={() => setSignature('')}
+                                initialSignature={signature}
+                            />
+                            {signature && (
+                                <div className="alert alert-success mt-2 py-1 px-2 d-flex align-items-center" style={{ fontSize: '0.85rem' }}>
+                                    <i className="bi bi-check-circle-fill me-2"></i>
+                                    Assinatura capturada com sucesso!
+                                </div>
+                            )}
                         </div>
 
                         <div className="mt-4 pt-3 border-top text-end">

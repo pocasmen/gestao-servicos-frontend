@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import apiClient from '../apiClient'; // Usar o apiClient
-import './ReportPrintPage.css'; // CSS para o layout
-import { PartItem } from '../types'; // Importar PartItem
+import { Calendar, Clock, User, Wrench, Package, FileText, CheckCircle2 } from 'lucide-react';
+import apiClient from '../apiClient';
+import { PartItem } from '../types';
+import './ReportPrintPage.css';
 
 // Interface para os dados completos do relatório
 interface DetailedReport {
   id: number;
   serviceDate: string;
-  serviceType: string[]; // Alterado para array de strings
+  serviceType: string[];
   description: string;
   parts: PartItem[];
   hours: number;
@@ -18,9 +19,35 @@ interface DetailedReport {
   equipmentBrand: string;
   equipmentModel: string;
   equipmentSerialNumber: string;
-  damage: string; // Novo campo
-  technicianName: string; // Novo campo
+  damage: string;
+  technicianName: string;
+  report_number: string;
+  signature?: string;
+  technician_signature?: string;
+  timeBlocks?: { id: number; start: string; end: string }[];
+
 }
+
+const calculateHours = (start: Date, end: Date): number => {
+  let diffMs = end.getTime() - start.getTime();
+  let diffHours = diffMs / (1000 * 60 * 60);
+
+  const lunchStart = new Date(start);
+  lunchStart.setHours(13, 0, 0, 0);
+  const lunchEnd = new Date(start);
+  lunchEnd.setHours(14, 0, 0, 0);
+
+  if (start < lunchEnd && end > lunchStart) {
+    const overlapStart = Math.max(start.getTime(), lunchStart.getTime());
+    const overlapEnd = Math.min(end.getTime(), lunchEnd.getTime());
+    if (overlapEnd > overlapStart) {
+      const overlapHours = (overlapEnd - overlapStart) / (1000 * 60 * 60);
+      diffHours -= overlapHours;
+    }
+  }
+
+  return Math.max(0, Math.ceil(diffHours));
+};
 
 const ReportPrintPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -35,126 +62,271 @@ const ReportPrintPage: React.FC = () => {
   }, [id]);
 
   if (!report) {
-    return <div>A carregar dados do relatório...</div>;
+    return <div className="loading-container">A carregar dados do relatório...</div>;
   }
 
-  // Simplesmente para o exemplo, vamos dividir o relatório em linhas
+  const serviceTypeLabels: { [key: string]: string } = {
+    reparacao: 'Reparação',
+    instalacao: 'Instalação',
+    assistencia: 'Assistência',
+    manutencao: 'Manutenção',
+    remota: 'Remota'
+  };
+
   const reportLines = report.description?.split('\n') || [];
 
   return (
-    <div className="print-container">
-      <div className="print-sheet">
-        {/* Cabeçalho */}
-        <header className="report-header">
-          <div className="logo-area">
-            {/* O logo será adicionado via CSS */}
-          </div>
-          <div className="title-area">
-            <h1>SERVIÇO TÉCNICO</h1>
-          </div>
-        </header>
+    <div className="modern-report-container">
+      <div className="modern-report-sheet">
 
-        {/* Informações Gerais */}
-        <section className="info-section">
-          <div className="report-id-date">
-            <div className="field-box report-id">Nº {report.id}</div>
-            <div className="field-box report-date">Data: {new Date(report.serviceDate).toLocaleDateString('pt-PT')}</div>
-          </div>
-          <div className="service-type">
-            <span>Reparação <input type="checkbox" checked={report.serviceType?.includes('reparacao')} readOnly /></span>
-            <span>Instalação <input type="checkbox" checked={report.serviceType?.includes('instalacao')} readOnly /></span>
-            <span>Assistência <input type="checkbox" checked={report.serviceType?.includes('assistencia')} readOnly /></span>
-            <span>Manutenção <input type="checkbox" checked={report.serviceType?.includes('manutencao')} readOnly /></span>
-            <span>Remota <input type="checkbox" checked={report.serviceType?.includes('remota')} readOnly /></span>
-          </div>
-        </section>
+        {/* Header Moderno com Gradiente */}
+        <div className="modern-header">
+          <div className="header-decoration header-decoration-top"></div>
+          <div className="header-decoration header-decoration-bottom"></div>
 
-        {/* Detalhes do Cliente */}
-        <section className="details-section client-details">
-          <div className="field-group"><label>Cliente:</label><span>{report.clientName}</span></div>
-          <div className="field-group"><label>N.º Contribuinte:</label><span>{report.clientNif}</span></div>
-          <div className="field-group"><label>Morada:</label><span>{report.clientAddress}</span></div>
-        </section>
-
-        {/* Detalhes do Equipamento */}
-        <section className="details-section equipment-details">
-          <div className="field-group"><label>Equipamento:</label><span>{report.equipmentBrand}</span></div>
-          <div className="field-group"><label>N.º de Série:</label><span>{report.equipmentSerialNumber}</span></div>
-          <div className="field-group"><label>Marca:</label><span>{report.equipmentBrand}</span></div>
-          <div className="field-group"><label>Modelo:</label><span>{report.equipmentModel}</span></div>
-        </section>
-
-        {/* Corpo do Relatório */}
-        <main className="report-body">
-          <div className="report-main-content">
-		  {report.damage && ( // Display Avaria section only if avaria exists
-              <>
-                <div className="report-title">AVARIA:</div>
-                <div className="report-text-area">
-                  <div className="report-line">{report.damage}</div>
-                </div>
-              
-            <div className="report-title mt-3">DESCRIÇÃO DO SERVIÇO:</div>
-            <div className="report-text-area">
-              {reportLines.map((line, index) => (
-                <div key={index} className="report-line">{line}</div>
-              ))}
+          <div className="header-content">
+            <div className="header-left">
+              <div className="header-icon">
+                <Wrench className="w-8 h-8 text-orange-500" />
+              </div>
+              <div>
+                <h1 className="header-title">Relatório de Serviço</h1>
+                <p className="header-subtitle">Micro Átomo Tecnologia</p>
+              </div>
             </div>
-            </>
+            <div className="header-right">
+              <div className="report-number-box">
+                <div className="report-number-label">Nº do Relatório</div>
+                <div className="report-number-value">{report.report_number}</div>
+              </div>
+              <div className="report-date">
+                <Calendar className="w-4 h-4 mr-1" />
+                {new Date(report.serviceDate).toLocaleDateString('pt-PT')}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tipo de Serviço */}
+        <div className="service-type-section">
+          <div className="service-type-badges">
+            {Object.keys(serviceTypeLabels).map(type => (
+              <div
+                key={type}
+                className={`service-badge ${report.serviceType?.includes(type) ? 'service-badge-active' : 'service-badge-inactive'}`}
+              >
+                {report.serviceType?.includes(type) && (
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                )}
+                {serviceTypeLabels[type]}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Informação do Cliente e Equipamento */}
+        <div className="info-grid">
+          {/* Cliente */}
+          <div className="info-card info-card-client">
+            <div className="info-card-header">
+              <User className="w-5 h-5 text-blue-600 mr-2" />
+              <h3 className="info-card-title">Informação do Cliente</h3>
+            </div>
+            <div className="info-card-content">
+              <div className="info-field">
+                <div className="info-label">Cliente</div>
+                <div className="info-value">{report.clientName}</div>
+              </div>
+              <div className="info-field">
+                <div className="info-label">NIF</div>
+                <div className="info-value">{report.clientNif}</div>
+              </div>
+              <div className="info-field">
+                <div className="info-label">Morada</div>
+                <div className="info-value">{report.clientAddress}</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Equipamento */}
+          <div className="info-card info-card-equipment">
+            <div className="info-card-header">
+              <Package className="w-5 h-5 text-purple-600 mr-2" />
+              <h3 className="info-card-title">Equipamento</h3>
+            </div>
+            <div className="info-card-content">
+              <div className="info-field-row">
+                <div className="info-field">
+                  <div className="info-label">Marca</div>
+                  <div className="info-value">{report.equipmentBrand}</div>
+                </div>
+                <div className="info-field">
+                  <div className="info-label">Modelo</div>
+                  <div className="info-value">{report.equipmentModel}</div>
+                </div>
+              </div>
+              <div className="info-field">
+                <div className="info-label">Nº de Série</div>
+                <div className="info-value info-value-mono">{report.equipmentSerialNumber}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Conteúdo Principal */}
+        <div className="main-content-grid">
+          {/* Descrição do Serviço */}
+          <div className="description-section">
+            {/* Avaria */}
+            {report.damage && (
+              <div className="damage-card">
+                <div className="damage-header">
+                  <h3 className="section-title">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Avaria Reportada
+                  </h3>
+                </div>
+                <div className="damage-content">
+                  <p>{report.damage}</p>
+                </div>
+              </div>
             )}
-          </div>
-          <div className="report-side-content">
-            <div className="parts-table">
-                <div className="table-header">
-                    <div className="col-qt">QT.</div>
-                    <div className="col-ref">REF.</div>
-                    <div className="col-desc">DESCRIÇÃO</div>
-                </div>
-                <div className="table-body">
-                    {report.parts && report.parts.length > 0 ? (
-                        report.parts.map((part, index) => (
-                            <div className="table-row" key={index}>
-                                <div className="col-qt">{part.quantity}</div>
-                                <div className="col-ref">{part.reference}</div>
-                                <div className="col-desc">{part.designation}</div>
-                            </div>
-                        ))
-                    ) : (
-                        <div className="table-row">
-                            <div className="col-qt"></div>
-                            <div className="col-ref"></div>
-                            <div className="col-desc">Nenhuma peça utilizada.</div>
-                        </div>
-                    )}
-                     {/* Linhas vazias para preenchimento */}
-                    {[...Array(Math.max(0, 10 - (report.parts?.length || 0)))].map((_, i) => <div key={`empty-${i}`} className="table-row empty-row"><div className="col-qt"></div><div className="col-ref"></div><div className="col-desc"></div></div>)}
-                </div>
+
+            {/* Descrição */}
+            <div className="service-description-card">
+              <div className="service-description-header">
+                <h3 className="section-title">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Descrição do Serviço
+                </h3>
+              </div>
+              <div className="service-description-content">
+                {reportLines.map((line, index) => (
+                  <div key={index} className="description-line">
+                    <div className="description-bullet"></div>
+                    <p>{line}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-        </main>
 
-        {/* Rodapé */}
-        <footer className="report-footer">
-            <div className="services-summary">
-                 <div className="table-header">
-                    <div>DATA</div><div>H/Início</div><div>H/Fim</div><div>Pausas</div><div>TOTAL</div>
-                </div>
-                 <div className="table-body">
-                    <div className="table-row">
-                        <div>{new Date(report.serviceDate).toLocaleDateString('pt-PT')}</div><div></div><div></div><div></div><div>{report.hours}</div>
+          {/* Peças Utilizadas */}
+          <div className="parts-card">
+            <div className="parts-header">
+              <h3 className="section-title">
+                <Package className="w-4 h-4 mr-2" />
+                Peças Utilizadas
+              </h3>
+            </div>
+            <div className="parts-list">
+              {report.parts && report.parts.length > 0 ? (
+                report.parts.map((part, index) => (
+                  <div key={index} className="part-item">
+                    <div className="part-header-row">
+                      <span className="part-reference">{part.reference}</span>
+                      <span className="part-quantity">{part.quantity}x</span>
                     </div>
+                    <div className="part-designation">{part.designation}</div>
+                  </div>
+                ))
+              ) : (
+                <div className="parts-empty">
+                  Nenhuma peça utilizada
                 </div>
+              )}
             </div>
-            <div className="signatures">
-                <div className="field-box signature-box">O Técnico: {report.technicianName}</div>
-                <div className="field-box signature-box">O Cliente</div>
-            </div>
-             <div className="total-summary">
-                <div className="total-label">TOTAL:</div>
-                <div className="total-value"></div>
-            </div>
-        </footer>
+          </div>
+        </div>
 
+        {/* Horas de Trabalho */}
+        <div className="hours-section">
+          <div className="hours-card">
+            <div className="hours-header">
+              <h3 className="section-title">
+                <Clock className="w-4 h-4 mr-2" />
+                Registo de Horas
+              </h3>
+            </div>
+            <div className="hours-table-wrapper">
+              <table className="hours-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Início</th>
+                    <th>Fim</th>
+                    <th>Pausas</th>
+                    <th className="text-right">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {report.timeBlocks && report.timeBlocks.length > 0 ? (
+                    report.timeBlocks.map((block, idx) => {
+                      const start = new Date(block.start);
+                      const end = new Date(block.end);
+                      const hours = calculateHours(start, end);
+                      return (
+                        <tr key={idx}>
+                          <td>{start.toLocaleDateString('pt-PT')}</td>
+                          <td>{start.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</td>
+                          <td>{end.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</td>
+                          <td>1h</td>
+                          <td className="hours-total">{hours}h</td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td>{new Date(report.serviceDate).toLocaleDateString('pt-PT')}</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td>-</td>
+                      <td className="hours-total">{report.hours}h</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer com Assinaturas */}
+        <div className="footer-section">
+          <div className="signatures-container">
+            <div className="signature-block">
+              <div className="signature-label">Técnico Responsável</div>
+              <div className="signature-line">
+                {report.technician_signature ? (
+                  <img src={report.technician_signature} alt="Assinatura Técnico" className="signature-image" />
+                ) : (
+                  <div className="signature-name">{report.technicianName}</div>
+                )}
+              </div>
+            </div>
+            <div className="signature-block">
+              <div className="signature-label">Assinatura do Cliente</div>
+              <div className="signature-line">
+                {report.signature && <img src={report.signature} alt="Assinatura" className="signature-image" />}
+              </div>
+            </div>
+
+          </div>
+
+          <div className="total-hours-box">
+            <div className="total-hours-label">Total de Horas</div>
+            <div className="total-hours-value">{report.hours}h</div>
+          </div>
+        </div>
+
+        {/* Print Button */}
+        <div className="print-button-container">
+          <button
+            onClick={() => window.print()}
+            className="print-button"
+          >
+            Imprimir Relatório
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -8,6 +8,27 @@ interface ClientViewReportModalProps {
   report: Report | null;
 }
 
+const calculateHours = (start: Date, end: Date): number => {
+  let diffMs = end.getTime() - start.getTime();
+  let diffHours = diffMs / (1000 * 60 * 60);
+
+  const lunchStart = new Date(start);
+  lunchStart.setHours(13, 0, 0, 0);
+  const lunchEnd = new Date(start);
+  lunchEnd.setHours(14, 0, 0, 0);
+
+  if (start < lunchEnd && end > lunchStart) {
+    const overlapStart = Math.max(start.getTime(), lunchStart.getTime());
+    const overlapEnd = Math.min(end.getTime(), lunchEnd.getTime());
+    if (overlapEnd > overlapStart) {
+      const overlapHours = (overlapEnd - overlapStart) / (1000 * 60 * 60);
+      diffHours -= overlapHours;
+    }
+  }
+
+  return Math.max(0, Math.ceil(diffHours));
+};
+
 const ClientViewReportModal: React.FC<ClientViewReportModalProps> = ({ isOpen, onClose, report }) => {
   if (!report) return null;
 
@@ -85,7 +106,54 @@ const ClientViewReportModal: React.FC<ClientViewReportModalProps> = ({ isOpen, o
               <strong>Descrição do Serviço:</strong>
               <p style={{ whiteSpace: 'pre-wrap' }}>{report.description}</p>
             </div>
-          </div>          
+          </div>
+          <hr />
+          <div className="row mb-3">
+            <div className="col-md-12">
+              <strong>Resumo de Horas:</strong>
+              <div className="table-responsive">
+                <table className="table table-sm table-bordered mt-2">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Data</th>
+                      <th>Início</th>
+                      <th>Fim</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {report.timeBlocks && report.timeBlocks.length > 0 ? (
+                      report.timeBlocks.map((block, idx) => {
+                        const start = new Date(block.start);
+                        const end = new Date(block.end);
+                        const duration = calculateHours(start, end);
+                        return (
+                          <tr key={idx}>
+                            <td>{start.toLocaleDateString('pt-PT')}</td>
+                            <td>{start.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</td>
+                            <td>{end.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</td>
+                            <td>{duration} h</td>
+                          </tr>
+                        );
+                      })
+                    ) : (
+                      <tr>
+                        <td>{new Date(report.serviceDate).toLocaleDateString('pt-PT')}</td>
+                        <td colSpan={2} className="text-center">-</td>
+                        <td>{report.hours} h</td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot className="table-light">
+                    <tr>
+                      <th colSpan={3} className="text-end">TOTAL:</th>
+                      <th>{report.hours} h</th>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
           <hr />
           <div className="row mb-3">
             <div className="col-md-12">
@@ -93,7 +161,21 @@ const ClientViewReportModal: React.FC<ClientViewReportModalProps> = ({ isOpen, o
               {renderParts(report.parts)}
             </div>
           </div>
+          {report.signature && (
+            <>
+              <hr />
+              <div className="row mb-3">
+                <div className="col-md-12">
+                  <strong>Assinatura do Cliente:</strong>
+                  <div className="mt-2 text-center" style={{ backgroundColor: '#f8f9fa', borderRadius: '8px', padding: '10px' }}>
+                    <img src={report.signature} alt="Assinatura" style={{ maxWidth: '300px', maxHeight: '150px' }} />
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
+
       </Modal.Body>
       <Modal.Footer>
         <Button variant="secondary" onClick={onClose}>

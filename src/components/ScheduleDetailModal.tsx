@@ -321,7 +321,12 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const handleDelete = () => {
     if (!event) return;
     if (window.confirm("Tem a certeza que quer eliminar este agendamento?")) {
-      apiClient.delete(`/api/schedules/${event.id}`)
+      const scheduleId = event.scheduleId || (typeof event.id === 'number' ? event.id : undefined);
+      if (!scheduleId) {
+        alert("Não foi possível identificar o agendamento para eliminar.");
+        return;
+      }
+      apiClient.delete(`/api/schedules/${scheduleId}`)
         .then(() => {
           onScheduleUpdated();
           onClose();
