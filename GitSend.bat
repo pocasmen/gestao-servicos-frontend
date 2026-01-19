@@ -32,20 +32,54 @@ echo ========================================
 for /f "tokens=*" %%i in ('git branch --show-current') do set CURRENT_BRANCH=%%i
 echo Branch atual: %CURRENT_BRANCH%
 
-REM Muda para o branch Trae se nao estiver nele
+REM Muda para o branch AntiGravity se nao estiver nele
 if not "%CURRENT_BRANCH%"=="%BRANCH_NAME%" (
     echo.
     echo Mudando para branch %BRANCH_NAME%...
-    git checkout %BRANCH_NAME% 2>nul
+    
+    REM Primeiro verifica se ha alteracoes nao commitadas
+    git diff --quiet
     if errorlevel 1 (
-        echo Branch %BRANCH_NAME% nao existe. Criando...
-        git checkout -b %BRANCH_NAME%
+        echo AVISO: Existem alteracoes nao guardadas. A fazer stash...
+        git stash push -m "Auto-stash antes de mudar de branch"
+        set STASHED=1
+    )
+    
+    REM Tenta mudar para o branch existente
+    git checkout %BRANCH_NAME%
+    if errorlevel 1 (
+        echo.
+        echo ERRO: Falha ao mudar para branch %BRANCH_NAME%
+        echo Tentando criar branch a partir do remoto...
+        
+        REM Atualiza referencias remotas
+        git fetch origin
+        
+        REM Verifica se o branch existe no remoto
+        git branch -r | findstr "origin/%BRANCH_NAME%" >nul
         if errorlevel 1 (
-            echo ERRO: Falha ao criar branch
+            REM Branch nao existe no remoto, cria localmente
+            echo Branch nao encontrado no remoto. Criando localmente...
+            git checkout -b %BRANCH_NAME%
+        ) else (
+            REM Branch existe no remoto, faz checkout tracking
+            echo Branch encontrado no remoto. Fazendo checkout...
+            git checkout -b %BRANCH_NAME% origin/%BRANCH_NAME%
+        )
+        
+        if errorlevel 1 (
+            echo ERRO: Nao foi possivel criar/aceder ao branch
             pause
             exit /b 1
         )
     )
+    
+    REM Restaura stash se foi criado
+    if defined STASHED (
+        echo Restaurando alteracoes anteriores...
+        git stash pop
+    )
+    
     echo [OK] Agora no branch %BRANCH_NAME%
 )
 echo.
@@ -106,16 +140,20 @@ echo Commit realizado com sucesso!
 echo.
 
 echo ========================================
-echo 5. Enviando TUDO para branch %BRANCH_NAME%...
+echo 5. Enviando para branch %BRANCH_NAME%...
 echo ========================================
 git push -u origin %BRANCH_NAME%
 if errorlevel 1 (
     echo.
     echo ERRO: Falha ao fazer push para branch %BRANCH_NAME%
     echo.
-    echo Tentando forcar push (use com cuidado!)...
-    set /p FORCE="Deseja forcar push? ^(sim/nao^): "
-    if "!FORCE!"=="sim" (
+    echo Possíveis causas:
+    echo - Branch divergiu do remoto
+    echo - Sem permissoes
+    echo - Problemas de rede
+    echo.
+    set /p FORCE="Deseja forcar push? ^(CUIDADO: sobrescreve historico remoto!^) ^(sim/nao^): "
+    if /i "!FORCE!"=="sim" (
         git push -u origin %BRANCH_NAME% --force
         if errorlevel 1 (
             echo ERRO: Push forcado tambem falhou
@@ -124,7 +162,7 @@ if errorlevel 1 (
         )
         echo [OK] Push forcado realizado!
     ) else (
-        echo Push cancelado
+        echo Push cancelado. Resolva os conflitos manualmente.
         pause
         exit /b 1
     )
