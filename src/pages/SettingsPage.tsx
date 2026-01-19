@@ -12,6 +12,8 @@ const SettingsPage: React.FC = () => {
   const [emailTemplates, setEmailTemplates] = useState<Record<string, any>>({});
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>('');
   const [templateLoading, setTemplateLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: number; fail: number } | null>(null);
 
   const fetchSettings = useCallback(async () => {
     setIsLoading(true);
@@ -47,7 +49,7 @@ const SettingsPage: React.FC = () => {
     setSettings(prev => ({ ...prev, [name]: finalValue }));
   };
 
-  const handleTemplateChange = (field: 'subject' | 'body', value: string) => {
+  const handleTemplateChange = (field: 'subject' | 'body' | 'from', value: string) => {
     if (!selectedTemplateKey) return;
     setEmailTemplates(prev => ({
       ...prev,
@@ -71,6 +73,26 @@ const SettingsPage: React.FC = () => {
     } catch (err) {
       console.error("Erro ao guardar configurações:", err);
       setError('Ocorreu um erro ao guardar as configurações.');
+    }
+  };
+
+  const handleSyncCalendar = async () => {
+    if (!window.confirm('Deseja sincronizar todos os agendamentos pendentes com o Google Calendar?')) return;
+
+    setIsSyncing(true);
+    setError('');
+    setSuccess('');
+    setSyncResult(null);
+
+    try {
+      const response = await apiClient.post('/api/admin/sync-google-calendar');
+      setSyncResult(response.data);
+      setSuccess(`Sincronização concluída: ${response.data.success} sucesso(s), ${response.data.fail} falha(s).`);
+    } catch (err: any) {
+      console.error("Erro na sincronização:", err);
+      setError(err.response?.data?.error || 'Erro ao sincronizar com o Google Calendar.');
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -145,6 +167,17 @@ const SettingsPage: React.FC = () => {
           {selectedTemplate && (
             <>
               <div className="mb-3">
+                <label className="form-label">Email de Origem (From)</label>
+                <input
+                  type="email"
+                  className="form-control"
+                  placeholder="Ex: suporte@empresa.com ou 'Suporte' <suporte@empresa.com>"
+                  value={selectedTemplate.from || ''}
+                  onChange={(e) => handleTemplateChange('from', e.target.value)}
+                />
+                <div className="form-text">Se deixar vazio, será usado o valor padrão das configurações do servidor.</div>
+              </div>
+              <div className="mb-3">
                 <label className="form-label">Assunto</label>
                 <input
                   type="text"
@@ -177,9 +210,38 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
-      <button className="btn btn-primary" onClick={handleSave}>
-        Guardar Todas as Alterações
-      </button>
+      <div className="card mb-4 border-primary">
+        <div className="card-header bg-primary text-white">
+          Sincronização com Google Calendar
+        </div>
+        <div className="card-body">
+          <p>Esta ação irá sincronizar todos os agendamentos existentes que ainda não foram enviados para o Google Calendar.</p>
+          <button
+            className="btn btn-outline-primary"
+            onClick={handleSyncCalendar}
+            disabled={isSyncing}
+          >
+            {isSyncing ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                A sincronizar...
+              </>
+            ) : 'Sincronizar Todos os Agendamentos'}
+          </button>
+
+          {syncResult && (
+            <div className="mt-2 text-muted small">
+              Último resultado: {syncResult.success} sincronizados, {syncResult.fail} falhas.
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="d-flex gap-2">
+        <button className="btn btn-primary" onClick={handleSave}>
+          Guardar Todas as Alterações
+        </button>
+      </div>
     </div>
   );
 };

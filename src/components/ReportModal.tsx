@@ -220,11 +220,6 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!signature) {
-      alert("Por favor, capture a assinatura do cliente antes de guardar o relatório.");
-      return;
-    }
-
     const partsToSubmit = parts.filter(p => p.reference || p.designation);
 
 
@@ -458,6 +453,15 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
             </div>
             <div className="modal-footer">
+              {isEditing && reportToEdit && (
+                <button
+                  type="button"
+                  className="btn btn-outline-primary me-auto"
+                  onClick={() => window.open(`/report/print/${reportToEdit.id}`, '_blank')}
+                >
+                  <i className="bi bi-printer me-2"></i>Ver Relatório
+                </button>
+              )}
               <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
               <button type="submit" className="btn btn-primary">{isEditing ? 'Guardar Alterações' : 'Criar Relatório'}</button>
             </div>

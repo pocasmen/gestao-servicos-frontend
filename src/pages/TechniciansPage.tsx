@@ -13,6 +13,8 @@ export interface AppUser {
   color: string;
   telegramchatid: string;
   name: string; // Combined name for display
+  daily_notifications_enabled?: boolean;
+  notification_time?: string;
 }
 
 // New form to invite users (technicians, admins, or clients)

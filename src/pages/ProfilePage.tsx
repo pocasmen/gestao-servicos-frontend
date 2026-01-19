@@ -17,6 +17,8 @@ const ProfilePage: React.FC = () => {
     const [botUsername, setBotUsername] = useState('');
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncStatus, setSyncStatus] = useState('');
+    const [dailyNotificationsEnabled, setDailyNotificationsEnabled] = useState(false);
+    const [notificationTime, setNotificationTime] = useState('08:00');
 
     useEffect(() => {
         apiClient.get('/api/telegram/bot-info').then(res => {
@@ -35,6 +37,8 @@ const ProfilePage: React.FC = () => {
                 setColor(currentUser.color || '#3174ad');
                 setTelegramchatid(currentUser.telegramchatid || '');
                 setSignature(currentUser.signature || '');
+                setDailyNotificationsEnabled(currentUser.daily_notifications_enabled || false);
+                setNotificationTime(currentUser.notification_time || '08:00');
             }
         }).catch(err => {
             console.error("Erro ao carregar perfil:", err);
@@ -75,7 +79,9 @@ const ProfilePage: React.FC = () => {
             last_name: lastName,
             color,
             telegramchatid,
-            signature
+            signature,
+            daily_notifications_enabled: dailyNotificationsEnabled,
+            notification_time: notificationTime
         };
 
         apiClient.put(`/api/technicians/${user.id}`, updatedData)
@@ -188,6 +194,38 @@ const ProfilePage: React.FC = () => {
                                         <div className="mt-2 small text-muted">Scan para associar</div>
                                     </div>
                                 )}
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <h5 className="mb-3">Lembretes Diários (Telegram)</h5>
+                        <div className="card bg-light mb-3">
+                            <div className="card-body">
+                                <div className="form-check form-switch mb-3">
+                                    <input
+                                        className="form-check-input"
+                                        type="checkbox"
+                                        id="dailyNotificationsEnabled"
+                                        checked={dailyNotificationsEnabled}
+                                        onChange={e => setDailyNotificationsEnabled(e.target.checked)}
+                                    />
+                                    <label className="form-check-label fw-bold" htmlFor="dailyNotificationsEnabled">
+                                        Ativar Notificações Diárias
+                                    </label>
+                                    <div className="small text-muted">Receberá um sumário no Telegram à hora selecionada (de 2ª a 6ª feira). À sexta-feira, o resumo será relativo à próxima segunda-feira.</div>
+                                </div>
+
+                                <div className="mb-0" style={{ maxWidth: '200px' }}>
+                                    <label className="form-label small fw-bold">Hora de Envio</label>
+                                    <input
+                                        type="time"
+                                        className="form-control"
+                                        value={notificationTime}
+                                        onChange={e => setNotificationTime(e.target.value)}
+                                        disabled={!dailyNotificationsEnabled}
+                                    />
+                                </div>
                             </div>
                         </div>
 

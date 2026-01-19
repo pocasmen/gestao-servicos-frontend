@@ -26,6 +26,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const [parts, setParts] = useState<PartItem[]>([]);
 
   const [clients, setClients] = useState<Client[]>([]);
+  const [clientSearch, setClientSearch] = useState<string>('');
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
 
@@ -49,6 +50,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     }
 
     setClientId(event?.clientId !== undefined ? String(event.clientId) : '');
+    setClientSearch(event?.clientName || '');
     setEquipmentId(event?.equipmentId !== undefined ? String(event.equipmentId) : '');
     setTechnicianIds(event?.technicians?.map(t => String(t.id)) || []);
     setIsCompleted(event?.isCompleted || false);
@@ -79,6 +81,34 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       setEquipments([]);
     }
   }, [clientId]);
+
+  // Sync clientSearch with clientId when clients are loaded or clientId changes
+  useEffect(() => {
+    if (clientId && clients.length > 0) {
+      const client = clients.find(c => String(c.id) === String(clientId));
+      if (client && client.name !== clientSearch) {
+        setClientSearch(client.name);
+      }
+    }
+  }, [clientId, clients]);
+
+  // Sync clientId with clientSearch when user types
+  useEffect(() => {
+    if (clientSearch && clients.length > 0) {
+      const selectedClient = clients.find(c => c.name.toLowerCase() === clientSearch.toLowerCase().trim());
+      if (selectedClient) {
+        if (String(selectedClient.id) !== clientId) {
+          setClientId(String(selectedClient.id));
+        }
+      } else {
+        if (clientId !== '') {
+          setClientId('');
+        }
+      }
+    } else if (!clientSearch && clientId !== '') {
+      setClientId('');
+    }
+  }, [clientSearch, clients]);
 
   // Handle equipment selection logic when equipments list or event changes
   useEffect(() => {
@@ -423,10 +453,18 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
               </div>
               <div className="form-group">
                 <label>Cliente</label>
-                <select className="form-control" value={clientId} onChange={e => setClientId(e.target.value)} required disabled={isPastOrCompleted}>
-                  <option value="">Selecione um cliente...</option>
-                  {clients.map(c => <option key={c.id} value={String(c.id)}>{c.name}</option>)}
-                </select>
+                <input
+                  className="form-control"
+                  list="clientOptions"
+                  value={clientSearch}
+                  onChange={e => setClientSearch(e.target.value)}
+                  placeholder="Pesquisar cliente..."
+                  required
+                  disabled={isPastOrCompleted}
+                />
+                <datalist id="clientOptions">
+                  {clients.map(c => <option key={c.id} value={c.name} />)}
+                </datalist>
               </div>
               <div className="form-group">
                 <label>Equipamento</label>
