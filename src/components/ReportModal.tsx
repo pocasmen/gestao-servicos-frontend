@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import apiClient from '../apiClient';
 import { AuthContext } from '../App';
 import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician } from '../types';
@@ -66,6 +66,18 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [internalNotes, setInternalNotes] = useState(''); // Novo campo interno
   const [signature, setSignature] = useState<string | undefined>(undefined);
   const [technicianSignature, setTechnicianSignature] = useState<string | undefined>(undefined);
+  const damageRef = useRef<HTMLTextAreaElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const internalNotesRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    [damageRef, descriptionRef, internalNotesRef].forEach(ref => {
+      if (ref.current) {
+        ref.current.style.height = 'auto';
+        ref.current.style.height = `${ref.current.scrollHeight}px`;
+      }
+    });
+  }, [damage, description, internalNotes, isOpen]);
 
   const { user: authUser } = useContext(AuthContext);
 
@@ -368,7 +380,11 @@ const ReportModal: React.FC<ReportModalProps> = ({
                 <label>Equipamento</label>
                 <select className="form-control" value={equipmentId} onChange={e => setEquipmentId(Number(e.target.value))} required disabled={!clientId}>
                   <option value="">Selecione um equipamento...</option>
-                  {clientEquipments.map(eq => <option key={eq.id} value={eq.id}>{eq.brand} {eq.model}</option>)}
+                  {clientEquipments.map(eq => (
+                    <option key={eq.id} value={eq.id}>
+                      {`${eq.brand || ''} ${eq.model || ''}${eq.serialNumber ? ` (${eq.serialNumber})` : ''}`.trim()}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -440,17 +456,40 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
               <div className="form-group">
                 <label>Descrição da Avaria</label>
-                <textarea className="form-control" value={damage} onChange={e => setDamage(e.target.value)} rows={2}></textarea>
+                <textarea
+                  ref={damageRef}
+                  className="form-control"
+                  style={{ overflow: 'hidden', resize: 'none' }}
+                  value={damage}
+                  onChange={e => setDamage(e.target.value)}
+                  rows={1}
+                ></textarea>
               </div>
 
               <div className="form-group">
                 <label>Descrição da Intervenção</label>
-                <textarea className="form-control" value={description} onChange={e => setDescription(e.target.value)} rows={2} required></textarea>
+                <textarea
+                  ref={descriptionRef}
+                  className="form-control"
+                  style={{ overflow: 'hidden', resize: 'none' }}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  rows={1}
+                  required
+                ></textarea>
               </div>
 
               <div className="form-group p-2 bg-light border rounded">
                 <label className="text-primary font-weight-bold">Notas Internas (Não visível ao cliente)</label>
-                <textarea className="form-control" value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={2} placeholder="Notas para a equipa técnica..."></textarea>
+                <textarea
+                  ref={internalNotesRef}
+                  className="form-control"
+                  style={{ overflow: 'hidden', resize: 'none' }}
+                  value={internalNotes}
+                  onChange={e => setInternalNotes(e.target.value)}
+                  rows={1}
+                  placeholder="Notas para a equipa técnica..."
+                ></textarea>
               </div>
 
               <div className="form-group mt-3">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { pt } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -25,6 +25,14 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const [internalNotes, setInternalNotes] = useState('');
   const [serviceType, setServiceType] = useState('');
   const [parts, setParts] = useState<PartItem[]>([]);
+  const internalNotesRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (internalNotesRef.current) {
+      internalNotesRef.current.style.height = 'auto';
+      internalNotesRef.current.style.height = `${internalNotesRef.current.scrollHeight}px`;
+    }
+  }, [internalNotes, isOpen]);
 
   const [clients, setClients] = useState<Client[]>([]);
   const [clientSearch, setClientSearch] = useState<string>('');
@@ -663,10 +671,12 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                 <div className="form-group">
                   <label>Notas Internas</label>
                   <textarea
+                    ref={internalNotesRef}
                     className="form-control"
                     value={internalNotes}
                     onChange={e => setInternalNotes(e.target.value)}
-                    rows={3}
+                    rows={1}
+                    style={{ overflow: 'hidden', resize: 'none' }}
                     disabled={isPastOrCompleted}
                   />
                 </div>

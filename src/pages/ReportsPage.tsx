@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import apiClient, { createReport, searchPartByReference, createPart, getTechnicians } from '../apiClient';
 import { Link } from 'react-router-dom';
 import { Report, Client, Equipment, PartItem, Technician } from '../types';
@@ -20,6 +20,18 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
   const [serviceType, setServiceType] = useState('');
   const [damage, setDamage] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
+  const damageRef = useRef<HTMLTextAreaElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const internalNotesRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    [damageRef, descriptionRef, internalNotesRef].forEach(ref => {
+      if (ref.current) {
+        ref.current.style.height = 'auto';
+        ref.current.style.height = `${ref.current.scrollHeight}px`;
+      }
+    });
+  }, [damage, description, internalNotes]);
 
   useEffect(() => {
     apiClient.get('/api/clients').then(res => setClients(res.data)).catch(console.error);
@@ -215,7 +227,11 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
           <label>Equipamento</label>
           <select className="form-control" value={equipmentId} onChange={e => setEquipmentId(e.target.value)} required disabled={!clientId}>
             <option value="">Selecione um equipamento...</option>
-            {equipments.map(equipment => <option key={equipment.id} value={equipment.id}>{equipment.brand} {equipment.model}</option>)}
+            {equipments.map(equipment => (
+              <option key={equipment.id} value={equipment.id}>
+                {`${equipment.brand || ''} ${equipment.model || ''}${equipment.serialNumber ? ` (${equipment.serialNumber})` : ''}`.trim()}
+              </option>
+            ))}
           </select>
         </div>
         <div className="form-group">
@@ -279,15 +295,37 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
         </div>
         <div className="form-group">
           <label>Descrição da Avaria</label>
-          <textarea className="form-control" value={damage} onChange={e => setDamage(e.target.value)} />
+          <textarea
+            ref={damageRef}
+            className="form-control"
+            style={{ overflow: 'hidden', resize: 'none' }}
+            value={damage}
+            onChange={e => setDamage(e.target.value)}
+            rows={1}
+          />
         </div>
         <div className="form-group">
           <label>Descrição da Intervenção</label>
-          <textarea className="form-control" value={description} onChange={e => setDescription(e.target.value)} />
+          <textarea
+            ref={descriptionRef}
+            className="form-control"
+            style={{ overflow: 'hidden', resize: 'none' }}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            rows={1}
+          />
         </div>
         <div className="form-group p-2 bg-light border rounded">
           <label className="text-primary font-weight-bold">Notas Internas (Não visível ao cliente)</label>
-          <textarea className="form-control" value={internalNotes} onChange={e => setInternalNotes(e.target.value)} rows={2} placeholder="Notas para a equipa técnica..." />
+          <textarea
+            ref={internalNotesRef}
+            className="form-control"
+            style={{ overflow: 'hidden', resize: 'none' }}
+            value={internalNotes}
+            onChange={e => setInternalNotes(e.target.value)}
+            rows={1}
+            placeholder="Notas para a equipa técnica..."
+          />
         </div>
         <button type="submit" className="btn btn-primary mt-2">Criar Relatório</button>
       </form>
