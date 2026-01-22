@@ -36,7 +36,7 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
   useEffect(() => {
     getTechnicians().then(res => {
       if (Array.isArray(res)) {
-        setTechnicians(res);
+        setTechnicians(res.filter((t: any) => t.role !== 'office_staff'));
       } else {
         setTechnicians([]);
       }

@@ -78,7 +78,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
   useEffect(() => {
     apiClient.get('/api/clients').then(res => setAllClients(res.data));
-    apiClient.get('/api/technicians').then(res => setAllTechnicians(res.data));
+    apiClient.get('/api/technicians').then(res => setAllTechnicians((res.data || []).filter((t: any) => t.role !== 'office_staff')));
   }, []);
 
   useEffect(() => {
