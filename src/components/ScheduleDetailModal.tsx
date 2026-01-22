@@ -4,6 +4,7 @@ import { pt } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
 import apiClient, { searchPartByReference } from '../apiClient';
 import { ScheduleEvent, Client, Equipment, Technician, PartItem, TimeBlock } from '../types';
+import { Copy, Clipboard } from 'lucide-react';
 
 registerLocale('pt', pt);
 
@@ -214,6 +215,83 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       } catch (error) {
         console.error('[ERROR] Error searching for part:', error);
       }
+    }
+  };
+
+  const handleCopyParts = () => {
+    const validParts = parts.filter(p => (p.reference && p.reference.trim() !== '') || (p.designation && p.designation.trim() !== ''));
+    if (validParts.length === 0) {
+      alert('Não há peças para copiar.');
+      return;
+    }
+    const partsToCopy = validParts.map(({ quantity, reference, designation }) => ({
+      quantity,
+      reference,
+      designation
+    }));
+    const partsString = JSON.stringify(partsToCopy);
+
+    // Guardar no localStorage (mais fiável em mobile/Android)
+    localStorage.setItem('app_parts_clipboard', partsString);
+
+    // Tentar guardar também na área de transferência do sistema
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(partsString)
+        .then(() => alert('Lista de peças copiada!'))
+        .catch(err => {
+          console.warn('Clipboard API failed, using internal memory only.', err);
+          alert('Lista de peças guardada na memória interna!');
+        });
+    } else {
+      alert('Lista de peças guardada na memória interna!');
+    }
+  };
+
+  const handlePasteParts = async () => {
+    let partsString = localStorage.getItem('app_parts_clipboard');
+
+    // Se não estiver no localStorage, tentar ler do clipboard do sistema
+    if (!partsString && navigator.clipboard && navigator.clipboard.readText) {
+      try {
+        partsString = await navigator.clipboard.readText();
+      } catch (err) {
+        console.warn('Could not read from clipboard API:', err);
+      }
+    }
+
+    if (!partsString) {
+      alert('Nenhuma peça encontrada na memória ou área de transferência.');
+      return;
+    }
+
+    try {
+      const pastedData = JSON.parse(partsString);
+      if (Array.isArray(pastedData)) {
+        const newPartsFromPaste = pastedData
+          .filter(p => p.reference || p.designation)
+          .map(p => ({
+            quantity: Number(p.quantity) || 1,
+            reference: p.reference || '',
+            designation: p.designation || '',
+            isDesignationLocked: !!p.reference
+          }));
+
+        if (newPartsFromPaste.length === 0) {
+          alert('Nenhuma peça válida encontrada.');
+          return;
+        }
+
+        setParts(prev => {
+          const filteredPrev = prev.filter(p => p.reference.trim() !== '' || p.designation.trim() !== '');
+          return [...filteredPrev, ...newPartsFromPaste];
+        });
+        alert(`${newPartsFromPaste.length} peças coladas!`);
+      } else {
+        alert('Conteúdo inválido.');
+      }
+    } catch (err) {
+      console.error('Erro ao colar:', err);
+      alert('Erro ao processar as peças. Certifique-se que copiou uma lista válida.');
     }
   };
 
@@ -510,7 +588,9 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
               {/* Secção de Peças (oculta para agendamento de ticket recém-criado) */}
               {!isTicketScheduling && (
                 <div className="form-group mt-3">
-                  <label>Peças a Utilizar</label>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <label className="mb-0">Peças a Utilizar</label>
+                  </div>
                   <div className="p-2 border rounded">
                     {parts.map((part, index) => (
                       <div key={index} className="row mb-2 align-items-center">
@@ -551,9 +631,29 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                       </div>
                     ))}
                     {!isPastOrCompleted && (
-                      <button type="button" className="btn btn-secondary btn-sm mt-2" onClick={handleAddPart}>
-                        Adicionar Peça
-                      </button>
+                      <div className="d-flex align-items-center gap-2 mt-2">
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddPart}>
+                          Adicionar Peça
+                        </button>
+                        <div className="btn-group">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
+                            onClick={handleCopyParts}
+                            title="Copiar Peças"
+                          >
+                            <Copy size={14} /> Copiar
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
+                            onClick={handlePasteParts}
+                            title="Colar Peças"
+                          >
+                            <Clipboard size={14} /> Colar
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>

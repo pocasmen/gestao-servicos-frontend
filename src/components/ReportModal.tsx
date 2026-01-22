@@ -3,6 +3,7 @@ import apiClient from '../apiClient';
 import { AuthContext } from '../App';
 import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician } from '../types';
 import SignaturePad from './SignaturePad';
+import { Copy, Clipboard } from 'lucide-react';
 
 
 interface ReportModalProps {
@@ -195,6 +196,82 @@ const ReportModal: React.FC<ReportModalProps> = ({
     }
   };
 
+  const handleCopyParts = () => {
+    const validParts = parts.filter(p => (p.reference && p.reference.trim() !== '') || (p.designation && p.designation.trim() !== ''));
+    if (validParts.length === 0) {
+      alert('Não há peças para copiar.');
+      return;
+    }
+    const partsToCopy = validParts.map(({ quantity, reference, designation }) => ({
+      quantity,
+      reference,
+      designation
+    }));
+    const partsString = JSON.stringify(partsToCopy);
+
+    // Guardar no localStorage
+    localStorage.setItem('app_parts_clipboard', partsString);
+
+    // Tentar guadar no sistema
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(partsString)
+        .then(() => alert('Lista de peças copiada!'))
+        .catch(err => {
+          console.warn('Clipboard API failed:', err);
+          alert('Pronto! Lista guardada na memória interna.');
+        });
+    } else {
+      alert('Pronto! Lista guardada na memória interna.');
+    }
+  };
+
+  const handlePasteParts = async () => {
+    let partsString = localStorage.getItem('app_parts_clipboard');
+
+    if (!partsString && navigator.clipboard && navigator.clipboard.readText) {
+      try {
+        partsString = await navigator.clipboard.readText();
+      } catch (err) {
+        console.warn('Could not read clipboard API:', err);
+      }
+    }
+
+    if (!partsString) {
+      alert('Nenhuma peça encontrada para colar.');
+      return;
+    }
+
+    try {
+      const pastedData = JSON.parse(partsString);
+      if (Array.isArray(pastedData)) {
+        const newPartsFromPaste = pastedData
+          .filter(p => p.reference || p.designation)
+          .map(p => ({
+            quantity: Number(p.quantity) || 1,
+            reference: p.reference || '',
+            designation: p.designation || '',
+            isDesignationLocked: !!p.reference
+          }));
+
+        if (newPartsFromPaste.length === 0) {
+          alert('Nenhuma peça válida encontrada.');
+          return;
+        }
+
+        setParts(prev => {
+          const filteredPrev = prev.filter(p => p.reference.trim() !== '' || p.designation.trim() !== '');
+          return [...filteredPrev, ...newPartsFromPaste, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }];
+        });
+        alert(`${newPartsFromPaste.length} peças coladas!`);
+      } else {
+        alert('Conteúdo inválido.');
+      }
+    } catch (err) {
+      console.error('Erro ao colar:', err);
+      alert('Erro ao processar as peças.');
+    }
+  };
+
   const handleRemovePart = (index: number) => {
     if (parts.length === 1) {
       setParts([{ quantity: 1, reference: '', designation: '', isDesignationLocked: false }]);
@@ -377,7 +454,9 @@ const ReportModal: React.FC<ReportModalProps> = ({
               </div>
 
               <div className="form-group mt-3">
-                <label>Peças Utilizadas</label>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <label className="mb-0">Peças Utilizadas</label>
+                </div>
                 <table className="table table-bordered">
                   <thead>
                     <tr>
@@ -432,6 +511,33 @@ const ReportModal: React.FC<ReportModalProps> = ({
                     ))}
                   </tbody>
                 </table>
+                <div className="d-flex align-items-center gap-2 mt-2">
+                  <button
+                    type="button"
+                    className="btn btn-secondary btn-sm"
+                    onClick={() => setParts([...parts, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }])}
+                  >
+                    Adicionar Peça
+                  </button>
+                  <div className="btn-group">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
+                      onClick={handleCopyParts}
+                      title="Copiar Peças"
+                    >
+                      <Copy size={14} /> Copiar
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
+                      onClick={handlePasteParts}
+                      title="Colar Peças"
+                    >
+                      <Clipboard size={14} /> Colar
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="form-group mt-4">
