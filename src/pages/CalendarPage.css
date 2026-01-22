@@ -54,3 +54,71 @@
   font-size: 14px !important;
   font-weight: bold;
 }
+
+/* --- Vista de Mês (Hack para esconder fins de semana e manter alinhamento) --- */
+
+/* 1. Forçar largura de 20% para os dias visíveis (Seg-Sex) */
+.rbc-month-view .rbc-header,
+.rbc-month-view .rbc-day-bg,
+.rbc-month-view .rbc-date-cell {
+  flex-basis: 20% !important;
+  max-width: 20% !important;
+}
+
+/* 2. Esconder as colunas de Sábado e Domingo */
+.rbc-month-view .rbc-header:nth-child(6),
+.rbc-month-view .rbc-header:nth-child(7),
+.rbc-month-view .rbc-day-bg:nth-child(6),
+.rbc-month-view .rbc-day-bg:nth-child(7),
+.rbc-month-view .rbc-date-cell:nth-child(6),
+.rbc-month-view .rbc-date-cell:nth-child(7) {
+  display: none !important;
+}
+
+/* 3. Recalcular posicionamento e largura dos eventos (Conversão de base 7 para base 5) */
+/* 1 dia: 14.2857% -> 20% */
+.rbc-month-view .rbc-row-segment[style*="basis: 14.28"] {
+  flex-basis: 20% !important;
+  max-width: 20% !important;
+}
+
+/* 2 dias: 28.5714% -> 40% */
+.rbc-month-view .rbc-row-segment[style*="basis: 28.57"] {
+  flex-basis: 40% !important;
+  max-width: 40% !important;
+}
+
+/* 3 dias: 42.8571% -> 60% */
+.rbc-month-view .rbc-row-segment[style*="basis: 42.85"] {
+  flex-basis: 60% !important;
+  max-width: 60% !important;
+}
+
+/* 4 dias: 57.1428% -> 80% */
+.rbc-month-view .rbc-row-segment[style*="basis: 57.14"] {
+  flex-basis: 80% !important;
+  max-width: 80% !important;
+}
+
+/* 5 dias: 71.4285% -> 100% */
+.rbc-month-view .rbc-row-segment[style*="basis: 71.42"] {
+  flex-basis: 100% !important;
+  max-width: 100% !important;
+}
+
+/* 6 e 7 dias -> 100% (truncado na borda da sexta-feira) */
+.rbc-month-view .rbc-row-segment[style*="basis: 85.71"] {
+  flex-basis: 100% !important;
+  max-width: 100% !important;
+}
+
+/* 100% já é 100%, mas garantimos o max-width */
+.rbc-month-view .rbc-row-segment[style*="basis: 100%"] {
+  flex-basis: 100% !important;
+  max-width: 100% !important;
+}
+
+/* Evitar que eventos ou spacers do fim de semana quebrem o layout */
+.rbc-month-row {
+  overflow: hidden;
+}

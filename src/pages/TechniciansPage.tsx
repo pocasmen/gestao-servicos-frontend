@@ -15,6 +15,8 @@ export interface AppUser {
   name: string; // Combined name for display
   daily_notifications_enabled?: boolean;
   notification_time?: string;
+  phone?: string;
+  google_calendar_color_id?: string;
 }
 
 // New form to invite users (technicians, admins, or clients)

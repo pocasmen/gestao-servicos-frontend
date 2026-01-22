@@ -46,10 +46,10 @@ const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales
 const DragAndDropCalendar = withDragAndDrop<ScheduleEvent>(Calendar);
 
 const messages = {
-  allDay: 'Dia Inteiro', previous: 'Anterior', next: 'Próximo', today: 'Hoje', month: 'Mês', week: 'Semana', day: 'Dia', agenda: 'Agenda', date: 'Data', time: 'Hora', event: 'Evento',
+  allDay: 'Dia Inteiro', previous: 'Anterior', next: 'Próximo', today: 'Hoje', month: 'Mês', week: 'Semana', work_week: 'Semana', day: 'Dia', agenda: 'Agenda', date: 'Data', time: 'Hora', event: 'Evento',
 };
 
-const calendarViews = [Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA];
+const calendarViews = [Views.MONTH, Views.WORK_WEEK, Views.DAY, Views.AGENDA];
 
 const CalendarPage: React.FC = () => {
   const [events, setEvents] = useState<ScheduleEvent[]>([]);
@@ -58,7 +58,7 @@ const CalendarPage: React.FC = () => {
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportToEdit, setReportToEdit] = useState<Report | null>(null);
   const [date, setDate] = useState(new Date());
-  const [view, setView] = useState(Views.WEEK);
+  const [view, setView] = useState(Views.WORK_WEEK);
   const [dirtyEventIds, setDirtyEventIds] = useState<Set<string | number>>(new Set());
 
   const location = useLocation();
@@ -460,7 +460,7 @@ const CalendarPage: React.FC = () => {
         selectable
         onSelectEvent={handleSelectEvent}
         onSelectSlot={handleSelectSlot}
-        defaultView={Views.WEEK}
+        defaultView={Views.WORK_WEEK}
         views={calendarViews}
         culture="pt-PT"
         messages={messages}

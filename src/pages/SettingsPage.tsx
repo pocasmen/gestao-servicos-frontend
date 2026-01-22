@@ -5,6 +5,7 @@ const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState({
     ticket_notification_active: 'true',
     ticket_notification_time: '17:00',
+    google_calendar_sync_enabled: 'false',
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -13,6 +14,7 @@ const SettingsPage: React.FC = () => {
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>('');
   const [templateLoading, setTemplateLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: number; fail: number } | null>(null);
 
   const fetchSettings = useCallback(async () => {
@@ -93,6 +95,25 @@ const SettingsPage: React.FC = () => {
       setError(err.response?.data?.error || 'Erro ao sincronizar com o Google Calendar.');
     } finally {
       setIsSyncing(false);
+    }
+  };
+
+  const handleClearCalendar = async () => {
+    if (!window.confirm('TEM A CERTEZA? Esta ação irá apagar TODOS os agendamentos sincronizados do Google Calendar.')) return;
+
+    setIsClearing(true);
+    setError('');
+    setSuccess('');
+    setSyncResult(null);
+
+    try {
+      const response = await apiClient.post('/api/admin/clear-google-calendar');
+      setSuccess(`Limpeza concluída: ${response.data.success} removido(s), ${response.data.fail} falha(s).`);
+    } catch (err: any) {
+      console.error("Erro na limpeza:", err);
+      setError(err.response?.data?.error || 'Erro ao limpar o Google Calendar.');
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -215,19 +236,52 @@ const SettingsPage: React.FC = () => {
           Sincronização com Google Calendar
         </div>
         <div className="card-body">
-          <p>Esta ação irá sincronizar todos os agendamentos existentes que ainda não foram enviados para o Google Calendar.</p>
-          <button
-            className="btn btn-outline-primary"
-            onClick={handleSyncCalendar}
-            disabled={isSyncing}
-          >
-            {isSyncing ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                A sincronizar...
-              </>
-            ) : 'Sincronizar Todos os Agendamentos'}
-          </button>
+          <div className="form-check form-switch mb-3">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              role="switch"
+              id="google_calendar_sync_enabled"
+              name="google_calendar_sync_enabled"
+              checked={settings.google_calendar_sync_enabled === 'true'}
+              onChange={handleInputChange}
+            />
+            <label className="form-check-label" htmlFor="google_calendar_sync_enabled">
+              <strong>Ativar sincronização automática</strong>
+            </label>
+            <div className="form-text">Quando ativado, novos agendamentos e alterações serão enviados automaticamente para o Google Calendar.</div>
+          </div>
+
+          <hr />
+
+          <p>Operações manuais:</p>
+          <div className="d-flex gap-2">
+            <button
+              className="btn btn-outline-primary"
+              onClick={handleSyncCalendar}
+              disabled={isSyncing || isClearing}
+            >
+              {isSyncing ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  A sincronizar...
+                </>
+              ) : 'Sincronizar Todos os Agendamentos'}
+            </button>
+
+            <button
+              className="btn btn-outline-danger"
+              onClick={handleClearCalendar}
+              disabled={isSyncing || isClearing}
+            >
+              {isClearing ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  A apagar...
+                </>
+              ) : 'Apagar Todos do Google'}
+            </button>
+          </div>
 
           {syncResult && (
             <div className="mt-2 text-muted small">

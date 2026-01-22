@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../apiClient';
-import { Equipment, Ticket, Report } from '../types';
-import ClientViewReportModal from '../components/ClientViewReportModal';
-import { Link } from 'react-router-dom';
+import { Equipment, Ticket } from '../types';
+import { Link, useNavigate } from 'react-router-dom';
 
 const ClientTicketsPage: React.FC = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
@@ -12,23 +11,16 @@ const ClientTicketsPage: React.FC = () => {
   const [faultDescription, setFaultDescription] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // State for the report modal
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const navigate = useNavigate();
 
   const fetchClientData = useCallback(async () => {
-    console.log('[DEBUG] fetchClientData called.');
     try {
       const equipmentsRes = await apiClient.get('/api/my-equipments');
-      console.log('[DEBUG] equipmentsRes:', equipmentsRes.data);
       setEquipments(equipmentsRes.data);
       const ticketsRes = await apiClient.get('/api/my-tickets');
-      console.log('[DEBUG] ticketsRes:', ticketsRes.data);
       setTickets(ticketsRes.data);
     } catch (err: any) {
       console.error("Erro ao carregar dados do cliente:", err);
-      console.error("Detalhes do erro:", err.response?.data || err.message || err);
       setError('Não foi possível carregar os seus dados. Por favor, tente novamente.');
     }
   }, []);
@@ -68,17 +60,15 @@ const ClientTicketsPage: React.FC = () => {
     if (!ticket.scheduleId) return;
     try {
       const response = await apiClient.get(`/api/my-report/by-schedule/${ticket.scheduleId}`);
-      setSelectedReport(response.data);
-      setIsReportModalOpen(true);
+      if (response.data && response.data.id) {
+        navigate(`/report/print/${response.data.id}`);
+      } else {
+        setError("Relatório não encontrado.");
+      }
     } catch (error) {
       console.error("Erro ao carregar o relatório:", error);
       setError("Não foi possível carregar o relatório. Por favor, tente mais tarde.");
     }
-  };
-
-  const handleCloseReportModal = () => {
-    setIsReportModalOpen(false);
-    setSelectedReport(null);
   };
 
   return (
@@ -203,12 +193,6 @@ const ClientTicketsPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      <ClientViewReportModal
-        isOpen={isReportModalOpen}
-        onClose={handleCloseReportModal}
-        report={selectedReport}
-      />
     </div>
   );
 };

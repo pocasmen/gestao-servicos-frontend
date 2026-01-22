@@ -58,7 +58,7 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
       return part;
     }));
 
-    const selectedTechnician = technicians.find(t => t.id === Number(technicianId));
+    const selectedTechnician = technicians.find(t => t.id === String(technicianId));
 
     createReport({
       clientId: Number(clientId),

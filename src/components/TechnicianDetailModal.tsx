@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import { AppUser } from '../pages/TechniciansPage'; // Import the new generic interface
+import GoogleColorPicker from './GoogleColorPicker';
 
 interface ModalProps {
   isOpen: boolean;
@@ -17,6 +18,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
   const [color, setColor] = useState('#3174ad');
   const [role, setRole] = useState<'technician' | 'admin' | 'office_staff' | 'super_admin'>('technician');
   const [telegramchatid, setTelegramchatid] = useState('');
+  const [googleCalendarColorId, setGoogleCalendarColorId] = useState('9');
   const [errorMessage, setErrorMessage] = useState('');
   const [botUsername, setBotUsername] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
@@ -35,6 +37,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
       setColor(user.color || '#3174ad');
       setRole(user.role || 'technician');
       setTelegramchatid(user.telegramchatid || '');
+      setGoogleCalendarColorId(user.google_calendar_color_id || '9');
       setErrorMessage('');
       setSyncStatus('');
     }
@@ -76,7 +79,8 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
       last_name: lastName,
       color,
       role,
-      telegramchatid
+      telegramchatid,
+      google_calendar_color_id: googleCalendarColorId
     };
 
     apiClient.put(`/api/technicians/${user.id}`, updatedData)
@@ -134,7 +138,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
               </div>
 
               <div className="row">
-                <div className="col-md-6 mb-3">
+                <div className="col-md-12 mb-3">
                   <label className="form-label">Função</label>
                   <select
                     className="form-select"
@@ -149,9 +153,19 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
                     )}
                   </select>
                 </div>
+              </div>
+
+              <div className="row">
                 <div className="col-md-6 mb-3">
-                  <label className="form-label">Cor do Calendário</label>
+                  <label className="form-label">Cor Interna</label>
                   <input type="color" className="form-control form-control-color w-100" value={color} onChange={e => setColor(e.target.value)} />
+                </div>
+                <div className="col-md-6 mb-3">
+                  <GoogleColorPicker
+                    label="Cor Google Calendar"
+                    value={googleCalendarColorId}
+                    onChange={setGoogleCalendarColorId}
+                  />
                 </div>
               </div>
 

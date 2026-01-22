@@ -15,7 +15,7 @@ const ClientPortalHeader: React.FC = () => {
   if (!user) {
     return null;
   }
-  
+
   const clientName = user.user_metadata?.clientName || 'Portal do Cliente';
   const userFirstName = user.user_metadata?.first_name || '';
   const userLastName = user.user_metadata?.last_name || '';
@@ -36,6 +36,12 @@ const ClientPortalHeader: React.FC = () => {
             </li>
             <li className="nav-item">
               <NavLink className="nav-link" to="/portal/schedules">Agendamentos</NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/portal/history">Histórico</NavLink>
+            </li>
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/portal/profile">Perfil</NavLink>
             </li>
           </ul>
           <div className="d-flex align-items-center">

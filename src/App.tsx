@@ -26,6 +26,8 @@ import SelfRegisterPage from './pages/SelfRegisterPage';
 import PendingUsersPage from './pages/PendingUsersPage';
 import CompleteRegistrationPage from './pages/CompleteRegistrationPage';
 import ProfilePage from './pages/ProfilePage';
+import ClientProfilePage from './pages/ClientProfilePage';
+import ClientHistoryPage from './pages/ClientHistoryPage';
 import './index.css';
 import './theme.css';
 
@@ -178,7 +180,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/technicians" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']}><TechniciansPage /></ProtectedRoute>} />
           <Route path="/admin/pending-users" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']}><PendingUsersPage /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ReportsPage /></ProtectedRoute>} />
-          <Route path="/report/print/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ReportPrintPage /></ProtectedRoute>} />
+          <Route path="/report/print/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin', 'client']}><ReportPrintPage /></ProtectedRoute>} />
           <Route path="/tickets" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><TicketsPage /></ProtectedRoute>} />
           <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><TicketDetailPage /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute allowedRoles={['super_admin']}><SettingsPage /></ProtectedRoute>} /> {/* Apenas SuperAdmin pode mexer nas configs */}
@@ -189,8 +191,10 @@ const AppRoutes: React.FC = () => {
           <Route path="/portal/tickets" element={<ProtectedRoute allowedRoles={['client']}><ClientTicketsPage /></ProtectedRoute>} />
           <Route path="/portal/tickets/:id" element={<ProtectedRoute allowedRoles={['client']}><ClientTicketDetailPage /></ProtectedRoute>} />
           <Route path="/portal/schedules" element={<ProtectedRoute allowedRoles={['client']}><ClientSchedulesListPage /></ProtectedRoute>} />
+          <Route path="/portal/history" element={<ProtectedRoute allowedRoles={['client']}><ClientHistoryPage /></ProtectedRoute>} />
           {/* Adicionada rota para o histórico de equipamento do cliente */}
           <Route path="/portal/equipments/:id/history" element={<ProtectedRoute allowedRoles={['client']}><EquipmentHistoryPage /></ProtectedRoute>} />
+          <Route path="/portal/profile" element={<ProtectedRoute allowedRoles={['client']}><ClientProfilePage /></ProtectedRoute>} />
 
         </Routes>
       </div>
