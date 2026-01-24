@@ -4,7 +4,8 @@ import { pt } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
 import apiClient, { searchPartByReference } from '../apiClient';
 import { ScheduleEvent, Client, Equipment, Technician, PartItem, TimeBlock } from '../types';
-import { Copy, Clipboard } from 'lucide-react';
+import { SERVICE_TYPES_LIST } from '../constants';
+import { Copy, Clipboard, Trash2 } from 'lucide-react';
 
 registerLocale('pt', pt);
 
@@ -41,6 +42,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
   const isCreating = !event || !event.id;
   const now = new Date();
+  const [isLoadingEquipments, setIsLoadingEquipments] = useState(false);
 
   // Derived start/end for logic checks
   const derivedStart = timeBlocks.length > 0
@@ -79,13 +81,17 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
   useEffect(() => {
     if (clientId) {
+      setIsLoadingEquipments(true);
       console.log(`[DEBUG] Fetching equipments for client ${clientId}`);
       apiClient.get(`/api/clients/${clientId}/equipments`)
         .then(res => {
-          console.log(`[DEBUG] Equipments fetched:`, res.data);
+          if (import.meta.env.DEV) {
+            console.log(`[DEBUG] Equipments fetched:`, res.data);
+          }
           setEquipments(res.data);
         })
-        .catch(err => console.error("Error fetching equipments:", err));
+        .catch(err => console.error("Error fetching equipments:", err))
+        .finally(() => setIsLoadingEquipments(false));
     } else {
       setEquipments([]);
     }
@@ -101,23 +107,29 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     }
   }, [clientId, clients]);
 
-  // Sync clientId with clientSearch when user types
+  // Sync clientId with clientSearch when user types with Debounce
   useEffect(() => {
-    if (clientSearch && clients.length > 0) {
-      const selectedClient = clients.find(c => c.name.toLowerCase() === clientSearch.toLowerCase().trim());
-      if (selectedClient) {
-        if (String(selectedClient.id) !== clientId) {
-          setClientId(String(selectedClient.id));
+    const delayDebounceFn = setTimeout(() => {
+      if (clientSearch && clients.length > 0) {
+        const selectedClient = clients.find(c => c.name.toLowerCase() === clientSearch.toLowerCase().trim());
+        if (selectedClient) {
+          if (String(selectedClient.id) !== clientId) {
+            setClientId(String(selectedClient.id));
+          }
+        } else {
+          // Só limpa o ID se o utilizador apagou o texto ou escreveu algo que não existe
+          // E garantimos que não estamos num estado de "loading" inicial
+          if (clientId !== '') {
+            setClientId('');
+          }
         }
-      } else {
-        if (clientId !== '') {
-          setClientId('');
-        }
+      } else if (!clientSearch && clientId !== '') {
+        setClientId('');
       }
-    } else if (!clientSearch && clientId !== '') {
-      setClientId('');
-    }
-  }, [clientSearch, clients]);
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [clientSearch, clients, clientId]);
 
   // Handle equipment selection logic when equipments list or event changes
   useEffect(() => {
@@ -193,31 +205,60 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
   const handlePartChange = (index: number, field: keyof PartItem, value: string | number) => {
     const newParts = [...parts];
-    (newParts[index] as any)[field] = value;
+    const item = { ...newParts[index] };
+
+    if (field === 'quantity') {
+      item.quantity = Number(value);
+    } else if (field === 'isDesignationLocked') {
+      // isDesignationLocked is boolean, but value is string|number here? 
+      // The signature says value: string | number. 
+      // Checking usage: handlePartChange(index, 'isDesignationLocked', ...) is not called in the code provided in previous turn, but let's be safe.
+      // Actually, looking at the code, it's capable of receiving boolean too if I change the signature?
+      // The component calls it with: handlePartChange(index, 'quantity', parseInt...)
+      // handlePartChange(index, 'reference', e.target.value)
+      // handlePartChange(index, 'designation', e.target.value)
+      // It does NOT seem to call it for isDesignationLocked.
+    } else {
+      // reference, designation are strings
+      (item as any)[field] = value;
+    }
+    // Wait, let's just use the spread which is standard React pattern, TS might complain about union type mismatch
+    // simpler:
+    newParts[index] = { ...newParts[index], [field]: value };
     setParts(newParts);
   };
 
   const handleReferenceBlur = async (index: number) => {
     const reference = parts[index].reference;
-    console.log('[DEBUG] handleReferenceBlur called for index:', index, 'reference:', reference);
+    if (import.meta.env.DEV) {
+      console.log('[DEBUG] handleReferenceBlur called for index:', index, 'reference:', reference);
+    }
 
     if (typeof reference === 'string' && reference.trim() !== '') {
       try {
-        console.log('[DEBUG] Searching for part with reference:', reference.trim());
+        if (import.meta.env.DEV) {
+          console.log('[DEBUG] Searching for part with reference:', reference.trim());
+        }
         const part = await searchPartByReference(reference.trim());
-        console.log('[DEBUG] Search result:', part);
+        if (import.meta.env.DEV) {
+          console.log('[DEBUG] Search result:', part);
+        }
 
         const newParts = [...parts];
         if (part) {
           newParts[index].id = part.id;
           newParts[index].designation = part.designation;
           newParts[index].isDesignationLocked = true;
-          console.log('[DEBUG] Part found, updating designation to:', part.designation);
+          if (import.meta.env.DEV) {
+            console.log('[DEBUG] Part found, updating designation to:', part.designation);
+          }
         } else {
           newParts[index].id = undefined;
           newParts[index].designation = '';
           newParts[index].isDesignationLocked = false;
-          console.log('[DEBUG] Part not found, clearing designation');
+          if (import.meta.env.DEV) {
+            console.log('[DEBUG] Part not found, clearing designation');
+          }
         }
         setParts(newParts);
       } catch (error) {
@@ -334,8 +375,15 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       return;
     }
 
+    // Safe destructuring of event to preserve extra props but exclude what we overwrite or don't want
+    let eventRest: Partial<ScheduleEvent> = {};
+    if (event) {
+      const { technicians, scheduleId: _sId, id: _id, ...rest } = event;
+      eventRest = rest;
+    }
+
     const scheduleData = {
-      ...event,
+      ...eventRest,
       startDate: sTime.toISOString(),
       endDate: eTime.toISOString(),
       clientId: Number(clientId),
@@ -355,13 +403,10 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           quantity: p.quantity
         })),
     };
-    console.log('[DEBUG_SCHEDULE_MODAL] handleSave - sending:', scheduleData);
-    // @ts-ignore
-    delete scheduleData.technicians;
-    // @ts-ignore
-    delete scheduleData.scheduleId;
-    // @ts-ignore
-    delete scheduleData.id;
+
+    if (import.meta.env.DEV) {
+      console.log('[DEBUG_SCHEDULE_MODAL] handleSave - sending:', scheduleData);
+    }
 
     // Determine correct ID for PUT
     const scheduleId = event?.scheduleId !== undefined ? event.scheduleId : (event?.id && typeof event.id === 'number' ? event.id : undefined);
@@ -370,7 +415,10 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       const response = isCreating
         ? await apiClient.post('/api/schedules', scheduleData)
         : await apiClient.put(`/api/schedules/${scheduleId}`, scheduleData);
-      console.log('[DEBUG_SCHEDULE_MODAL] handleSave - response:', response.data);
+
+      if (import.meta.env.DEV) {
+        console.log('[DEBUG_SCHEDULE_MODAL] handleSave - response:', response.data);
+      }
       onScheduleUpdated(response.data);
       onClose();
     } catch (error) {
@@ -404,8 +452,14 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       return;
     }
 
+    let eventRestForComplete: Partial<ScheduleEvent> = {};
+    if (event) {
+      const { technicians, ...rest } = event;
+      eventRestForComplete = rest;
+    }
+
     const scheduleData = {
-      ...event,
+      ...eventRestForComplete,
       startDate: sTime.toISOString(),
       endDate: eTime.toISOString(),
       clientId: Number(clientId),
@@ -417,15 +471,18 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       serviceType,
       timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() }))
     };
-    console.log('[DEBUG_SCHEDULE_MODAL] handleComplete - sending:', scheduleData);
-    // @ts-ignore
-    delete scheduleData.technicians;
+
+    if (import.meta.env.DEV) {
+      console.log('[DEBUG_SCHEDULE_MODAL] handleComplete - sending:', scheduleData);
+    }
 
     const scheduleId = event?.scheduleId !== undefined ? event.scheduleId : (event?.id && typeof event.id === 'number' ? event.id : undefined);
 
     try {
       const response = await apiClient.post(`/api/schedules/${scheduleId}/complete`, scheduleData);
-      console.log('[DEBUG_SCHEDULE_MODAL] handleComplete - response:', response.data);
+      if (import.meta.env.DEV) {
+        console.log('[DEBUG_SCHEDULE_MODAL] handleComplete - response:', response.data);
+      }
       onScheduleUpdated(response.data);
       onClose();
     } catch (error) {
@@ -474,11 +531,9 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                 <label>Tipo de Serviço</label>
                 <select className="form-control" value={serviceType} onChange={e => setServiceType(e.target.value)} disabled={isPastOrCompleted}>
                   <option value="">Selecione um tipo...</option>
-                  <option value="reparacao">Reparação</option>
-                  <option value="instalacao">Instalação</option>
-                  <option value="assistencia">Assistência</option>
-                  <option value="manutencao">Manutenção</option>
-                  <option value="remota">Remota</option>
+                  {SERVICE_TYPES_LIST.map(type => (
+                    <option key={type.id} value={type.id}>{type.label}</option>
+                  ))}
                 </select>
               </div>
               <div className="form-group mb-3">
@@ -530,7 +585,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                     <div className="col-md-2">
                       {!isPastOrCompleted && timeBlocks.length > 1 && (
                         <button type="button" className="btn btn-outline-danger btn-sm w-100" onClick={() => handleRemoveBlock(index)}>
-                          X
+                          <Trash2 size={16} />
                         </button>
                       )}
                     </div>
@@ -554,8 +609,10 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
               </div>
               <div className="form-group">
                 <label>Equipamento</label>
-                <select className="form-control" value={equipmentId} onChange={e => setEquipmentId(e.target.value)} required disabled={isPastOrCompleted || !clientId}>
-                  <option value="">Selecione um equipamento...</option>
+                <select className="form-control" value={equipmentId} onChange={e => setEquipmentId(e.target.value)} required disabled={isPastOrCompleted || !clientId || isLoadingEquipments}>
+                  <option value="">
+                    {isLoadingEquipments ? 'A carregar equipamentos...' : 'Selecione um equipamento...'}
+                  </option>
                   {equipments.map(eq => (
                     <option key={eq.id} value={String(eq.id)}>
                       {`${eq.brand || ''} ${eq.model || ''}${eq.serialNumber ? ` (${eq.serialNumber})` : ''}`.trim()}
@@ -600,9 +657,14 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                     <label className="mb-0">Peças a Utilizar</label>
                   </div>
                   <div className="p-2 border rounded">
+                    <div className="d-flex mb-1 small text-muted px-2 gap-2">
+                      <div style={{ width: '75px' }}>Qtd</div>
+                      <div style={{ width: '150px' }}>Referência</div>
+                      <div className="flex-grow-1">Designação</div>
+                    </div>
                     {parts.map((part, index) => (
-                      <div key={index} className="row mb-2 align-items-center">
-                        <div className="col-2">
+                      <div key={index} className="d-flex mb-2 align-items-center gap-2">
+                        <div style={{ width: '75px' }}>
                           <input
                             type="number"
                             className="form-control"
@@ -612,7 +674,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                             disabled={isPastOrCompleted}
                           />
                         </div>
-                        <div className="col-4">
+                        <div style={{ width: '150px' }}>
                           <input
                             type="text"
                             className="form-control"
@@ -623,7 +685,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                             disabled={isPastOrCompleted}
                           />
                         </div>
-                        <div className="col-5">
+                        <div className="flex-grow-1">
                           <input
                             type="text"
                             className="form-control"
@@ -633,8 +695,10 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                             disabled={part.isDesignationLocked || isPastOrCompleted}
                           />
                         </div>
-                        <div className="col-1">
-                          <button type="button" className="btn btn-danger btn-sm" onClick={() => handleRemovePart(index)} disabled={isPastOrCompleted}>X</button>
+                        <div>
+                          <button type="button" className="btn btn-danger btn-sm" onClick={() => handleRemovePart(index)} disabled={isPastOrCompleted}>
+                            <Trash2 size={16} />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -684,7 +748,11 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
             </div>
             <div className="modal-footer d-flex justify-content-between">
               <div>
-                {!isCreating && <button type="button" className="btn btn-danger" onClick={handleDelete}>Eliminar</button>}
+                {!isCreating && (
+                  <button type="button" className="btn btn-danger" onClick={handleDelete}>
+                    <Trash2 size={18} className="me-2" /> Eliminar
+                  </button>
+                )}
               </div>
               <div>
                 <button type="button" className="btn btn-secondary me-2" onClick={onClose}>Cancelar</button>

@@ -14,6 +14,7 @@ import './CalendarPage.css';
 import { ScheduleEvent, Report, Ticket } from '../types';
 import ScheduleDetailModal from '../components/ScheduleDetailModal';
 import ReportModal from '../components/ReportModal';
+import { SERVICE_TYPE_LABELS } from '../constants';
 
 const locales = { 'pt-PT': pt };
 
@@ -64,20 +65,15 @@ const CalendarPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const serviceTypeLabels: Record<string, string> = {
-    reparacao: 'Reparação',
-    instalacao: 'Instalação',
-    assistencia: 'Assistência',
-    manutencao: 'Manutenção',
-    remota: 'Remota',
-  };
+
+
 
   const fetchSchedules = useCallback(() => {
     apiClient.get('/api/schedules').then(response => {
       const fetchedEvents: ScheduleEvent[] = [];
 
       response.data.forEach((schedule: any) => {
-        const serviceLabel = serviceTypeLabels[schedule.serviceType] || schedule.serviceType || 'Serviço';
+        const serviceLabel = SERVICE_TYPE_LABELS[schedule.serviceType] || schedule.serviceType || 'Serviço';
         const equipLabel = schedule.equipmentInfo || 'Mod. Desconhecido';
         const clientLabel = schedule.clientName || 'Cliente Desconhecido';
         const title = `${serviceLabel} - ${equipLabel} - ${clientLabel}`;
@@ -184,16 +180,18 @@ const CalendarPage: React.FC = () => {
     const { scheduleToEditId, ticketToReport } = location.state || {};
 
     if (scheduleToEditId) {
-      const eventToEdit = events.find(e => e.id === scheduleToEditId);
+      const eventToEdit = events.find(e => e.id === scheduleToEditId || e.scheduleId === scheduleToEditId);
       if (eventToEdit) {
         setSelectedEvent(eventToEdit);
         setIsModalOpen(true);
+        setDate(eventToEdit.start);
         navigate(location.pathname, { replace: true, state: {} });
       }
     } else if (ticketToReport) {
       const scheduleEvent = events.find(e => (e.scheduleId === (ticketToReport as Ticket).scheduleId) || (e.id === (ticketToReport as Ticket).scheduleId));
       if (scheduleEvent) {
         handleManageReport(scheduleEvent);
+        setDate(scheduleEvent.start);
         navigate(location.pathname, { replace: true, state: {} });
       }
     }
@@ -226,13 +224,17 @@ const CalendarPage: React.FC = () => {
 
   // Real-time synchronization using Broadcast (fast) and Postgres Changes (backup)
   useEffect(() => {
-    console.log('[DEBUG:REALTIME] Iniciando monitorização em tempo real...');
+    if (import.meta.env.DEV) {
+      console.log('[DEBUG:REALTIME] Iniciando monitorização em tempo real...');
+    }
 
     const channel = supabase
       .channel('calendar_updates')
       // 1. Ouvir via Broadcast (Enviado manualmente pelo servidor para rapidez total)
       .on('broadcast', { event: 'schedule_changed' }, (payload) => {
-        console.log('[DEBUG:REALTIME] Mensagem Broadcast recebida:', payload);
+        if (import.meta.env.DEV) {
+          console.log('[DEBUG:REALTIME] Mensagem Broadcast recebida:', payload);
+        }
         fetchSchedules();
       })
       // 2. Ouvir via Postgres Changes (Caso a tabela tenha Realtime ativo no dashboard)
@@ -240,7 +242,9 @@ const CalendarPage: React.FC = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'schedules' },
         (payload) => {
-          console.log('[DEBUG:REALTIME] Postgres Change detetada (schedules):', payload);
+          if (import.meta.env.DEV) {
+            console.log('[DEBUG:REALTIME] Postgres Change detetada (schedules):', payload);
+          }
           fetchSchedules();
         }
       )
@@ -248,16 +252,22 @@ const CalendarPage: React.FC = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'schedule_technicians' },
         (payload) => {
-          console.log('[DEBUG:REALTIME] Postgres Change detetada (technicians):', payload);
+          if (import.meta.env.DEV) {
+            console.log('[DEBUG:REALTIME] Postgres Change detetada (technicians):', payload);
+          }
           fetchSchedules();
         }
       )
       .subscribe((status, err) => {
-        console.log(`[DEBUG:REALTIME] Status da subscrição: ${status}`, err || '');
+        if (import.meta.env.DEV) {
+          console.log(`[DEBUG:REALTIME] Status da subscrição: ${status}`, err || '');
+        }
       });
 
     return () => {
-      console.log('[DEBUG:REALTIME] A limpar subscrição...');
+      if (import.meta.env.DEV) {
+        console.log('[DEBUG:REALTIME] A limpar subscrição...');
+      }
       supabase.removeChannel(channel);
     };
   }, [fetchSchedules]);
@@ -304,29 +314,27 @@ const CalendarPage: React.FC = () => {
 
       // 4. Construct payload
       const baseEvent = scheduleEvents[0];
+      if (!baseEvent) return Promise.resolve();
 
       const timeBlocks = scheduleEvents.map(e => ({
         start: e.start.toISOString(),
         end: e.end.toISOString()
       }));
 
+      const { technicians, scheduleId: _sId, id: _id, ...baseEventRest } = baseEvent;
+      // Note: timeBlocks_raw is not in ScheduleEvent interface, so if it exists on runtime object we might need to ignore it, 
+      // but strictly typing suggests we should only destructure known props.
+      // If timeBlocks_raw comes from API but isn't in type, it won't be in baseEventRest if we strictly typed it? 
+      // Actually spread of object includes everything. 
+      // Let's rely on baseEventRest which now excludes technicans, scheduleId, id.
+
       const payload = {
-        ...baseEvent,
+        ...baseEventRest,
         startDate: minTime.toISOString(),
         endDate: maxTime.toISOString(),
         technicianIds: baseEvent.technicians ? baseEvent.technicians.map((t: any) => t.id) : [],
         timeBlocks
       };
-
-      // Cleanup payload
-      // @ts-ignore
-      delete payload.technicians;
-      // @ts-ignore
-      delete payload.scheduleId;
-      // @ts-ignore
-      delete payload.id;
-      // @ts-ignore
-      delete payload.timeBlocks_raw; // just in case
 
       return apiClient.put(`/api/schedules/${schId}`, payload);
     });
@@ -353,54 +361,36 @@ const CalendarPage: React.FC = () => {
   const handleNavigate = useCallback((newDate: Date) => setDate(newDate), []);
   const handleView = useCallback((newView: any) => setView(newView), []);
 
+  // Helper memoizado para gerar gradientes, evitando recálculos no render
+  const getTechnicianGradient = useCallback((technicians: any[]) => {
+    const stripeWidth = 20;
+    const stops = technicians.map((t, idx) => {
+      const c = t.color || '#3174ad';
+      return `${c} ${idx * stripeWidth}px, ${c} ${(idx + 1) * stripeWidth}px`;
+    }).join(', ');
+    return `repeating-linear-gradient(45deg, ${stops})`;
+  }, []);
+
   const eventStyleGetter = useCallback((event: ScheduleEvent) => {
     let style: React.CSSProperties = {
       borderRadius: '5px',
-      opacity: 0.9, // Aumentar opacidade para melhor impacto visual das cores
+      opacity: 0.9,
       color: 'white',
       border: '0px',
       display: 'block',
       boxShadow: 'none',
       transition: 'all 0.2s ease-in-out',
-      // Opção: Sombra Suave (Drop Shadow) - Mais elegante que o outline
       textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
     };
 
-    // Lógica para Cores com Múltiplos Técnicos (Listras Diagonais)
     if (event.technicians && event.technicians.length > 0) {
       if (event.technicians.length === 1) {
-        // Apenas um técnico: cor sólida
         style.backgroundColor = event.technicians[0].color || '#3174ad';
       } else {
-        // Múltiplos técnicos: Listras diagonais
-        const stripeWidth = 20; // Largura das listras em px
-        // Gerar o gradiente
-        // Padrão: Cor1 0px, Cor1 20px, Cor2 20px, Cor2 40px, ...
-
-        let gradientStops = [];
-        for (let i = 0; i < event.technicians.length; i++) {
-          const tech = event.technicians[i];
-          const color = tech.color || '#3174ad';
-          const start = i * stripeWidth;
-          const end = (i + 1) * stripeWidth;
-          gradientStops.push(`${color} ${start}px`);
-          gradientStops.push(`${color} ${end}px`);
-        }
-
-        // Construir a string do gradiente repetitivo
-        // Para que se repita corretamente, precisamos percorrer todos os técnicos e depois o 'repeating' cuida do resto
-        // Mas o repeating-linear-gradient aceita comprimentos.
-        // Ex: repeating-linear-gradient(45deg, A 0, A 20px, B 20px, B 40px);
-
-        const stops = event.technicians.map((t, idx) => {
-          const c = t.color || '#3174ad';
-          return `${c} ${idx * stripeWidth}px, ${c} ${(idx + 1) * stripeWidth}px`;
-        }).join(', ');
-
-        style.backgroundImage = `repeating-linear-gradient(45deg, ${stops})`;
+        style.backgroundImage = getTechnicianGradient(event.technicians);
       }
     } else {
-      style.backgroundColor = '#3174ad'; // Default se não houver técnicos
+      style.backgroundColor = '#3174ad';
     }
 
     if (event.isCompleted) {
@@ -411,7 +401,7 @@ const CalendarPage: React.FC = () => {
     }
 
     // Adiciona um feedback visual para o estado de confirmação
-    const rawState = (event.acknowledgementState || (event as any).acknowledgmentState || (event as any).acknowledgementstate || 'pending').toLowerCase();
+    const rawState = (event.acknowledgementState || 'pending').toLowerCase();
 
     switch (rawState) {
       case 'accepted':

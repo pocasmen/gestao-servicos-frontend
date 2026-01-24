@@ -3,7 +3,7 @@ import apiClient from '../apiClient';
 import { AuthContext } from '../App';
 import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician } from '../types';
 import SignaturePad from './SignaturePad';
-import { Copy, Clipboard } from 'lucide-react';
+import { Copy, Clipboard, Trash2, Printer } from 'lucide-react';
 
 
 interface ReportModalProps {
@@ -14,13 +14,7 @@ interface ReportModalProps {
   onReportSaved: () => void; // Callback unificado
 }
 
-const serviceTypesAvailable = [
-  { id: 'reparacao', label: 'Reparação' },
-  { id: 'instalacao', label: 'Instalação' },
-  { id: 'assistencia', label: 'Assistência' },
-  { id: 'manutencao', label: 'Manutenção' },
-  { id: 'remota', label: 'Remota' },
-];
+import { SERVICE_TYPES_LIST } from '../constants';
 
 // Função para calcular horas trabalhadas com desconto de almoço e arredondamento para cima
 const calculateHours = (start: Date, end: Date): number => {
@@ -107,7 +101,10 @@ const ReportModal: React.FC<ReportModalProps> = ({
       setServiceTypes(reportToEdit.serviceType || []); // Carregar array
       setInternalNotes(reportToEdit.internalNotes || ''); // Carregar notas internas
       const loadedParts = reportToEdit.parts && reportToEdit.parts.length > 0 ? reportToEdit.parts : [];
-      setParts([...loadedParts, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }]);
+      // Ensure we have an empty line at the end only if the last one is not already empty
+      const lastPart = loadedParts[loadedParts.length - 1];
+      const shouldAddEmpty = !lastPart || (lastPart.reference || lastPart.designation);
+      setParts(shouldAddEmpty ? [...loadedParts, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }] : loadedParts);
       setSignature(reportToEdit.signature);
       setTechnicianSignature(reportToEdit.technician_signature);
 
@@ -416,7 +413,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
               <div className="form-group">
                 <label>Tipo de Serviço</label>
                 <div className="d-flex flex-wrap">
-                  {serviceTypesAvailable.map(type => (
+                  {SERVICE_TYPES_LIST.map(type => (
                     <div key={type.id} className="form-check form-check-inline">
                       <input
                         className="form-check-input"
@@ -499,8 +496,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
                 <table className="table table-bordered">
                   <thead>
                     <tr>
-                      <th style={{ width: '10%' }}>Qt</th>
-                      <th style={{ width: '15%' }}>Referência</th>
+                      <th style={{ width: '75px' }}>Qt</th>
+                      <th style={{ width: '160px' }}>Referência</th>
                       <th>Designação</th>
                       <th style={{ width: '50px' }}></th>
                     </tr>
@@ -543,7 +540,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
                             onClick={() => handleRemovePart(index)}
                             title="Remover Peça"
                           >
-                            <i className="bi bi-x-lg"></i>
+                            <Trash2 size={16} />
                           </button>
                         </td>
                       </tr>
@@ -604,7 +601,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
                   className="btn btn-outline-primary me-auto"
                   onClick={() => window.open(`/report/print/${reportToEdit.id}`, '_blank')}
                 >
-                  <i className="bi bi-printer me-2"></i>Ver Relatório
+                  <Printer size={18} className="me-2" />Ver Relatório
                 </button>
               )}
               <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>

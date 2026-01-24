@@ -4,8 +4,8 @@ import { Calendar, Clock, User, Wrench, Package, FileText, CheckCircle2, FileDow
 import apiClient from '../apiClient';
 import { PartItem } from '../types';
 import './ReportPrintPage.css';
-// @ts-ignore
-import html2pdf from 'html2pdf.js';
+import { SERVICE_TYPE_LABELS } from '../constants';
+
 
 interface DetailedReport {
     id: number;
@@ -90,6 +90,7 @@ const ReportPrintPage: React.FC = () => {
         };
 
         try {
+            const html2pdf = (await import('html2pdf.js')).default;
             await html2pdf().set(opt).from(element).save();
         } catch (err) {
             console.error("Erro ao gerar PDF:", err);
@@ -104,13 +105,7 @@ const ReportPrintPage: React.FC = () => {
         return <div className="loading-container">A carregar dados do relatório...</div>;
     }
 
-    const serviceTypeLabels: { [key: string]: string } = {
-        reparacao: 'Reparação',
-        instalacao: 'Instalação',
-        assistencia: 'Assistência',
-        manutencao: 'Manutenção',
-        remota: 'Remota'
-    };
+    const serviceTypeLabels = SERVICE_TYPE_LABELS;
 
     const reportLines = report.description?.split('\n') || [];
 

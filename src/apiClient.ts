@@ -25,24 +25,22 @@ apiClient.interceptors.request.use(
 );
 
 export const createReport = async (reportData: Report) => {
+  const { technicians, ...rest } = reportData;
   const payload = {
-    ...reportData,
-    technicianIds: reportData.technicians.map(t => t.id),
+    ...rest,
+    technicianIds: technicians ? technicians.map(t => t.id) : [],
   };
-  // @ts-ignore
-  delete payload.technicians;
 
   const response = await apiClient.post('/api/reports', payload);
   return response.data;
 };
 
 export const updateReport = async (id: number, reportData: Report) => {
+  const { technicians, ...rest } = reportData;
   const payload = {
-    ...reportData,
-    technicianIds: reportData.technicians.map(t => t.id),
+    ...rest,
+    technicianIds: technicians ? technicians.map(t => t.id) : [],
   };
-  // @ts-ignore
-  delete payload.technicians;
 
   const response = await apiClient.put(`/api/reports/${id}`, payload);
   return response.data;
@@ -50,13 +48,19 @@ export const updateReport = async (id: number, reportData: Report) => {
 
 export const searchPartByReference = async (reference: string) => {
   try {
-    console.log('[DEBUG] Searching for part with reference:', reference);
+    if (import.meta.env.DEV) {
+      console.log('[DEBUG] Searching for part with reference:', reference);
+    }
     const response = await apiClient.get(`/api/parts/${reference}`);
-    console.log('[DEBUG] Part found:', response.data);
+    if (import.meta.env.DEV) {
+      console.log('[DEBUG] Part found:', response.data);
+    }
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
-      console.log('[DEBUG] Part not found for reference:', reference);
+      if (import.meta.env.DEV) {
+        console.log('[DEBUG] Part not found for reference:', reference);
+      }
       return null; // Part not found
     }
     console.error('[ERROR] Error searching for part:', error);
