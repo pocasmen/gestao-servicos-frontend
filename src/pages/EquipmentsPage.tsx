@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import { Link } from 'react-router-dom';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 // Interfaces
 interface Equipment {
@@ -23,6 +24,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
   const [serialNumber, setSerialNumber] = useState('');
   const [clientName, setClientName] = useState('');
   const [clients, setClients] = useState<Client[]>([]);
+  const { alert } = useConfirm();
 
   useEffect(() => {
     apiClient.get('/api/clients').then(response => setClients(response.data))
@@ -31,26 +33,26 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
       });
   }, []);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     const selectedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase().trim());
     if (!selectedClient) {
-      alert('Por favor, selecione um cliente válido da lista.');
+      await alert('Por favor, selecione um cliente válido da lista.');
       return;
     }
 
     apiClient.post('/api/equipments', { brand, model, serialNumber, clientId: selectedClient.id })
-      .then(() => {
+      .then(async () => {
         setBrand('');
         setModel('');
         setSerialNumber('');
         setClientName('');
-        alert('Equipamento criado com sucesso!');
+        await alert('Equipamento criado com sucesso!', 'Sucesso');
         onEquipmentAdded();
       })
-      .catch((error: any) => {
+      .catch(async (error: any) => {
         console.error("Erro ao adicionar equipamento:", error);
-        alert("Erro ao adicionar equipamento: " + (error.response?.data?.error || error.message));
+        await alert("Erro ao adicionar equipamento: " + (error.response?.data?.error || error.message));
       });
   };
 
@@ -262,6 +264,7 @@ const EquipmentList: React.FC<{
 const EquipmentsPage: React.FC = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const { confirm, alert } = useConfirm();
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -302,22 +305,27 @@ const EquipmentsPage: React.FC = () => {
         fetchEquipments(searchQuery);
         handleCloseEditModal();
       })
-      .catch((error: any) => {
+      .catch(async (error: any) => {
         console.error("Erro ao atualizar equipamento:", error);
-        alert("Erro ao atualizar equipamento.");
+        await alert("Erro ao atualizar equipamento.");
       });
   };
 
   // --- Handlers Delete ---
-  const handleDelete = (eq: Equipment) => {
-    if (window.confirm(`Tem a certeza que deseja apagar o equipamento ${eq.brand} ${eq.model} (${eq.serialNumber})?`)) {
+  const handleDelete = async (eq: Equipment) => {
+    if (await confirm({
+      message: `Tem a certeza que deseja apagar o equipamento ${eq.brand} ${eq.model} (${eq.serialNumber})?`,
+      title: 'Apagar Equipamento',
+      variant: 'danger',
+      confirmText: 'Apagar'
+    })) {
       apiClient.delete(`/api/equipments/${eq.id}`)
         .then(() => {
           fetchEquipments(searchQuery);
         })
-        .catch((error: any) => {
+        .catch(async (error: any) => {
           console.error("Erro ao apagar equipamento:", error);
-          alert("Erro ao apagar equipamento. Verifique se existem registos associados.");
+          await alert("Erro ao apagar equipamento. Verifique se existem registos associados.");
         });
     }
   };

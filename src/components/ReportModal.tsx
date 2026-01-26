@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
+import { useConfirm } from '../contexts/ConfirmContext';
 import apiClient from '../apiClient';
 import { AuthContext } from '../App';
 import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician } from '../types';
@@ -63,6 +64,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const damageRef = useRef<HTMLTextAreaElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const internalNotesRef = useRef<HTMLTextAreaElement>(null);
+  const { alert } = useConfirm();
 
   useEffect(() => {
     [damageRef, descriptionRef, internalNotesRef].forEach(ref => {
@@ -205,10 +207,10 @@ const ReportModal: React.FC<ReportModalProps> = ({
     }
   };
 
-  const handleCopyParts = () => {
+  const handleCopyParts = async () => {
     const validParts = parts.filter(p => (p.reference && p.reference.trim() !== '') || (p.designation && p.designation.trim() !== ''));
     if (validParts.length === 0) {
-      alert('Não há peças para copiar.');
+      await alert('Não há peças para copiar.');
       return;
     }
     const partsToCopy = validParts.map(({ quantity, reference, designation }) => ({
@@ -224,13 +226,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
     // Tentar guadar no sistema
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(partsString)
-        .then(() => alert('Lista de peças copiada!'))
-        .catch(err => {
+        .then(async () => await alert('Lista de peças copiada!'))
+        .catch(async (err) => {
           console.warn('Clipboard API failed:', err);
-          alert('Pronto! Lista guardada na memória interna.');
+          await alert('Pronto! Lista guardada na memória interna.');
         });
     } else {
-      alert('Pronto! Lista guardada na memória interna.');
+      await alert('Pronto! Lista guardada na memória interna.');
     }
   };
 
@@ -246,7 +248,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
     }
 
     if (!partsString) {
-      alert('Nenhuma peça encontrada para colar.');
+      await alert('Nenhuma peça encontrada para colar.');
       return;
     }
 
@@ -263,7 +265,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
           }));
 
         if (newPartsFromPaste.length === 0) {
-          alert('Nenhuma peça válida encontrada.');
+          await alert('Nenhuma peça válida encontrada.');
           return;
         }
 
@@ -271,13 +273,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
           const filteredPrev = prev.filter(p => p.reference.trim() !== '' || p.designation.trim() !== '');
           return [...filteredPrev, ...newPartsFromPaste, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }];
         });
-        alert(`${newPartsFromPaste.length} peças coladas!`);
+        await alert(`${newPartsFromPaste.length} peças coladas!`);
       } else {
-        alert('Conteúdo inválido.');
+        await alert('Conteúdo inválido.');
       }
     } catch (err) {
       console.error('Erro ao colar:', err);
-      alert('Erro ao processar as peças.');
+      await alert('Erro ao processar as peças.');
     }
   };
 
@@ -305,6 +307,23 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!clientId) {
+      await alert('É obrigatório selecionar um cliente.');
+      return;
+    }
+    if (!equipmentId) {
+      await alert('É obrigatório selecionar um equipamento.');
+      return;
+    }
+    if (technicianIds.length === 0) {
+      await alert('É obrigatório selecionar pelo menos um técnico.');
+      return;
+    }
+    if (serviceTypes.length === 0) {
+      await alert('É obrigatório selecionar pelo menos um tipo de serviço.');
+      return;
+    }
 
     const partsToSubmit = parts.filter(p => p.reference || p.designation);
 
@@ -347,11 +366,11 @@ const ReportModal: React.FC<ReportModalProps> = ({
         onReportSaved();
         onClose();
       })
-      .catch((err: any) => {
+      .catch(async (err: any) => {
         console.error("Erro ao guardar relatório:", err);
         console.error("Detalhes do erro:", err.response || err.message);
         const errorMessage = err.response?.data?.error || "Erro ao guardar relatório.";
-        alert(errorMessage);
+        await alert(errorMessage);
       });
   };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import { AppUser } from '../pages/TechniciansPage'; // Import the new generic interface
 import GoogleColorPicker from './GoogleColorPicker';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 interface ModalProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface ModalProps {
   onUserDeleted: () => void;
   currentUserRole: string;
 }
+
+// ... (interface remains)
 
 const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUpdated, onUserDeleted, currentUserRole }) => {
   const [firstName, setFirstName] = useState('');
@@ -23,6 +26,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
   const [botUsername, setBotUsername] = useState('');
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
+  const { confirm, alert } = useConfirm();
 
   useEffect(() => {
     apiClient.get('/api/telegram/bot-info').then(res => {
@@ -83,7 +87,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
       google_calendar_color_id: googleCalendarColorId
     };
 
-    apiClient.put(`/api/technicians/${user.id}`, updatedData)
+    apiClient.put(`/api/technicians/${user?.id}`, updatedData)
       .then(() => {
         onUserUpdated();
         onClose();
@@ -94,16 +98,22 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
       });
   };
 
-  const handleDelete = () => {
-    if (window.confirm('Tem a certeza que deseja eliminar este utilizador? Esta ação não pode ser desfeita e irá remover o seu acesso permanentemente.')) {
-      apiClient.delete(`/api/technicians/${user.id}`)
+  const handleDelete = async () => {
+    if (await confirm({
+      message: 'Tem a certeza que deseja eliminar este utilizador? Esta ação não pode ser desfeita e irá remover o seu acesso permanentemente.',
+      title: 'Eliminar Utilizador',
+      variant: 'danger',
+      confirmText: 'Eliminar'
+    })) {
+      apiClient.delete(`/api/technicians/${user?.id}`)
         .then(() => {
           onUserDeleted();
           onClose();
         })
-        .catch((err: any) => {
+        .catch(async (err: any) => {
           console.error("Erro ao eliminar o utilizador:", err);
           setErrorMessage(err.response?.data?.error || 'Ocorreu um erro ao eliminar.');
+          await alert(err.response?.data?.error || 'Ocorreu um erro ao eliminar.');
         });
     }
   };

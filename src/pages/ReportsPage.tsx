@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { Report, Client, Equipment, PartItem, Technician } from '../types';
 import ReportModal from '../components/ReportModal';
 import { Copy, Clipboard } from 'lucide-react';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 // Formulário de Relatório
 const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) => {
@@ -23,6 +24,7 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
   const damageRef = useRef<HTMLTextAreaElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const internalNotesRef = useRef<HTMLTextAreaElement>(null);
+  const { alert } = useConfirm();
 
   useEffect(() => {
     [damageRef, descriptionRef, internalNotesRef].forEach(ref => {
@@ -59,7 +61,7 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!serviceType || !clientId || !equipmentId) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
+      await alert('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
 
@@ -136,10 +138,10 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
     }
   };
 
-  const handleCopyParts = () => {
+  const handleCopyParts = async () => {
     const validParts = parts.filter(p => (p.reference && p.reference.trim() !== '') || (p.designation && p.designation.trim() !== ''));
     if (validParts.length === 0) {
-      alert('Não há peças para copiar.');
+      await alert('Não há peças para copiar.');
       return;
     }
     const partsToCopy = validParts.map(({ quantity, reference, designation }) => ({
@@ -155,13 +157,13 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
     // Tentar guardar no sistema
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(partsString)
-        .then(() => alert('Lista de peças copiada!'))
-        .catch(err => {
+        .then(async () => await alert('Lista de peças copiada!'))
+        .catch(async (err) => {
           console.warn('Clipboard API failed:', err);
-          alert('Pronto! Lista guardada na memória interna.');
+          await alert('Pronto! Lista guardada na memória interna.');
         });
     } else {
-      alert('Pronto! Lista guardada na memória interna.');
+      await alert('Pronto! Lista guardada na memória interna.');
     }
   };
 
@@ -177,7 +179,7 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
     }
 
     if (!partsString) {
-      alert('Nenhuma peça encontrada para colar.');
+      await alert('Nenhuma peça encontrada para colar.');
       return;
     }
 
@@ -194,7 +196,7 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
           }));
 
         if (newPartsFromPaste.length === 0) {
-          alert('Nenhuma peça válida encontrada.');
+          await alert('Nenhuma peça válida encontrada.');
           return;
         }
 
@@ -202,13 +204,13 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
           const filteredPrev = prev.filter(p => p.reference.trim() !== '' || p.designation.trim() !== '');
           return [...filteredPrev, ...newPartsFromPaste, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }];
         });
-        alert(`${newPartsFromPaste.length} peças coladas!`);
+        await alert(`${newPartsFromPaste.length} peças coladas!`);
       } else {
-        alert('Conteúdo inválido.');
+        await alert('Conteúdo inválido.');
       }
     } catch (err) {
       console.error('Erro ao colar:', err);
-      alert('Erro ao processar as peças.');
+      await alert('Erro ao processar as peças.');
     }
   };
 

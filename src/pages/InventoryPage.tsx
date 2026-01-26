@@ -3,6 +3,7 @@ import apiClient from '../apiClient';
 import { ScheduleEvent, Report } from '../types';
 import ScheduleDetailModal from '../components/ScheduleDetailModal';
 import ReportModal from '../components/ReportModal';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 interface PartInventory {
   id: number;
@@ -19,6 +20,7 @@ const InventoryPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [view, setView] = useState<'all' | 'low_stock'>('all');
+  const { alert } = useConfirm();
 
   const [selectedPart, setSelectedPart] = useState<PartInventory | null>(null);
   const [modalType, setModalType] = useState<'stock' | 'order' | 'receive' | 'add_item' | 'reservations' | null>(null);
@@ -81,7 +83,7 @@ const InventoryPage: React.FC = () => {
       setIsScheduleModalOpen(true);
     } catch (err) {
       console.error('Error fetching schedule details:', err);
-      alert('Erro ao carregar detalhes do agendamento.');
+      await alert('Erro ao carregar detalhes do agendamento.');
     }
   };
 
@@ -110,12 +112,12 @@ const InventoryPage: React.FC = () => {
         setReportToEdit(null);
       } else {
         console.error("Erro ao verificar relatório existente:", error);
-        alert("Não foi possível verificar o relatório do serviço.");
+        await alert("Não foi possível verificar o relatório do serviço.");
         return;
       }
     }
     setIsReportModalOpen(true);
-  }, [handleCloseScheduleModal]);
+  }, [handleCloseScheduleModal, alert]);
 
   const handleCloseReportModal = useCallback(() => {
     setIsReportModalOpen(false);
@@ -133,7 +135,7 @@ const InventoryPage: React.FC = () => {
 
   const handleAddItem = async () => {
     if (!newItem.reference || !newItem.designation) {
-      alert('Referência e Designação são obrigatórias.');
+      await alert('Referência e Designação são obrigatórias.');
       return;
     }
     try {
@@ -141,7 +143,7 @@ const InventoryPage: React.FC = () => {
       closeModal();
       fetchInventory();
     } catch (err: any) {
-      alert(`Erro ao adicionar item: ${err.response?.data?.details || err.message}`);
+      await alert(`Erro ao adicionar item: ${err.response?.data?.details || err.message}`);
     }
   };
 
@@ -152,7 +154,7 @@ const InventoryPage: React.FC = () => {
       closeModal();
       fetchInventory();
     } catch (err: any) {
-      alert('Erro ao ajustar o stock.');
+      await alert('Erro ao ajustar o stock.');
     }
   };
 
@@ -163,7 +165,7 @@ const InventoryPage: React.FC = () => {
       closeModal();
       fetchInventory();
     } catch (err: any) {
-      alert('Erro ao registar a encomenda.');
+      await alert('Erro ao registar a encomenda.');
     }
   };
 
@@ -174,7 +176,7 @@ const InventoryPage: React.FC = () => {
       closeModal();
       fetchInventory();
     } catch (err: any) {
-      alert('Erro ao receber a encomenda.');
+      await alert('Erro ao receber a encomenda.');
     }
   };
 
@@ -187,7 +189,7 @@ const InventoryPage: React.FC = () => {
       setReservations(response.data);
     } catch (err) {
       console.error('Error fetching reservations:', err);
-      alert('Erro ao carregar reservas.');
+      await alert('Erro ao carregar reservas.');
     } finally {
       setLoadingReservations(false);
     }

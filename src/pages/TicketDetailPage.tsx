@@ -7,6 +7,7 @@ import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { supabase } from '../supabase';
 import { AuthContext } from '../App';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 
 
@@ -257,6 +258,9 @@ const TicketDetailPage: React.FC = () => {
     return lastTs > 0 && (Date.now() - lastTs < 60000);
   };
 
+  // No topo do componente
+  const { confirm, alert } = useConfirm();
+
   const handleReplySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!replyContent.trim()) return;
@@ -266,22 +270,26 @@ const TicketDetailPage: React.FC = () => {
       setReplyContent('');
       await fetchTicketDetails();
     } catch (err) {
-      alert('Não foi possível enviar a sua resposta.');
+      await alert('Não foi possível enviar a sua resposta.');
     } finally {
       setIsReplying(false);
     }
   };
 
-
-
   const handleDeleteAttachment = async (attachment: Attachment) => {
     if (!id) return;
-    if (!window.confirm(`Remover o ficheiro "${attachment.file_name}"?`)) return;
+    if (!await confirm({
+      message: `Remover o ficheiro "${attachment.file_name}"?`,
+      title: 'Remover Anexo',
+      variant: 'danger',
+      confirmText: 'Remover'
+    })) return;
+
     try {
       await apiClient.delete(`/api/tickets/${id}/attachments/${attachment.id}`);
       await fetchTicketDetails();
     } catch (err) {
-      alert('Não foi possível remover o ficheiro.');
+      await alert('Não foi possível remover o ficheiro.');
     }
   };
 
@@ -298,11 +306,11 @@ const TicketDetailPage: React.FC = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      alert('Ficheiro carregado com sucesso!');
+      await alert('Ficheiro carregado com sucesso!', 'Sucesso');
       setSelectedFile(null);
       await fetchTicketDetails();
     } catch (err) {
-      alert('Não foi possível carregar o ficheiro.');
+      await alert('Não foi possível carregar o ficheiro.');
     } finally {
       setIsUploading(false);
     }

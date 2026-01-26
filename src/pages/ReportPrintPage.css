@@ -204,7 +204,8 @@
 }
 
 .user-icon,
-.package-icon {
+.package-icon,
+.monitor-icon {
     width: 1rem;
     height: 1rem;
     margin-right: 0.375rem;
@@ -214,7 +215,8 @@
     color: #2563eb;
 }
 
-.info-card-equipment .package-icon {
+.info-card-equipment .package-icon,
+.info-card-equipment .monitor-icon {
     color: #9333ea;
 }
 
@@ -250,7 +252,7 @@
 }
 
 .info-label {
-    font-size: 0.625rem;
+    font-size: 0.875rem;
     font-weight: 500;
     margin-bottom: 0.125rem;
 }
@@ -269,10 +271,6 @@
     font-size: 0.875rem;
 }
 
-.info-value-mono {
-    font-family: monospace;
-    font-size: 0.75rem;
-}
 
 /* Full Width Description */
 .description-section-full {
@@ -866,13 +864,14 @@
     }
 
     .user-icon,
-    .package-icon {
+    .package-icon,
+    .monitor-icon {
         width: 0.875rem;
         height: 0.875rem;
     }
 
     .info-label {
-        font-size: 0.5625rem;
+        font-size: 0.7rem;
     }
 
     .info-value {

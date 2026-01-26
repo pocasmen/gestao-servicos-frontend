@@ -5,6 +5,7 @@ import { supabase } from './supabase';
 
 import Header from './components/Header';
 import ClientPortalHeader from './components/ClientPortalHeader';
+import { ConfirmProvider } from './contexts/ConfirmContext';
 import CalendarPage from './pages/CalendarPage';
 import DashboardPage from './pages/DashboardPage';
 import ClientsPage from './pages/ClientsPage';
@@ -222,9 +223,11 @@ function App() {
 
   return (
     <AuthContext.Provider value={{ user: session?.user ?? null, session, loading, setSession }}>
-      <Router>
-        <AppRoutes />
-      </Router>
+      <ConfirmProvider>
+        <Router>
+          <AppRoutes />
+        </Router>
+      </ConfirmProvider>
     </AuthContext.Provider>
   );
 }

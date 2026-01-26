@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../apiClient';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { Ticket } from '../types';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -41,14 +42,21 @@ const TicketsPage: React.FC = () => {
     navigate('/calendar', { state: { ticketToReport: ticket } });
   };
 
+  const { confirm, alert } = useConfirm();
+
   const handleDeleteTicket = async (ticketId: number) => {
-    if (window.confirm(`Tem a certeza que quer eliminar o ticket #${ticketId}? Esta ação não pode ser revertida.`)) {
+    if (await confirm({
+      message: `Tem a certeza que quer eliminar o ticket #${ticketId}? Esta ação não pode ser revertida.`,
+      title: 'Eliminar Ticket',
+      variant: 'danger',
+      confirmText: 'Eliminar'
+    })) {
       try {
         await apiClient.delete(`/admin/tickets/${ticketId}`);
         fetchTickets(); // Atualizar a lista de tickets
       } catch (error) {
         console.error("Erro ao eliminar o ticket:", error);
-        alert("Ocorreu um erro ao tentar eliminar o ticket.");
+        await alert("Ocorreu um erro ao tentar eliminar o ticket.");
       }
     }
   };
@@ -75,7 +83,7 @@ const TicketsPage: React.FC = () => {
             <td style={{ maxWidth: '300px', whiteSpace: 'pre-wrap' }}>{ticket.faultDescription}</td>
             <td className="d-flex flex-wrap">
               {(activeTab === 'open' || activeTab === 'acknowledged') && (
-                <button 
+                <button
                   className="btn btn-primary btn-sm me-2 mb-1"
                   onClick={() => handleScheduleTicket(ticket)}
                 >
@@ -84,14 +92,14 @@ const TicketsPage: React.FC = () => {
               )}
               {activeTab === 'scheduled' && (
                 ticket.scheduleId ? (
-                  <button 
+                  <button
                     className="btn btn-secondary btn-sm me-2 mb-1"
                     onClick={() => handleEditSchedule(ticket)}
                   >
                     Editar Agend.
                   </button>
                 ) : (
-                  <button 
+                  <button
                     className="btn btn-primary btn-sm me-2 mb-1"
                     onClick={() => handleScheduleTicket(ticket)}
                   >
@@ -108,7 +116,7 @@ const TicketsPage: React.FC = () => {
                 </button>
               )}
               {activeTab === 'closed' && (
-                <button 
+                <button
                   className="btn btn-info btn-sm me-2 mb-1"
                   onClick={() => handleCreateReportFromTicket(ticket)}
                 >
@@ -116,7 +124,7 @@ const TicketsPage: React.FC = () => {
                 </button>
               )}
               {activeTab !== 'closed' && activeTab !== 'deleted' && (
-                 <button 
+                <button
                   className="btn btn-danger btn-sm mb-1"
                   onClick={() => handleDeleteTicket(ticket.id)}
                 >

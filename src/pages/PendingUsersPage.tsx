@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 // A interface para um utilizador pendente, vindo do auth
 interface PendingUser {
@@ -25,6 +26,7 @@ const PendingUsersPage: React.FC = () => {
     const [selectedClients, setSelectedClients] = useState<{ [userId: string]: number | '' }>({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const { alert } = useConfirm();
 
     const fetchData = () => {
         setLoading(true);
@@ -49,27 +51,27 @@ const PendingUsersPage: React.FC = () => {
 
     const handleClientSelection = (userId: string, client_id: string) => {
         setSelectedClients(prev => ({
-          ...prev,
-          [userId]: client_id ? Number(client_id) : ''
+            ...prev,
+            [userId]: client_id ? Number(client_id) : ''
         }));
     };
 
-    const handleApprove = (userId: string) => {
+    const handleApprove = async (userId: string) => {
         const client_id = selectedClients[userId];
         if (!client_id) {
-            alert("Por favor, selecione uma empresa cliente para associar.");
+            await alert("Por favor, selecione uma empresa cliente para associar.");
             return;
         }
 
         apiClient.post('/admin/approve-user', { userId, client_id })
-            .then(() => {
-                alert('Utilizador aprovado com sucesso!');
+            .then(async () => {
+                await alert('Utilizador aprovado com sucesso!', 'Sucesso');
                 // Refresca a lista de utilizadores pendentes
-                fetchData(); 
+                fetchData();
             })
-            .catch(err => {
+            .catch(async (err) => {
                 console.error("Failed to approve user:", err);
-                alert(`Erro ao aprovar utilizador: ${err.response?.data?.error || 'Erro desconhecido'}`);
+                await alert(`Erro ao aprovar utilizador: ${err.response?.data?.error || 'Erro desconhecido'}`);
             });
     };
 
@@ -94,8 +96,8 @@ const PendingUsersPage: React.FC = () => {
                                 <th>Nome</th>
                                 <th>Email</th>
                                 <th>Empresa (Sugerida)</th>
-                                <th style={{width: '30%'}}>Associar à Empresa Cliente</th>
-                                <th style={{width: '15%'}}>Ação</th>
+                                <th style={{ width: '30%' }}>Associar à Empresa Cliente</th>
+                                <th style={{ width: '15%' }}>Ação</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -105,8 +107,8 @@ const PendingUsersPage: React.FC = () => {
                                     <td>{user.email}</td>
                                     <td><em>{user.user_metadata.company_name}</em></td>
                                     <td>
-                                        <select 
-                                            className="form-select" 
+                                        <select
+                                            className="form-select"
                                             value={selectedClients[user.id] || ''}
                                             onChange={(e) => handleClientSelection(user.id, e.target.value)}
                                         >
@@ -119,7 +121,7 @@ const PendingUsersPage: React.FC = () => {
                                         </select>
                                     </td>
                                     <td>
-                                        <button 
+                                        <button
                                             className="btn btn-success w-100"
                                             onClick={() => handleApprove(user.id)}
                                             disabled={!selectedClients[user.id]}

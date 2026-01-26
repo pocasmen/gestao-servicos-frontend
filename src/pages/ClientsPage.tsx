@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 // Interface para Cliente
 interface Client {
@@ -12,34 +13,37 @@ interface Client {
 }
 
 // Componente do Formulário (Criação)
+
 const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) => {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [postCode, setPostCode] = useState('');
   const [nif, setNif] = useState('');
+  const { alert } = useConfirm();
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     apiClient.post('/api/clients', { name, address, city, postCode, nif })
-      .then(() => {
+      .then(async () => {
         // Limpa o formulário e notifica o componente pai
         setName('');
         setAddress('');
         setCity('');
         setPostCode('');
         setNif('');
-        alert('Cliente criado com sucesso!');
+        await alert('Cliente criado com sucesso!', 'Sucesso');
         onClientAdded();
       })
-      .catch((error: any) => {
+      .catch(async (error: any) => {
         console.error("Erro ao criar cliente:", error);
-        alert("Erro ao criar cliente.");
+        await alert("Erro ao criar cliente.");
       });
   };
 
   return (
     <div className="card mb-4">
+      {/* ... rest of jsx ... */}
       <div className="card-header bg-primary text-white">Novo Cliente</div>
       <div className="card-body">
         <form onSubmit={handleSubmit}>
@@ -76,6 +80,16 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
     </div>
   );
 };
+
+// ... (ClientList and EditClientModal remain unchanged but let's be safe and not touch them if possible, but I must replace ClientForm inside the file)
+// Wait, replace_file_content replaces a block.
+// I will target ClientForm first.
+
+// And then ClientsPage component.
+
+// Let's split this into smaller chunks to avoid large replacements and potential errors if I miss lines.
+
+
 
 // Componente da Lista
 const ClientList: React.FC<{
@@ -214,6 +228,7 @@ const EditClientModal: React.FC<{
 const ClientsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const { confirm, alert } = useConfirm();
 
   // Invite Modal State
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -263,13 +278,13 @@ const ClientsPage: React.FC = () => {
       email: inviteEmail,
       role: 'client'
     })
-      .then(() => {
-        alert(`Convite enviado com sucesso para ${inviteEmail}!`);
+      .then(async () => {
+        await alert(`Convite enviado com sucesso para ${inviteEmail}!`, 'Sucesso');
         handleCloseInviteModal();
       })
-      .catch((error: any) => {
+      .catch(async (error: any) => {
         const errorMessage = error.response?.data?.error || "Erro ao enviar convite.";
-        alert(errorMessage);
+        await alert(errorMessage);
       });
   };
 
@@ -291,22 +306,27 @@ const ClientsPage: React.FC = () => {
         fetchClients(searchQuery);
         handleCloseEditModal();
       })
-      .catch((error: any) => {
+      .catch(async (error: any) => {
         console.error("Erro ao atualizar cliente:", error);
-        alert("Erro ao atualizar cliente.");
+        await alert("Erro ao atualizar cliente.");
       });
   };
 
   // --- Handlers Delete ---
-  const handleDelete = (client: Client) => {
-    if (window.confirm(`Tem a certeza que deseja apagar o cliente "${client.name}"?`)) {
+  const handleDelete = async (client: Client) => {
+    if (await confirm({
+      message: `Tem a certeza que deseja apagar o cliente "${client.name}"?`,
+      title: 'Apagar Cliente',
+      variant: 'danger',
+      confirmText: 'Apagar'
+    })) {
       apiClient.delete(`/api/clients/${client.id}`)
         .then(() => {
           fetchClients(searchQuery);
         })
-        .catch((error: any) => {
+        .catch(async (error: any) => {
           console.error("Erro ao apagar cliente:", error);
-          alert("Erro ao apagar cliente. Verifique se existem registos associados.");
+          await alert("Erro ao apagar cliente. Verifique se existem registos associados.");
         });
     }
   };

@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../apiClient';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 const SettingsPage: React.FC = () => {
+  const { confirm } = useConfirm();
   const [settings, setSettings] = useState({
     ticket_notification_active: 'true',
     ticket_notification_time: '17:00',
@@ -79,7 +81,11 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleSyncCalendar = async () => {
-    if (!window.confirm('Deseja sincronizar todos os agendamentos pendentes com o Google Calendar?')) return;
+    if (!await confirm({
+      message: 'Deseja sincronizar todos os agendamentos pendentes com o Google Calendar?',
+      title: 'Sincronizar Calendar',
+      confirmText: 'Sincronizar'
+    })) return;
 
     setIsSyncing(true);
     setError('');
@@ -99,7 +105,12 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleClearCalendar = async () => {
-    if (!window.confirm('TEM A CERTEZA? Esta ação irá apagar TODOS os agendamentos sincronizados do Google Calendar.')) return;
+    if (!await confirm({
+      message: 'TEM A CERTEZA? Esta ação irá apagar TODOS os agendamentos sincronizados do Google Calendar.',
+      title: 'Limpar Calendar',
+      variant: 'danger',
+      confirmText: 'Apagar Tudo'
+    })) return;
 
     setIsClearing(true);
     setError('');

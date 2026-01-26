@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Calendar, Clock, User, Wrench, Package, FileText, CheckCircle2, FileDown } from 'lucide-react';
+import { Calendar, Clock, User, Wrench, Package, FileText, CheckCircle2, FileDown, Monitor } from 'lucide-react';
 import apiClient from '../apiClient';
 import { PartItem } from '../types';
 import './ReportPrintPage.css';
@@ -185,7 +185,7 @@ const ReportPrintPage: React.FC = () => {
                     {/* Equipamento */}
                     <div className="info-card info-card-equipment">
                         <div className="info-card-header">
-                            <Package className="package-icon" />
+                            <Monitor className="monitor-icon" />
                             <h3 className="info-card-title">Equipamento</h3>
                         </div>
                         <div className="info-card-content">
@@ -201,7 +201,7 @@ const ReportPrintPage: React.FC = () => {
                             </div>
                             <div className="info-field">
                                 <div className="info-label">Nº de Série</div>
-                                <div className="info-value info-value-mono">{report.equipmentSerialNumber}</div>
+                                <div className="info-value">{report.equipmentSerialNumber}</div>
                             </div>
                         </div>
                     </div>

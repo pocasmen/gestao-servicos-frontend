@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useContext, useRef } from 'react';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { useParams, Link } from 'react-router-dom';
 import apiClient from '../apiClient';
 import { Ticket } from '../types';
@@ -60,6 +61,7 @@ const ClientTicketDetailPage: React.FC = () => {
   const previousMessageCountRef = useRef(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isPopupActiveRef = useRef(false);
+  const { alert } = useConfirm();
 
   useEffect(() => {
     if (presenceQueue.length === 0 || isPopupActiveRef.current) return;
@@ -121,11 +123,11 @@ const ClientTicketDetailPage: React.FC = () => {
     fd.append('file', selectedFile);
     try {
       await apiClient.post(`/api/tickets/${id}/attachments`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
-      alert('Anexo enviado com sucesso!');
+      await alert('Anexo enviado com sucesso!', 'Sucesso');
       await fetchTicketDetails();
       setSelectedFile(null);
     } catch (err) {
-      alert('Não foi possível enviar o anexo.');
+      await alert('Não foi possível enviar o anexo.');
     } finally {
       setIsUploading(false);
     }
@@ -289,7 +291,7 @@ const ClientTicketDetailPage: React.FC = () => {
       await fetchTicketDetails(); // Re-fetch the entire ticket to show updated faultDescription
     } catch (err) {
       console.error("Erro ao enviar resposta:", err);
-      alert("Não foi possível enviar a sua resposta.");
+      await alert("Não foi possível enviar a sua resposta.");
     } finally {
       setIsReplying(false);
     }

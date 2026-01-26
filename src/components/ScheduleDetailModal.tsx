@@ -6,6 +6,7 @@ import apiClient, { searchPartByReference } from '../apiClient';
 import { ScheduleEvent, Client, Equipment, Technician, PartItem, TimeBlock } from '../types';
 import { SERVICE_TYPES_LIST } from '../constants';
 import { Copy, Clipboard, Trash2 } from 'lucide-react';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 registerLocale('pt', pt);
 
@@ -267,10 +268,14 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     }
   };
 
-  const handleCopyParts = () => {
+  const { confirm, alert } = useConfirm();
+
+  // ... (inside various handlers)
+
+  const handleCopyParts = async () => {
     const validParts = parts.filter(p => (p.reference && p.reference.trim() !== '') || (p.designation && p.designation.trim() !== ''));
     if (validParts.length === 0) {
-      alert('Não há peças para copiar.');
+      await alert('Não há peças para copiar.');
       return;
     }
     const partsToCopy = validParts.map(({ quantity, reference, designation }) => ({
@@ -286,13 +291,13 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     // Tentar guardar também na área de transferência do sistema
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(partsString)
-        .then(() => alert('Lista de peças copiada!'))
-        .catch(err => {
+        .then(async () => await alert('Lista de peças copiada!'))
+        .catch(async (err) => {
           console.warn('Clipboard API failed, using internal memory only.', err);
-          alert('Lista de peças guardada na memória interna!');
+          await alert('Lista de peças guardada na memória interna!');
         });
     } else {
-      alert('Lista de peças guardada na memória interna!');
+      await alert('Lista de peças guardada na memória interna!');
     }
   };
 
@@ -309,7 +314,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     }
 
     if (!partsString) {
-      alert('Nenhuma peça encontrada na memória ou área de transferência.');
+      await alert('Nenhuma peça encontrada na memória ou área de transferência.');
       return;
     }
 
@@ -326,7 +331,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           }));
 
         if (newPartsFromPaste.length === 0) {
-          alert('Nenhuma peça válida encontrada.');
+          await alert('Nenhuma peça válida encontrada.');
           return;
         }
 
@@ -334,36 +339,43 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           const filteredPrev = prev.filter(p => p.reference.trim() !== '' || p.designation.trim() !== '');
           return [...filteredPrev, ...newPartsFromPaste];
         });
-        alert(`${newPartsFromPaste.length} peças coladas!`);
+        await alert(`${newPartsFromPaste.length} peças coladas!`);
       } else {
-        alert('Conteúdo inválido.');
+        await alert('Conteúdo inválido.');
       }
     } catch (err) {
       console.error('Erro ao colar:', err);
-      alert('Erro ao processar as peças. Certifique-se que copiou uma lista válida.');
+      await alert('Erro ao processar as peças. Certifique-se que copiou uma lista válida.');
     }
   };
 
-
-
   const handleSave = async () => {
+    if (!clientId) {
+      await alert('É obrigatório selecionar um cliente.');
+      return;
+    }
     const equipIdNum = Number(equipmentId);
     const isValidEquip = equipments.some(eq => Number(eq.id) === equipIdNum);
     if (!isValidEquip) {
-      alert('O equipamento selecionado não corresponde a um equipamento válido do cliente.');
+      await alert('O equipamento selecionado não corresponde a um equipamento válido do cliente.');
       return;
     }
     if (event?.ticketId && event?.equipmentId && equipIdNum !== Number(event.equipmentId)) {
-      alert('O equipamento selecionado não corresponde ao equipamento do ticket.');
+      await alert('O equipamento selecionado não corresponde ao equipamento do ticket.');
       return;
     }
     if (!Array.isArray(technicianIds) || technicianIds.length === 0) {
-      alert('É obrigatório selecionar pelo menos um técnico/admin.');
+      await alert('É obrigatório selecionar pelo menos um técnico/admin.');
+      return;
+    }
+
+    if (!serviceType) {
+      await alert('É obrigatório selecionar um tipo de serviço.');
       return;
     }
 
     if (timeBlocks.length === 0) {
-      alert('É obrigatório definir pelo menos um bloco de horário.');
+      await alert('É obrigatório definir pelo menos um bloco de horário.');
       return;
     }
 
@@ -371,7 +383,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     const eTime = new Date(Math.max(...timeBlocks.map(b => b.end.getTime())));
 
     if (isNaN(sTime.getTime()) || isNaN(eTime.getTime())) {
-      alert('Por favor, insira datas e horas válidas para o início e fim do agendamento.');
+      await alert('Por favor, insira datas e horas válidas para o início e fim do agendamento.');
       return;
     }
 
@@ -423,24 +435,33 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       onClose();
     } catch (error) {
       console.error("Erro ao guardar agendamento:", error);
-      alert('Ocorreu um erro ao guardar o agendamento.');
+      await alert('Ocorreu um erro ao guardar o agendamento.');
     }
   };
 
   const handleComplete = async () => {
     if (!event) return;
+    if (!clientId) {
+      await alert('É obrigatório selecionar um cliente.');
+      return;
+    }
     const equipIdNum = Number(equipmentId);
     const isValidEquip = equipments.some(eq => Number(eq.id) === equipIdNum);
     if (!isValidEquip) {
-      alert('O equipamento selecionado não corresponde a um equipamento válido do cliente.');
+      await alert('O equipamento selecionado não corresponde a um equipamento válido do cliente.');
       return;
     }
     if (event?.ticketId && event?.equipmentId && equipIdNum !== Number(event.equipmentId)) {
-      alert('O equipamento selecionado não corresponde ao equipamento do ticket.');
+      await alert('O equipamento selecionado não corresponde ao equipamento do ticket.');
       return;
     }
     if (!Array.isArray(technicianIds) || technicianIds.length === 0) {
-      alert('É obrigatório selecionar pelo menos um técnico/admin.');
+      await alert('É obrigatório selecionar pelo menos um técnico/admin.');
+      return;
+    }
+
+    if (!serviceType) {
+      await alert('É obrigatório selecionar um tipo de serviço.');
       return;
     }
 
@@ -448,7 +469,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     const eTime = new Date(Math.max(...timeBlocks.map(b => b.end.getTime())));
 
     if (isNaN(sTime.getTime()) || isNaN(eTime.getTime())) {
-      alert('Por favor, insira datas e horas válidas.');
+      await alert('Por favor, insira datas e horas válidas.');
       return;
     }
 
@@ -487,16 +508,21 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       onClose();
     } catch (error) {
       console.error("Erro ao concluir o serviço:", error);
-      alert('Ocorreu um erro ao concluir o serviço.');
+      await alert('Ocorreu um erro ao concluir o serviço.');
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!event) return;
-    if (window.confirm("Tem a certeza que quer eliminar este agendamento?")) {
+    if (await confirm({
+      message: "Tem a certeza que quer eliminar este agendamento?",
+      title: 'Eliminar Agendamento',
+      variant: 'danger',
+      confirmText: 'Eliminar'
+    })) {
       const scheduleId = event.scheduleId || (typeof event.id === 'number' ? event.id : undefined);
       if (!scheduleId) {
-        alert("Não foi possível identificar o agendamento para eliminar.");
+        await alert("Não foi possível identificar o agendamento para eliminar.");
         return;
       }
       apiClient.delete(`/api/schedules/${scheduleId}`)

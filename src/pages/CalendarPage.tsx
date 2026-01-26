@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
@@ -116,12 +117,14 @@ const CalendarPage: React.FC = () => {
     setSelectedEvent(null);
   }, []);
 
+  const { confirm, alert } = useConfirm();
+
   const handleManageReport = useCallback(async (event: ScheduleEvent) => {
     handleCloseModal();
     setSelectedEvent(event);
     const numericId = event.scheduleId || (typeof event.id === 'number' ? event.id : undefined);
     if (!numericId) {
-      alert("Não foi possível identificar o agendamento associado.");
+      await alert("Não foi possível identificar o agendamento associado.");
       return;
     }
     try {
@@ -132,12 +135,12 @@ const CalendarPage: React.FC = () => {
         setReportToEdit(null);
       } else {
         console.error("Erro ao verificar relatório existente:", error);
-        alert("Não foi possível verificar o relatório do serviço.");
+        await alert("Não foi possível verificar o relatório do serviço.");
         return;
       }
     }
     setIsReportModalOpen(true);
-  }, [handleCloseModal]);
+  }, [handleCloseModal, alert]);
 
   // Efeito para lidar com o agendamento de um NOVO ticket vindo de outra página
   useEffect(() => {
@@ -286,7 +289,11 @@ const CalendarPage: React.FC = () => {
   const handleSaveAll = useCallback(async () => {
     if (dirtyEventIds.size === 0) return;
 
-    if (!window.confirm(`Tem a certeza que quer guardar alterações em ${dirtyEventIds.size} bloco(s)?`)) {
+    if (!await confirm({
+      message: `Tem a certeza que quer guardar alterações em ${dirtyEventIds.size} bloco(s)?`,
+      title: 'Guardar Alterações',
+      confirmText: 'Guardar'
+    })) {
       return;
     }
 
@@ -341,22 +348,27 @@ const CalendarPage: React.FC = () => {
 
     try {
       await Promise.all(updatePromises);
-      alert('Alterações guardadas com sucesso!');
+      await alert('Alterações guardadas com sucesso!', 'Sucesso');
     } catch (error) {
       console.error("Erro ao guardar alterações:", error);
-      alert('Ocorreu um erro ao guardar as alterações.');
+      await alert('Ocorreu um erro ao guardar as alterações.');
     } finally {
       setDirtyEventIds(new Set());
       fetchSchedules();
     }
-  }, [events, dirtyEventIds, fetchSchedules]);
+  }, [events, dirtyEventIds, fetchSchedules, confirm, alert]);
 
-  const handleCancelAll = useCallback(() => {
-    if (window.confirm('Tem a certeza que quer descartar todas as alterações?')) {
+  const handleCancelAll = useCallback(async () => {
+    if (await confirm({
+      message: 'Tem a certeza que quer descartar todas as alterações?',
+      title: 'Cancelar Alterações',
+      variant: 'warning',
+      confirmText: 'Descartar'
+    })) {
       setDirtyEventIds(new Set());
       fetchSchedules();
     }
-  }, [fetchSchedules]);
+  }, [fetchSchedules, confirm]);
 
   const handleNavigate = useCallback((newDate: Date) => setDate(newDate), []);
   const handleView = useCallback((newView: any) => setView(newView), []);
