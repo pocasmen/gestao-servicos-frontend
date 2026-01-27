@@ -1,7 +1,7 @@
 import React, { useContext } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { AuthContext } from '../App';
+import { AuthContext } from '../contexts/AuthContext';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 const isInternalUser = (user: SupabaseUser | null) => {

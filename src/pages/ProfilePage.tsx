@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../apiClient';
-import { AuthContext } from '../App';
+import { AuthContext } from '../contexts/AuthContext';
 import { AppUser } from './TechniciansPage';
 import SignaturePad from '../components/SignaturePad';
 import GoogleColorPicker from '../components/GoogleColorPicker';

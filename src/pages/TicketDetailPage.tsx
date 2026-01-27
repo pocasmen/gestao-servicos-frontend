@@ -6,7 +6,7 @@ import { Ticket } from '../types';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import { supabase } from '../supabase';
-import { AuthContext } from '../App';
+import { AuthContext } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 
 

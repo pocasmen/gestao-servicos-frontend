@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase'; // Importar o cliente Supabase
-import { AuthContext } from '../App';
+import { AuthContext } from '../contexts/AuthContext';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');

@@ -7,7 +7,7 @@ import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import './ClientTicketDetailPage.css'; // Para estilos personalizados
 import { supabase } from '../supabase';
-import { AuthContext } from '../App';
+import { AuthContext } from '../contexts/AuthContext';
 
 // New Attachment Interface
 interface Attachment {

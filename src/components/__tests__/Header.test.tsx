@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import Header from '../Header';
-import { AuthContext } from '../../App';
+import { AuthContext } from '../../contexts/AuthContext';
 import { vi, describe, it, expect } from 'vitest';
 
 describe('Header Component', () => {

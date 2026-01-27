@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useConfirm } from '../contexts/ConfirmContext';
 import apiClient from '../apiClient';
-import { AuthContext } from '../App';
+import { AuthContext } from '../contexts/AuthContext';
 import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician } from '../types';
 import SignaturePad from './SignaturePad';
 import { Copy, Clipboard, Trash2, Printer } from 'lucide-react';

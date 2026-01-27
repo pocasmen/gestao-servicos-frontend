@@ -27,7 +27,33 @@ export default defineConfig({
     rollupOptions: {
       treeshake: true,
       input: path.resolve(__dirname, 'index.html'),
-    }
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('scheduler') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react';
+            }
+            if (id.includes('bootstrap') || id.includes('react-bootstrap') || id.includes('lucide')) {
+              return 'vendor-ui';
+            }
+            if (id.includes('supabase')) {
+              return 'vendor-supabase';
+            }
+            if (id.includes('react-big-calendar') || id.includes('date-fns') || id.includes('react-datepicker')) {
+              return 'vendor-calendar';
+            }
+            if (id.includes('html2pdf.js')) {
+              return 'vendor-pdf';
+            }
+            if (id.includes('axios')) {
+              return 'vendor-utils';
+            }
+            return 'vendor';
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
   },
   envPrefix: 'VITE',
   test: {

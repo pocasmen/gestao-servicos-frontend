@@ -1,4 +1,4 @@
-import React, { useState, createContext, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
@@ -6,47 +6,38 @@ import { supabase } from './supabase';
 import Header from './components/Header';
 import ClientPortalHeader from './components/ClientPortalHeader';
 import { ConfirmProvider } from './contexts/ConfirmContext';
-import CalendarPage from './pages/CalendarPage';
-import DashboardPage from './pages/DashboardPage';
-import ClientsPage from './pages/ClientsPage';
-import EquipmentsPage from './pages/EquipmentsPage';
-import EquipmentHistoryPage from './pages/EquipmentHistoryPage';
-import InventoryPage from './pages/InventoryPage';
-import TechniciansPage from './pages/TechniciansPage';
-import ReportsPage from './pages/ReportsPage';
-import ReportPrintPage from './pages/ReportPrintPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import TicketsPage from './pages/TicketsPage';
-import TicketDetailPage from './pages/TicketDetailPage';
-import ClientTicketsPage from './pages/ClientTicketsPage';
-import ClientTicketDetailPage from './pages/ClientTicketDetailPage';
-import ClientSchedulesListPage from './pages/ClientSchedulesListPage';
-import SettingsPage from './pages/SettingsPage';
-import SelfRegisterPage from './pages/SelfRegisterPage';
-import PendingUsersPage from './pages/PendingUsersPage';
-import CompleteRegistrationPage from './pages/CompleteRegistrationPage';
-import ProfilePage from './pages/ProfilePage';
-import ClientProfilePage from './pages/ClientProfilePage';
-import ClientHistoryPage from './pages/ClientHistoryPage';
 import './index.css';
 import './theme.css';
 
+// Lazy load pages for better performance and smaller initial bundle
+const CalendarPage = React.lazy(() => import('./pages/CalendarPage'));
+const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
+const ClientsPage = React.lazy(() => import('./pages/ClientsPage'));
+const EquipmentsPage = React.lazy(() => import('./pages/EquipmentsPage'));
+const EquipmentHistoryPage = React.lazy(() => import('./pages/EquipmentHistoryPage'));
+const InventoryPage = React.lazy(() => import('./pages/InventoryPage'));
+const TechniciansPage = React.lazy(() => import('./pages/TechniciansPage'));
+const ReportsPage = React.lazy(() => import('./pages/ReportsPage'));
+const ReportPrintPage = React.lazy(() => import('./pages/ReportPrintPage'));
+const LoginPage = React.lazy(() => import('./pages/LoginPage'));
+const RegisterPage = React.lazy(() => import('./pages/RegisterPage'));
+const TicketsPage = React.lazy(() => import('./pages/TicketsPage'));
+const TicketDetailPage = React.lazy(() => import('./pages/TicketDetailPage'));
+const ClientTicketsPage = React.lazy(() => import('./pages/ClientTicketsPage'));
+const ClientTicketDetailPage = React.lazy(() => import('./pages/ClientTicketDetailPage'));
+const ClientSchedulesListPage = React.lazy(() => import('./pages/ClientSchedulesListPage'));
+const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
+const SelfRegisterPage = React.lazy(() => import('./pages/SelfRegisterPage'));
+const PendingUsersPage = React.lazy(() => import('./pages/PendingUsersPage'));
+const CompleteRegistrationPage = React.lazy(() => import('./pages/CompleteRegistrationPage'));
+const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
+const ClientProfilePage = React.lazy(() => import('./pages/ClientProfilePage'));
+const ClientHistoryPage = React.lazy(() => import('./pages/ClientHistoryPage'));
+
 type UserRole = 'client' | 'technician' | 'office_staff' | 'admin' | 'super_admin';
 
-interface AuthContextType {
-  user: SupabaseUser | null;
-  session: Session | null;
-  loading: boolean;
-  setSession: (session: Session | null) => void;
-}
-
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  session: null,
-  loading: true,
-  setSession: () => { },
-});
+import { AuthContext } from './contexts/AuthContext';
+import type { AuthContextType } from './contexts/AuthContext';
 
 // Helper para verificar a role do utilizador
 const userHasRole = (user: SupabaseUser | null, role: UserRole) => {
@@ -151,53 +142,55 @@ const AppRoutes: React.FC = () => {
             <button type="button" className="btn-close" onClick={() => setUrlError(null)} aria-label="Close"></button>
           </div>
         )}
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/self-register" element={<SelfRegisterPage />} />
-          <Route path="/complete-registration" element={<CompleteRegistrationPage />} />
-          <Route path="/unauthorized" element={<div>Acesso Negado</div>} />
+        <React.Suspense fallback={<div className="d-flex justify-content-center mt-5"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">A carregar...</span></div></div>}>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/self-register" element={<SelfRegisterPage />} />
+            <Route path="/complete-registration" element={<CompleteRegistrationPage />} />
+            <Route path="/unauthorized" element={<div>Acesso Negado</div>} />
 
-          <Route
-            path="/"
-            element={
-              !user
-                ? <Navigate to="/login" />
-                : (isPendingClient(user) || mustSetPassword(user))
-                  ? <Navigate to="/complete-registration" />
-                  : isInternalUser(user)
-                    ? <Navigate to="/dashboard" />
-                    : <Navigate to="/portal" />
-            }
-          />
+            <Route
+              path="/"
+              element={
+                !user
+                  ? <Navigate to="/login" />
+                  : (isPendingClient(user) || mustSetPassword(user))
+                    ? <Navigate to="/complete-registration" />
+                    : isInternalUser(user)
+                      ? <Navigate to="/dashboard" />
+                      : <Navigate to="/portal" />
+              }
+            />
 
-          {/* Rotas de Admin/Técnico */}
-          <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><DashboardPage /></ProtectedRoute>} />
-          <Route path="/calendar" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><CalendarPage /></ProtectedRoute>} />
-          <Route path="/clients" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ClientsPage /></ProtectedRoute>} />
-          <Route path="/equipments" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><EquipmentsPage /></ProtectedRoute>} />
-          <Route path="/equipments/:id/history" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><EquipmentHistoryPage /></ProtectedRoute>} />
-          <Route path="/inventory" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><InventoryPage /></ProtectedRoute>} />
-          <Route path="/technicians" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']}><TechniciansPage /></ProtectedRoute>} />
-          <Route path="/admin/pending-users" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']}><PendingUsersPage /></ProtectedRoute>} />
-          <Route path="/reports" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ReportsPage /></ProtectedRoute>} />
-          <Route path="/report/print/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin', 'client']}><ReportPrintPage /></ProtectedRoute>} />
-          <Route path="/tickets" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><TicketsPage /></ProtectedRoute>} />
-          <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><TicketDetailPage /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute allowedRoles={['super_admin']}><SettingsPage /></ProtectedRoute>} /> {/* Apenas SuperAdmin pode mexer nas configs */}
-          <Route path="/profile" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ProfilePage /></ProtectedRoute>} />
+            {/* Rotas de Admin/Técnico */}
+            <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><DashboardPage /></ProtectedRoute>} />
+            <Route path="/calendar" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><CalendarPage /></ProtectedRoute>} />
+            <Route path="/clients" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ClientsPage /></ProtectedRoute>} />
+            <Route path="/equipments" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><EquipmentsPage /></ProtectedRoute>} />
+            <Route path="/equipments/:id/history" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><EquipmentHistoryPage /></ProtectedRoute>} />
+            <Route path="/inventory" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><InventoryPage /></ProtectedRoute>} />
+            <Route path="/technicians" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']}><TechniciansPage /></ProtectedRoute>} />
+            <Route path="/admin/pending-users" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']}><PendingUsersPage /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ReportsPage /></ProtectedRoute>} />
+            <Route path="/report/print/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin', 'client']}><ReportPrintPage /></ProtectedRoute>} />
+            <Route path="/tickets" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><TicketsPage /></ProtectedRoute>} />
+            <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><TicketDetailPage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute allowedRoles={['super_admin']}><SettingsPage /></ProtectedRoute>} /> {/* Apenas SuperAdmin pode mexer nas configs */}
+            <Route path="/profile" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ProfilePage /></ProtectedRoute>} />
 
-          {/* Rotas de Cliente (Flattened) */}
-          <Route path="/portal" element={<Navigate to="/portal/tickets" replace />} />
-          <Route path="/portal/tickets" element={<ProtectedRoute allowedRoles={['client']}><ClientTicketsPage /></ProtectedRoute>} />
-          <Route path="/portal/tickets/:id" element={<ProtectedRoute allowedRoles={['client']}><ClientTicketDetailPage /></ProtectedRoute>} />
-          <Route path="/portal/schedules" element={<ProtectedRoute allowedRoles={['client']}><ClientSchedulesListPage /></ProtectedRoute>} />
-          <Route path="/portal/history" element={<ProtectedRoute allowedRoles={['client']}><ClientHistoryPage /></ProtectedRoute>} />
-          {/* Adicionada rota para o histórico de equipamento do cliente */}
-          <Route path="/portal/equipments/:id/history" element={<ProtectedRoute allowedRoles={['client']}><EquipmentHistoryPage /></ProtectedRoute>} />
-          <Route path="/portal/profile" element={<ProtectedRoute allowedRoles={['client']}><ClientProfilePage /></ProtectedRoute>} />
+            {/* Rotas de Cliente (Flattened) */}
+            <Route path="/portal" element={<Navigate to="/portal/tickets" replace />} />
+            <Route path="/portal/tickets" element={<ProtectedRoute allowedRoles={['client']}><ClientTicketsPage /></ProtectedRoute>} />
+            <Route path="/portal/tickets/:id" element={<ProtectedRoute allowedRoles={['client']}><ClientTicketDetailPage /></ProtectedRoute>} />
+            <Route path="/portal/schedules" element={<ProtectedRoute allowedRoles={['client']}><ClientSchedulesListPage /></ProtectedRoute>} />
+            <Route path="/portal/history" element={<ProtectedRoute allowedRoles={['client']}><ClientHistoryPage /></ProtectedRoute>} />
+            {/* Adicionada rota para o histórico de equipamento do cliente */}
+            <Route path="/portal/equipments/:id/history" element={<ProtectedRoute allowedRoles={['client']}><EquipmentHistoryPage /></ProtectedRoute>} />
+            <Route path="/portal/profile" element={<ProtectedRoute allowedRoles={['client']}><ClientProfilePage /></ProtectedRoute>} />
 
-        </Routes>
+          </Routes>
+        </React.Suspense>
       </div>
     </>
   );

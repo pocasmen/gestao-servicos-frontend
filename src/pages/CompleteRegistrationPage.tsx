@@ -1,7 +1,7 @@
 import React, { useState, useContext } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
-import { AuthContext } from '../App';
+import { AuthContext } from '../contexts/AuthContext';
 
 const CompleteRegistrationPage: React.FC = () => {
     const [password, setPassword] = useState('');

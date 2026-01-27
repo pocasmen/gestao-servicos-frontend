@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../apiClient';
-import { AuthContext } from '../App';
+import { AuthContext } from '../contexts/AuthContext';
 import SignaturePad from '../components/SignaturePad';
 
 // Define interface locally to avoid dependency on TechniciansPage (which is admin-facing)

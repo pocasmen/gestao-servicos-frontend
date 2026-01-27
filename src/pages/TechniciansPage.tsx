@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../apiClient';
 import UserDetailModal from '../components/TechnicianDetailModal';
-import { AuthContext } from '../App';
+import { AuthContext } from '../contexts/AuthContext';
 
 // Updated interface to match the new backend response
 export interface AppUser {

@@ -1,7 +1,7 @@
 import { render, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import TicketDetailPage from '../TicketDetailPage';
-import { AuthContext } from '../../App';
+import { AuthContext } from '../../contexts/AuthContext';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import apiClient from '../../apiClient';
 import { supabase } from '../../supabase';
