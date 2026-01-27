@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { SmartInput } from '../components/SmartInput';
 
 // Interface para Cliente
 interface Client {
@@ -49,26 +50,52 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
         <form onSubmit={handleSubmit}>
           <div className="row">
             <div className="col-md-10 mb-2">
-              <label className="form-label">Nome</label>
-              <input type="text" className="form-control" value={name} onChange={e => setName(e.target.value)} required />
+              <SmartInput
+                label="Nome"
+                value={name}
+                onChange={setName}
+                required
+                options={{ minLength: 3, blockScripts: true }}
+                placeholder="Nome do Cliente ou Empresa"
+              />
             </div>
             <div className="col-md-2 mb-2">
-              <label className="form-label">NIF</label>
-              <input type="text" className="form-control" value={nif} onChange={e => setNif(e.target.value)} />
+              <SmartInput
+                label="NIF"
+                value={nif}
+                onChange={setNif}
+                options={{ type: 'numeric', minLength: 9, maxLength: 9 }}
+                placeholder="123456789"
+              />
             </div>
           </div>
           <div className="row">
             <div className="col-md-7 mb-2">
-              <label className="form-label">Morada</label>
-              <input type="text" className="form-control" value={address} onChange={e => setAddress(e.target.value)} />
+              <SmartInput
+                label="Morada"
+                value={address}
+                onChange={setAddress}
+                options={{ blockScripts: true }}
+                placeholder="Rua, Número, Andar..."
+              />
             </div>
             <div className="col-md-2 mb-2">
-              <label className="form-label">Cód. Postal</label>
-              <input type="text" className="form-control" value={postCode} onChange={e => setPostCode(e.target.value)} />
+              <SmartInput
+                label="Cód. Postal"
+                value={postCode}
+                onChange={setPostCode}
+                options={{ maxLength: 8 }}
+                placeholder="4000-000"
+              />
             </div>
             <div className="col-md-3 mb-2">
-              <label className="form-label">Localidade</label>
-              <input type="text" className="form-control" value={city} onChange={e => setCity(e.target.value)} />
+              <SmartInput
+                label="Localidade"
+                value={city}
+                onChange={setCity}
+                options={{ blockScripts: true }}
+                placeholder="Cidade"
+              />
             </div>
             <div className="col-md-12 mb-2 d-flex justify-content-end">
               <button type="submit" className="btn btn-success">Criar Cliente</button>

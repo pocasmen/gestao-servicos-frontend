@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import { Link } from 'react-router-dom';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { SmartInput } from '../components/SmartInput';
 
 // Interfaces
 interface Equipment {
@@ -61,32 +62,53 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
       <div className="card-header bg-primary text-white">Novo Equipamento</div>
       <div className="card-body">
         <form onSubmit={handleSubmit}>
-          <div className="d-flex flex-wrap align-items-end">
-            <div className="pe-2 mb-2" style={{ width: '40%' }}>
-              <label className="form-label">Cliente (Proprietário)</label>
-              <input
-                className="form-control"
-                list="clientOptions"
-                value={clientName}
-                onChange={e => setClientName(e.target.value)}
-                placeholder="Pesquisar cliente..."
+          <div className="d-flex flex-wrap">
+            <div className="pe-2" style={{ flex: '1', minWidth: '200px' }}>
+              <div className="d-flex flex-column" style={{ marginBottom: '1rem' }}>
+                <label className="form-label mb-2" style={{ fontWeight: 500, color: '#374151' }}>Cliente (Proprietário)</label>
+                <input
+                  className="form-control"
+                  style={{ padding: '0.5rem 0.75rem' }}
+                  list="clientOptions"
+                  value={clientName}
+                  onChange={e => setClientName(e.target.value)}
+                  placeholder="Pesquisar cliente..."
+                  required
+                />
+                <datalist id="clientOptions">
+                  {clients.map(client => <option key={client.id} value={client.name} />)}
+                </datalist>
+              </div>
+            </div>
+            <div className="pe-2" style={{ width: '175px' }}>
+              <SmartInput
+                label="Marca"
+                value={brand}
+                onChange={setBrand}
                 required
+                options={{ minLength: 2 }}
+                placeholder="Ex: Bosch"
               />
-              <datalist id="clientOptions">
-                {clients.map(client => <option key={client.id} value={client.name} />)}
-              </datalist>
             </div>
-            <div className="pe-2 mb-2" style={{ width: '20%' }}>
-              <label className="form-label">Marca</label>
-              <input type="text" className="form-control" value={brand} onChange={e => setBrand(e.target.value)} required />
+            <div className="pe-2" style={{ width: '210px' }}>
+              <SmartInput
+                label="Modelo"
+                value={model}
+                onChange={setModel}
+                required
+                options={{ minLength: 2 }}
+                placeholder="Ex: WineScan"
+              />
             </div>
-            <div className="pe-2 mb-2" style={{ width: '20%' }}>
-              <label className="form-label">Modelo</label>
-              <input type="text" className="form-control" value={model} onChange={e => setModel(e.target.value)} required />
-            </div>
-            <div className="mb-2" style={{ width: '20%' }}>
-              <label className="form-label">Nº de Série</label>
-              <input type="text" className="form-control" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} required />
+            <div style={{ width: '140px' }}>
+              <SmartInput
+                label="Nº de Série"
+                value={serialNumber}
+                onChange={setSerialNumber}
+                required
+                options={{ minLength: 3 }}
+                placeholder="SN-123"
+              />
             </div>
           </div>
           <div className="row mt-2">

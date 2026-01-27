@@ -254,6 +254,8 @@ export interface Part {
 
   designation: string;
 
+  is_composed?: boolean;
+
 
 
 }

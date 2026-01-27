@@ -4,6 +4,7 @@ import { ScheduleEvent, Report } from '../types';
 import ScheduleDetailModal from '../components/ScheduleDetailModal';
 import ReportModal from '../components/ReportModal';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { SmartInput } from '../components/SmartInput';
 
 interface PartInventory {
   id: number;
@@ -12,6 +13,14 @@ interface PartInventory {
   stock_quantity: number;
   reserved_quantity: number;
   ordered_quantity: number;
+  is_composed?: boolean;
+}
+
+interface ComponentItem {
+  partId: number;
+  quantity: number;
+  reference?: string;
+  designation?: string;
 }
 
 const InventoryPage: React.FC = () => {
@@ -37,6 +46,15 @@ const InventoryPage: React.FC = () => {
   const [stockChange, setStockChange] = useState<number>(0);
   const [orderChange, setOrderChange] = useState<number>(0);
   const [receiveQuantity, setReceiveQuantity] = useState<number>(0);
+
+  // States for Composed Parts
+  const [isComposed, setIsComposed] = useState(false);
+  const [components, setComponents] = useState<ComponentItem[]>([]);
+  const [compSearch, setCompSearch] = useState('');
+  const [compSearchResults, setCompSearchResults] = useState<PartInventory[]>([]);
+  const [showCompResults, setShowCompResults] = useState(false);
+  const [composedDetails, setComposedDetails] = useState<ComponentItem[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
 
   const fetchInventory = async () => {
     try {
@@ -68,6 +86,10 @@ const InventoryPage: React.FC = () => {
     setModalType(null);
     setNewItem({ reference: '', designation: '', stock_quantity: 0, reserved_quantity: 0, ordered_quantity: 0 });
     setReservations([]);
+    setIsComposed(false);
+    setComponents([]);
+    setCompSearch('');
+    setComposedDetails([]);
   };
 
   const handleOpenScheduleDetail = async (scheduleId: number) => {
@@ -138,12 +160,116 @@ const InventoryPage: React.FC = () => {
       await alert('Referência e Designação são obrigatórias.');
       return;
     }
+
+    if (isComposed && components.length === 0) {
+      await alert('Uma peça composta deve ter pelo menos um componente.');
+      return;
+    }
+
     try {
-      await apiClient.post('/api/inventory', newItem);
+      if (isComposed) {
+        await apiClient.post('/api/inventory/composed', {
+          reference: newItem.reference,
+          designation: newItem.designation,
+          components: components.map(c => ({ partId: c.partId, quantity: c.quantity }))
+        });
+      } else {
+        await apiClient.post('/api/inventory', newItem);
+      }
       closeModal();
       fetchInventory();
     } catch (err: any) {
       await alert(`Erro ao adicionar item: ${err.response?.data?.details || err.message}`);
+    }
+  };
+
+  const handleCompSearch = (query: string) => {
+    setCompSearch(query);
+    if (query.length > 1) {
+      const results = inventory.filter(p =>
+        !p.is_composed &&
+        (p.reference.toLowerCase().includes(query.toLowerCase()) ||
+          p.designation.toLowerCase().includes(query.toLowerCase()))
+      ).slice(0, 10);
+      setCompSearchResults(results);
+      setShowCompResults(true);
+    } else {
+      setShowCompResults(false);
+    }
+  };
+
+  const addComponent = (part: PartInventory) => {
+    if (components.some(c => c.partId === part.id)) {
+      setCompSearch('');
+      setShowCompResults(false);
+      return;
+    }
+    setComponents([...components, {
+      partId: part.id,
+      quantity: 1,
+      reference: part.reference,
+      designation: part.designation
+    }]);
+    setCompSearch('');
+    setShowCompResults(false);
+  };
+
+  const removeComponent = (partId: number) => {
+    setComponents(components.filter(c => c.partId !== partId));
+  };
+
+  const updateComponentQty = (partId: number, qty: number) => {
+    setComponents(components.map(c => c.partId === partId ? { ...c, quantity: qty } : c));
+  };
+
+  const handleViewDetails = async (part: PartInventory) => {
+    setSelectedPart(part);
+    setModalType('add_item'); // Reuse modal for view/edit detail
+    setIsComposed(true);
+    setNewItem({
+      reference: part.reference,
+      designation: part.designation,
+      stock_quantity: part.stock_quantity,
+      reserved_quantity: part.reserved_quantity,
+      ordered_quantity: part.ordered_quantity,
+      id: part.id
+    });
+
+    setLoadingDetails(true);
+    try {
+      const response = await apiClient.get(`/api/inventory/${part.id}/components`);
+      setComponents(response.data);
+    } catch (err) {
+      console.error('Error fetching component details:', err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const handleUpdateItem = async () => {
+    if (!newItem.id || !newItem.reference || !newItem.designation) return;
+
+    if (isComposed && components.length === 0) {
+      await alert('Uma peça composta deve ter pelo menos um componente.');
+      return;
+    }
+
+    try {
+      if (isComposed) {
+        await apiClient.put(`/api/inventory/${newItem.id}/composed`, {
+          reference: newItem.reference,
+          designation: newItem.designation,
+          components: components.map(c => ({ partId: c.partId, quantity: c.quantity }))
+        });
+      } else {
+        // Not implemented for normal items yet, but we could add general update
+        await alert('Apenas edição de peças compostas implementada por agora.');
+        return;
+      }
+      closeModal();
+      fetchInventory();
+    } catch (err: any) {
+      await alert(`Erro ao atualizar item: ${err.response?.data?.details || err.message}`);
     }
   };
 
@@ -235,50 +361,178 @@ const InventoryPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Item Modal */}
+      {/* Add / Edit Item Modal */}
       {modalType === 'add_item' && (
         <div className="modal show" style={{ display: 'block' }} tabIndex={-1}>
-          <div className="modal-dialog">
+          <div className="modal-dialog modal-lg">
             <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">Adicionar Novo Item ao Inventário</h5>
-                <button type="button" className="btn-close" onClick={closeModal}></button>
+              <div className="modal-header bg-dark text-white">
+                <h5 className="modal-title">
+                  {newItem.id ? 'Editar Peça Composta' : 'Adicionar Novo Item ao Inventário'}
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={closeModal}></button>
               </div>
               <div className="modal-body">
-                <div className="mb-3">
-                  <label htmlFor="reference" className="form-label">Referência</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="reference"
-                    value={newItem.reference}
-                    onChange={e => setNewItem({ ...newItem, reference: e.target.value })}
-                  />
+                <div className="row">
+                  <div className="col-md-6 mb-3">
+                    <SmartInput
+                      label="Referência"
+                      value={newItem.reference}
+                      onChange={(val: string) => setNewItem(prev => ({ ...prev, reference: val }))}
+                      options={{
+                        blockScripts: true,
+                        minLength: 2,
+                        maxLength: 50,
+                      }}
+                      placeholder="Ex: REF-12345"
+                      required
+                    />
+                  </div>
+                  <div className="col-md-6 mb-3">
+                    <SmartInput
+                      label="Designação"
+                      value={newItem.designation}
+                      onChange={(val: string) => setNewItem(prev => ({ ...prev, designation: val }))}
+                      options={{
+                        blockScripts: true,
+                        minLength: 3,
+                        maxLength: 100,
+                        type: 'text' // triggers default heuristic checks
+                      }}
+                      placeholder="Ex: Motor Elétrico 500W"
+                      required
+                    />
+                  </div>
                 </div>
-                <div className="mb-3">
-                  <label htmlFor="designation" className="form-label">Designação</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    id="designation"
-                    value={newItem.designation}
-                    onChange={e => setNewItem({ ...newItem, designation: e.target.value })}
-                  />
-                </div>
-                <div className="mb-3">
-                  <label htmlFor="stock_quantity" className="form-label">Quantidade em Stock</label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    id="stock_quantity"
-                    value={newItem.stock_quantity}
-                    onChange={e => setNewItem({ ...newItem, stock_quantity: parseInt(e.target.value, 10) || 0 })}
-                  />
-                </div>
+
+                {!newItem.id && (
+                  <div className="mb-3">
+                    <div className="form-check form-switch card p-3 bg-light shadow-sm">
+                      <div className="d-flex align-items-center">
+                        <input
+                          className="form-check-input ms-0 me-3"
+                          type="checkbox"
+                          id="isComposedSwitch"
+                          checked={isComposed}
+                          onChange={e => setIsComposed(e.target.checked)}
+                          style={{ width: '3em', height: '1.5em' }}
+                        />
+                        <label className="form-check-label fw-bold h5 mb-0" htmlFor="isComposedSwitch">
+                          Peça Composta (Kit)
+                        </label>
+                      </div>
+                      <small className="text-muted mt-2">
+                        Ative se esta peça for constituída por outras peças do inventário. O stock será calculado automaticamente.
+                      </small>
+                    </div>
+                  </div>
+                )}
+
+                {isComposed ? (
+                  <div className="card mt-4 border-primary">
+                    <div className="card-header bg-primary text-white">
+                      <h6 className="mb-0">Constituição da Peça Composta</h6>
+                    </div>
+                    <div className="card-body">
+                      <div className="position-relative mb-3">
+                        <label className="form-label fw-bold">Pesquisar Componentes</label>
+                        <div className="input-group">
+                          <span className="input-group-text"><i className="bi bi-search"></i></span>
+                          <input
+                            type="text"
+                            className="form-control"
+                            placeholder="Referência ou nome da peça componente..."
+                            value={compSearch}
+                            onChange={(e) => handleCompSearch(e.target.value)}
+                          />
+                        </div>
+
+                        {showCompResults && compSearchResults.length > 0 && (
+                          <div className="list-group position-absolute w-100 shadow-lg" style={{ zIndex: 1000, maxHeight: '200px', overflowY: 'auto' }}>
+                            {compSearchResults.map(part => (
+                              <button
+                                key={part.id}
+                                type="button"
+                                className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                onClick={() => addComponent(part)}
+                              >
+                                <div>
+                                  <strong>{part.reference}</strong> - {part.designation}
+                                </div>
+                                <span className="badge bg-info rounded-pill">Stock: {part.stock_quantity - part.reserved_quantity}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="table-responsive">
+                        <table className="table table-sm align-middle">
+                          <thead className="table-light">
+                            <tr>
+                              <th>Componente</th>
+                              <th style={{ width: '100px' }}>Qtd</th>
+                              <th style={{ width: '50px' }}></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {components.length === 0 ? (
+                              <tr>
+                                <td colSpan={3} className="text-center py-3 text-muted">
+                                  Nenhum componente adicionado.
+                                </td>
+                              </tr>
+                            ) : (
+                              components.map(c => (
+                                <tr key={c.partId}>
+                                  <td>
+                                    <strong>{c.reference}</strong><br />
+                                    <small className="text-muted">{c.designation}</small>
+                                  </td>
+                                  <td>
+                                    <input
+                                      type="number"
+                                      className="form-control form-control-sm"
+                                      min="1"
+                                      value={c.quantity}
+                                      onChange={(e) => updateComponentQty(c.partId, parseInt(e.target.value) || 1)}
+                                    />
+                                  </td>
+                                  <td>
+                                    <button type="button" className="btn btn-outline-danger btn-sm" onClick={() => removeComponent(c.partId)}>
+                                      <i className="bi bi-trash"></i>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  !newItem.id && (
+                    <div className="mb-3 card p-3">
+                      <label htmlFor="stock_quantity" className="form-label fw-bold">Quantidade Inicial em Stock</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        id="stock_quantity"
+                        value={newItem.stock_quantity}
+                        onChange={e => setNewItem({ ...newItem, stock_quantity: parseInt(e.target.value, 10) || 0 })}
+                      />
+                    </div>
+                  )
+                )}
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer bg-light">
                 <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancelar</button>
-                <button type="button" className="btn btn-primary" onClick={handleAddItem}>Adicionar Item</button>
+                {newItem.id ? (
+                  <button type="button" className="btn btn-primary" onClick={handleUpdateItem}>Atualizar Peça</button>
+                ) : (
+                  <button type="button" className="btn btn-success" onClick={handleAddItem}>Criar Item</button>
+                )}
               </div>
             </div>
           </div>
@@ -296,7 +550,7 @@ const InventoryPage: React.FC = () => {
                 <th>Referência</th>
                 <th className="text-center">Disponível</th>
                 <th className="text-center">Reservado</th>
-                <th className="text-center">Em Stock</th>
+                <th className="text-center">Stock Real</th>
                 <th className="text-center">Encomendado</th>
                 <th className="text-center">Ações</th>
               </tr>
@@ -304,26 +558,43 @@ const InventoryPage: React.FC = () => {
             <tbody>
               {filteredInventory.map(part => (
                 <tr key={part.id}>
-                  <td>{part.designation}</td>
-                  <td>{part.reference}</td>
-                  <td className="text-center fw-bold">{part.stock_quantity - part.reserved_quantity}</td>
-                  <td className="text-center">{part.reserved_quantity}</td>
-                  <td className="text-center">{part.stock_quantity}</td>
-                  <td className="text-center">{part.ordered_quantity}</td>
-                  <td className="text-center">
-                    <button className="btn btn-sm btn-secondary me-1" title="Ajuste Manual de Stock" onClick={() => openModal(part, 'stock')}>
-                      <i className="bi bi-pencil-square"></i>
-                    </button>
-                    <button className="btn btn-sm btn-warning me-1" title="Registar Encomenda" onClick={() => openModal(part, 'order')}>
-                      <i className="bi bi-truck"></i>
-                    </button>
+                  <td className="align-middle">
+                    {part.designation}
+                    {part.is_composed && (
+                      <span className="badge bg-primary ms-2 shadow-sm" style={{ fontSize: '0.65rem' }}>COMPOSTO</span>
+                    )}
+                  </td>
+                  <td className="align-middle fw-bold text-muted">{part.reference}</td>
+                  <td className="text-center align-middle h5 mb-0">
+                    <span className={`badge ${(part.stock_quantity - part.reserved_quantity) <= 5 ? 'bg-danger' : 'bg-success'}`}>
+                      {part.stock_quantity - part.reserved_quantity}
+                    </span>
+                  </td>
+                  <td className="text-center align-middle">{part.reserved_quantity}</td>
+                  <td className="text-center align-middle">{part.is_composed ? '-' : part.stock_quantity}</td>
+                  <td className="text-center align-middle">{part.ordered_quantity}</td>
+                  <td className="text-center align-middle">
+                    {part.is_composed ? (
+                      <button className="btn btn-sm btn-outline-primary me-1 shadow-sm" title="Ver/Editar Composição" onClick={() => handleViewDetails(part)}>
+                        <i className="bi bi-gear-fill"></i>
+                      </button>
+                    ) : (
+                      <>
+                        <button className="btn btn-sm btn-secondary me-1 shadow-sm" title="Ajuste Manual de Stock" onClick={() => openModal(part, 'stock')}>
+                          <i className="bi bi-pencil-square"></i>
+                        </button>
+                        <button className="btn btn-sm btn-warning me-1 shadow-sm" title="Registar Encomenda" onClick={() => openModal(part, 'order')}>
+                          <i className="bi bi-truck"></i>
+                        </button>
+                      </>
+                    )}
                     {part.reserved_quantity > 0 && (
-                      <button className="btn btn-sm btn-primary me-1" title="Ver Reservas" onClick={() => handleViewReservations(part)}>
-                        <i className="bi bi-calendar-check"></i>
+                      <button className="btn btn-sm btn-primary me-1 shadow-sm" title="Ver Reservas" onClick={() => handleViewReservations(part)}>
+                        <i className="bi bi-calendar-check text-white"></i>
                       </button>
                     )}
-                    {part.ordered_quantity > 0 && (
-                      <button className="btn btn-sm btn-info" title="Receber Encomenda" onClick={() => openModal(part, 'receive')}>
+                    {!part.is_composed && part.ordered_quantity > 0 && (
+                      <button className="btn btn-sm btn-info shadow-sm" title="Receber Encomenda" onClick={() => openModal(part, 'receive')}>
                         <i className="bi bi-box-arrow-in-down"></i>
                       </button>
                     )}
