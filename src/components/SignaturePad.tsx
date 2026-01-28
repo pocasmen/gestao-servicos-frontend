@@ -91,7 +91,11 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClear, initial
         if (ctx) {
             ctx.save();
             ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Preencher com branco (necessário para JPEG)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
             ctx.restore();
             setIsEmpty(true);
             hasBeenClearedRef.current = true;
@@ -104,7 +108,8 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClear, initial
         if (isEmpty) return;
         const canvas = canvasRef.current;
         if (canvas) {
-            const dataUrl = canvas.toDataURL('image/png');
+            // Usar JPEG com compressão (0.5 é excelente para assinaturas e muito leve)
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
             onConfirm(dataUrl);
         }
     };
@@ -164,6 +169,10 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClear, initial
 
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.scale(dpr, dpr);
+
+            // Sempre garantir fundo branco (essencial para compatibilidade com JPEG)
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, rect.width, rect.height);
 
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 2.5;

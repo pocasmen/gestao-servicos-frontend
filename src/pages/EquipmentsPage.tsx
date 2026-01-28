@@ -34,14 +34,19 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
       });
   }, []);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (isSubmitting) return;
+
     const selectedClient = clients.find(c => c.name.toLowerCase() === clientName.toLowerCase().trim());
     if (!selectedClient) {
       await alert('Por favor, selecione um cliente válido da lista.');
       return;
     }
 
+    setIsSubmitting(true);
     apiClient.post('/api/equipments', { brand, model, serialNumber, clientId: selectedClient.id })
       .then(async () => {
         setBrand('');
@@ -54,6 +59,9 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
       .catch(async (error: any) => {
         console.error("Erro ao adicionar equipamento:", error);
         await alert("Erro ao adicionar equipamento: " + (error.response?.data?.error || error.message));
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
   };
 
@@ -113,7 +121,14 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
           </div>
           <div className="row mt-2">
             <div className="col-md-12 text-end">
-              <button type="submit" className="btn btn-success">Adicionar Equipamento</button>
+              <button type="submit" className="btn btn-success" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    A adicionar...
+                  </>
+                ) : 'Adicionar Equipamento'}
+              </button>
             </div>
           </div>
         </form>
@@ -127,13 +142,14 @@ const EditEquipmentModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   equipment: Equipment | null;
-  onSave: (updatedEquipment: any) => void;
+  onSave: (updatedEquipment: any) => Promise<void>;
 }> = ({ isOpen, onClose, equipment, onSave }) => {
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [clientId, setClientId] = useState<number | string>('');
   const [clients, setClients] = useState<Client[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -176,10 +192,15 @@ const EditEquipmentModal: React.FC<{
   }, [equipment, clients]);
 
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (equipment && clientId) {
-      onSave({ ...equipment, brand, model, serialNumber, clientId: Number(clientId) });
+      setIsSaving(true);
+      try {
+        await onSave({ ...equipment, brand, model, serialNumber, clientId: Number(clientId) });
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -216,8 +237,15 @@ const EditEquipmentModal: React.FC<{
               </div>
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">Guardar</button>
+              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>Cancelar</button>
+              <button type="submit" className="btn btn-primary" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    A guardar...
+                  </>
+                ) : 'Guardar'}
+              </button>
             </div>
           </form>
         </div>
@@ -322,7 +350,7 @@ const EquipmentsPage: React.FC = () => {
   };
 
   const handleSaveEdit = (updatedEquipment: any) => {
-    apiClient.put(`/api/equipments/${updatedEquipment.id}`, updatedEquipment)
+    return apiClient.put(`/api/equipments/${updatedEquipment.id}`, updatedEquipment)
       .then(() => {
         fetchEquipments(searchQuery);
         handleCloseEditModal();
@@ -330,6 +358,8 @@ const EquipmentsPage: React.FC = () => {
       .catch(async (error: any) => {
         console.error("Erro ao atualizar equipamento:", error);
         await alert("Erro ao atualizar equipamento.");
+        // Propagate error
+        throw error;
       });
   };
 

@@ -21,10 +21,14 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
   const [city, setCity] = useState('');
   const [postCode, setPostCode] = useState('');
   const [nif, setNif] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { alert } = useConfirm();
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
     apiClient.post('/api/clients', { name, address, city, postCode, nif })
       .then(async () => {
         // Limpa o formulário e notifica o componente pai
@@ -39,6 +43,9 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
       .catch(async (error: any) => {
         console.error("Erro ao criar cliente:", error);
         await alert("Erro ao criar cliente.");
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
   };
 
@@ -98,7 +105,14 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
               />
             </div>
             <div className="col-md-12 mb-2 d-flex justify-content-end">
-              <button type="submit" className="btn btn-success">Criar Cliente</button>
+              <button type="submit" className="btn btn-success" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    A criar...
+                  </>
+                ) : 'Criar Cliente'}
+              </button>
             </div>
 
           </div>
@@ -180,13 +194,14 @@ const EditClientModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   client: Client | null;
-  onSave: (updatedClient: Client) => void;
+  onSave: (updatedClient: Client) => Promise<void>;
 }> = ({ isOpen, onClose, client, onSave }) => {
   const [name, setName] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [postCode, setPostCode] = useState('');
   const [nif, setNif] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (client) {
@@ -198,10 +213,15 @@ const EditClientModal: React.FC<{
     }
   }, [client]);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (client) {
-      onSave({ ...client, name, address, city, postCode, nif });
+      setIsSaving(true);
+      try {
+        await onSave({ ...client, name, address, city, postCode, nif });
+      } finally {
+        setIsSaving(false);
+      }
     }
   };
 
@@ -241,8 +261,15 @@ const EditClientModal: React.FC<{
               </div>
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">Guardar</button>
+              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>Cancelar</button>
+              <button type="submit" className="btn btn-primary" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    A guardar...
+                  </>
+                ) : 'Guardar'}
+              </button>
             </div>
           </form>
         </div>
@@ -261,6 +288,7 @@ const ClientsPage: React.FC = () => {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [selectedClientForInvite, setSelectedClientForInvite] = useState<Client | null>(null);
+  const [isInviting, setIsInviting] = useState(false);
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -298,8 +326,9 @@ const ClientsPage: React.FC = () => {
 
   const handleSendInvite = (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedClientForInvite || !inviteEmail) return;
+    if (!selectedClientForInvite || !inviteEmail || isInviting) return;
 
+    setIsInviting(true);
     apiClient.post('/admin/invite-user', {
       client_id: selectedClientForInvite.id,
       email: inviteEmail,
@@ -312,6 +341,9 @@ const ClientsPage: React.FC = () => {
       .catch(async (error: any) => {
         const errorMessage = error.response?.data?.error || "Erro ao enviar convite.";
         await alert(errorMessage);
+      })
+      .finally(() => {
+        setIsInviting(false);
       });
   };
 
@@ -327,7 +359,7 @@ const ClientsPage: React.FC = () => {
   };
 
   const handleSaveEdit = (updatedClient: Client) => {
-    apiClient.put(`/api/clients/${updatedClient.id}`, updatedClient)
+    return apiClient.put(`/api/clients/${updatedClient.id}`, updatedClient)
       .then(() => {
         // Atualizar lista localmente ou refetch
         fetchClients(searchQuery);
@@ -336,6 +368,8 @@ const ClientsPage: React.FC = () => {
       .catch(async (error: any) => {
         console.error("Erro ao atualizar cliente:", error);
         await alert("Erro ao atualizar cliente.");
+        // Rethrow or return rejected promise so modal knows it failed
+        throw error;
       });
   };
 
@@ -406,8 +440,15 @@ const ClientsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={handleCloseInviteModal}>Cancelar</button>
-                  <button type="submit" className="btn btn-primary">Enviar Convite</button>
+                  <button type="button" className="btn btn-secondary" onClick={handleCloseInviteModal} disabled={isInviting}>Cancelar</button>
+                  <button type="submit" className="btn btn-primary" disabled={isInviting}>
+                    {isInviting ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        Enviando...
+                      </>
+                    ) : 'Enviar Convite'}
+                  </button>
                 </div>
               </form>
             </div>

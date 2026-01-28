@@ -29,7 +29,7 @@ const InventoryPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('');
   const [view, setView] = useState<'all' | 'low_stock'>('all');
-  const { alert } = useConfirm();
+  const { confirm, alert } = useConfirm();
 
   const [selectedPart, setSelectedPart] = useState<PartInventory | null>(null);
   const [modalType, setModalType] = useState<'stock' | 'order' | 'receive' | 'add_item' | 'reservations' | null>(null);
@@ -55,6 +55,7 @@ const InventoryPage: React.FC = () => {
   const [showCompResults, setShowCompResults] = useState(false);
   const [composedDetails, setComposedDetails] = useState<ComponentItem[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchInventory = async () => {
     try {
@@ -156,6 +157,8 @@ const InventoryPage: React.FC = () => {
   }, [fetchInventory, handleCloseReportModal, selectedPart]);
 
   const handleAddItem = async () => {
+    if (isSubmitting) return;
+
     if (!newItem.reference || !newItem.designation) {
       await alert('Referência e Designação são obrigatórias.');
       return;
@@ -166,6 +169,7 @@ const InventoryPage: React.FC = () => {
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (isComposed) {
         await apiClient.post('/api/inventory/composed', {
@@ -180,6 +184,8 @@ const InventoryPage: React.FC = () => {
       fetchInventory();
     } catch (err: any) {
       await alert(`Erro ao adicionar item: ${err.response?.data?.details || err.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -247,13 +253,14 @@ const InventoryPage: React.FC = () => {
   };
 
   const handleUpdateItem = async () => {
-    if (!newItem.id || !newItem.reference || !newItem.designation) return;
+    if (!newItem.id || !newItem.reference || !newItem.designation || isSubmitting) return;
 
     if (isComposed && components.length === 0) {
       await alert('Uma peça composta deve ter pelo menos um componente.');
       return;
     }
 
+    setIsSubmitting(true);
     try {
       if (isComposed) {
         await apiClient.put(`/api/inventory/${newItem.id}/composed`, {
@@ -270,39 +277,50 @@ const InventoryPage: React.FC = () => {
       fetchInventory();
     } catch (err: any) {
       await alert(`Erro ao atualizar item: ${err.response?.data?.details || err.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleStockChange = async () => {
-    if (!selectedPart || stockChange === 0) return;
+    if (!selectedPart || stockChange === 0 || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await apiClient.put(`/api/inventory/${selectedPart.id}/stock`, { quantity: stockChange, fromOrder: false });
       closeModal();
       fetchInventory();
     } catch (err: any) {
       await alert('Erro ao ajustar o stock.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleOrderChange = async () => {
-    if (!selectedPart || orderChange <= 0) return;
+    if (!selectedPart || orderChange <= 0 || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await apiClient.put(`/api/inventory/${selectedPart.id}/order`, { quantity: orderChange });
       closeModal();
       fetchInventory();
     } catch (err: any) {
       await alert('Erro ao registar a encomenda.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleReceiveOrder = async () => {
-    if (!selectedPart || receiveQuantity <= 0) return;
+    if (!selectedPart || receiveQuantity <= 0 || isSubmitting) return;
+    setIsSubmitting(true);
     try {
       await apiClient.put(`/api/inventory/${selectedPart.id}/stock`, { quantity: receiveQuantity, fromOrder: true });
       closeModal();
       fetchInventory();
     } catch (err: any) {
       await alert('Erro ao receber a encomenda.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -318,6 +336,23 @@ const InventoryPage: React.FC = () => {
       await alert('Erro ao carregar reservas.');
     } finally {
       setLoadingReservations(false);
+    }
+  };
+
+  const handleDelete = async (part: PartInventory) => {
+    if (await confirm({
+      message: `Tem a certeza que deseja apagar o item "${part.designation}" (${part.reference})?`,
+      title: 'Apagar Item de Inventário',
+      variant: 'danger',
+      confirmText: 'Apagar'
+    })) {
+      try {
+        await apiClient.delete(`/api/inventory/${part.id}`);
+        fetchInventory(); // Refresh list
+      } catch (error: any) {
+        console.error("Erro ao apagar item:", error);
+        await alert(error.response?.data?.error || "Erro ao apagar item.");
+      }
     }
   };
 
@@ -527,11 +562,15 @@ const InventoryPage: React.FC = () => {
                 )}
               </div>
               <div className="modal-footer bg-light">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancelar</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal} disabled={isSubmitting}>Cancelar</button>
                 {newItem.id ? (
-                  <button type="button" className="btn btn-primary" onClick={handleUpdateItem}>Atualizar Peça</button>
+                  <button type="button" className="btn btn-primary" onClick={handleUpdateItem} disabled={isSubmitting}>
+                    {isSubmitting ? 'A atualizar...' : 'Atualizar Peça'}
+                  </button>
                 ) : (
-                  <button type="button" className="btn btn-success" onClick={handleAddItem}>Criar Item</button>
+                  <button type="button" className="btn btn-success" onClick={handleAddItem} disabled={isSubmitting}>
+                    {isSubmitting ? 'A criar...' : 'Criar Item'}
+                  </button>
                 )}
               </div>
             </div>
@@ -573,31 +612,69 @@ const InventoryPage: React.FC = () => {
                   <td className="text-center align-middle">{part.reserved_quantity}</td>
                   <td className="text-center align-middle">{part.is_composed ? '-' : part.stock_quantity}</td>
                   <td className="text-center align-middle">{part.ordered_quantity}</td>
-                  <td className="text-center align-middle">
-                    {part.is_composed ? (
-                      <button className="btn btn-sm btn-outline-primary me-1 shadow-sm" title="Ver/Editar Composição" onClick={() => handleViewDetails(part)}>
-                        <i className="bi bi-gear-fill"></i>
-                      </button>
-                    ) : (
-                      <>
-                        <button className="btn btn-sm btn-secondary me-1 shadow-sm" title="Ajuste Manual de Stock" onClick={() => openModal(part, 'stock')}>
-                          <i className="bi bi-pencil-square"></i>
+                  <td className="align-middle">
+                    <div className="d-flex flex-wrap gap-1 justify-content-center">
+                      {part.is_composed ? (
+                        <button
+                          className="btn btn-sm btn-outline-primary shadow-sm"
+                          title="Ver/Editar Composição"
+                          onClick={() => handleViewDetails(part)}
+                          style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <i className="bi bi-gear-fill"></i>
                         </button>
-                        <button className="btn btn-sm btn-warning me-1 shadow-sm" title="Registar Encomenda" onClick={() => openModal(part, 'order')}>
-                          <i className="bi bi-truck"></i>
+                      ) : (
+                        <>
+                          <button
+                            className="btn btn-sm btn-secondary shadow-sm"
+                            title="Ajuste Manual de Stock"
+                            onClick={() => openModal(part, 'stock')}
+                            style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <i className="bi bi-pencil-square"></i>
+                          </button>
+                          <button
+                            className="btn btn-sm btn-warning shadow-sm"
+                            title="Registar Encomenda"
+                            onClick={() => openModal(part, 'order')}
+                            style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          >
+                            <i className="bi bi-truck"></i>
+                          </button>
+                        </>
+                      )}
+
+                      {part.reserved_quantity > 0 && (
+                        <button
+                          className="btn btn-sm btn-primary shadow-sm"
+                          title="Ver Reservas"
+                          onClick={() => handleViewReservations(part)}
+                          style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <i className="bi bi-calendar-check text-white"></i>
                         </button>
-                      </>
-                    )}
-                    {part.reserved_quantity > 0 && (
-                      <button className="btn btn-sm btn-primary me-1 shadow-sm" title="Ver Reservas" onClick={() => handleViewReservations(part)}>
-                        <i className="bi bi-calendar-check text-white"></i>
+                      )}
+
+                      {!part.is_composed && part.ordered_quantity > 0 && (
+                        <button
+                          className="btn btn-sm btn-info shadow-sm"
+                          title="Receber Encomenda"
+                          onClick={() => openModal(part, 'receive')}
+                          style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <i className="bi bi-box-arrow-in-down"></i>
+                        </button>
+                      )}
+
+                      <button
+                        className="btn btn-sm btn-outline-danger shadow-sm"
+                        title="Apagar Item"
+                        onClick={() => handleDelete(part)}
+                        style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                      >
+                        <i className="bi bi-trash"></i>
                       </button>
-                    )}
-                    {!part.is_composed && part.ordered_quantity > 0 && (
-                      <button className="btn btn-sm btn-info shadow-sm" title="Receber Encomenda" onClick={() => openModal(part, 'receive')}>
-                        <i className="bi bi-box-arrow-in-down"></i>
-                      </button>
-                    )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -629,8 +706,10 @@ const InventoryPage: React.FC = () => {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancelar</button>
-                <button type="button" className="btn btn-primary" onClick={handleStockChange}>Confirmar Ajuste</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal} disabled={isSubmitting}>Cancelar</button>
+                <button type="button" className="btn btn-primary" onClick={handleStockChange} disabled={isSubmitting}>
+                  {isSubmitting ? 'A confirmar...' : 'Confirmar Ajuste'}
+                </button>
               </div>
             </div>
           </div>
@@ -661,8 +740,10 @@ const InventoryPage: React.FC = () => {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancelar</button>
-                <button type="button" className="btn btn-primary" onClick={handleOrderChange}>Registar Encomenda</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal} disabled={isSubmitting}>Cancelar</button>
+                <button type="button" className="btn btn-primary" onClick={handleOrderChange} disabled={isSubmitting}>
+                  {isSubmitting ? 'A registar...' : 'Registar Encomenda'}
+                </button>
               </div>
             </div>
           </div>
@@ -694,8 +775,10 @@ const InventoryPage: React.FC = () => {
                 </div>
               </div>
               <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={closeModal}>Cancelar</button>
-                <button type="button" className="btn btn-primary" onClick={handleReceiveOrder}>Confirmar Entrada</button>
+                <button type="button" className="btn btn-secondary" onClick={closeModal} disabled={isSubmitting}>Cancelar</button>
+                <button type="button" className="btn btn-primary" onClick={handleReceiveOrder} disabled={isSubmitting}>
+                  {isSubmitting ? 'A receber...' : 'Confirmar Entrada'}
+                </button>
               </div>
             </div>
           </div>

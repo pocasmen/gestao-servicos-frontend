@@ -44,6 +44,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const isCreating = !event || !event.id;
   const now = new Date();
   const [isLoadingEquipments, setIsLoadingEquipments] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Derived start/end for logic checks
   const derivedStart = timeBlocks.length > 0
@@ -350,6 +351,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   };
 
   const handleSave = async () => {
+    if (isSubmitting) return;
+
     if (!clientId) {
       await alert('É obrigatório selecionar um cliente.');
       return;
@@ -423,6 +426,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     // Determine correct ID for PUT
     const scheduleId = event?.scheduleId !== undefined ? event.scheduleId : (event?.id && typeof event.id === 'number' ? event.id : undefined);
 
+    setIsSubmitting(true);
     try {
       const response = isCreating
         ? await apiClient.post('/api/schedules', scheduleData)
@@ -436,11 +440,13 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     } catch (error) {
       console.error("Erro ao guardar agendamento:", error);
       await alert('Ocorreu um erro ao guardar o agendamento.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleComplete = async () => {
-    if (!event) return;
+    if (!event || isSubmitting) return;
     if (!clientId) {
       await alert('É obrigatório selecionar um cliente.');
       return;
@@ -499,6 +505,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
     const scheduleId = event?.scheduleId !== undefined ? event.scheduleId : (event?.id && typeof event.id === 'number' ? event.id : undefined);
 
+    setIsSubmitting(true);
     try {
       const response = await apiClient.post(`/api/schedules/${scheduleId}/complete`, scheduleData);
       if (import.meta.env.DEV) {
@@ -509,11 +516,13 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     } catch (error) {
       console.error("Erro ao concluir o serviço:", error);
       await alert('Ocorreu um erro ao concluir o serviço.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!event) return;
+    if (!event || isSubmitting) return;
     if (await confirm({
       message: "Tem a certeza que quer eliminar este agendamento?",
       title: 'Eliminar Agendamento',
@@ -525,6 +534,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
         await alert("Não foi possível identificar o agendamento para eliminar.");
         return;
       }
+
+      setIsSubmitting(true);
       apiClient.delete(`/api/schedules/${scheduleId}`)
         .then(() => {
           onScheduleUpdated();
@@ -532,6 +543,9 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
         })
         .catch((error: any) => {
           console.error("Erro ao eliminar agendamento:", error);
+        })
+        .finally(() => {
+          setIsSubmitting(false);
         });
     }
   };
@@ -775,17 +789,31 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
             <div className="modal-footer d-flex justify-content-between">
               <div>
                 {!isCreating && (
-                  <button type="button" className="btn btn-danger" onClick={handleDelete}>
-                    <Trash2 size={18} className="me-2" /> Eliminar
+                  <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={isSubmitting}>
+                    <Trash2 size={18} className="me-2" />
+                    {isSubmitting ? 'A eliminar...' : 'Eliminar'}
                   </button>
                 )}
               </div>
               <div>
-                <button type="button" className="btn btn-secondary me-2" onClick={onClose}>Cancelar</button>
-                {!isPastOrCompleted && <button type="submit" className="btn btn-primary">{isCreating ? 'Criar' : 'Guardar'}</button>}
-                {canComplete && <button type="button" className="btn btn-success ms-2" onClick={handleComplete}>Concluir Serviço</button>}
+                <button type="button" className="btn btn-secondary me-2" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+                {!isPastOrCompleted && (
+                  <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        {isCreating ? 'A criar...' : 'A guardar...'}
+                      </>
+                    ) : (isCreating ? 'Criar' : 'Guardar')}
+                  </button>
+                )}
+                {canComplete && (
+                  <button type="button" className="btn btn-success ms-2" onClick={handleComplete} disabled={isSubmitting}>
+                    {isSubmitting ? 'A concluir...' : 'Concluir Serviço'}
+                  </button>
+                )}
                 {isCompleted && (
-                  <button type="button" className="btn btn-info ms-2" onClick={() => onManageReport(event!)}>
+                  <button type="button" className="btn btn-info ms-2" onClick={() => onManageReport(event!)} disabled={isSubmitting}>
                     {event?.hasReport ? 'Ver / Editar Relatório' : 'Criar Relatório'}
                   </button>
                 )}

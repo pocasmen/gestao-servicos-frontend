@@ -92,7 +92,7 @@ const PerformanceGauge: React.FC<{ percentage: number; label: string }> = ({ per
 
   return (
     <div className="visualizer-container mb-3 text-center">
-      <div className="visual-title mb-2">Índice de Performance (NPS-style)</div>
+      <div className="visual-title mb-2">Índice de Performance</div>
       <div className="gauge-wrapper mx-auto" style={{ width: '220px', height: 'auto' }}>
         <svg viewBox="0 0 100 65" className="gauge-svg" style={{ width: '100%', height: 'auto' }}>
           {/* Fundo Desfocado / Glassmorphism de base */}

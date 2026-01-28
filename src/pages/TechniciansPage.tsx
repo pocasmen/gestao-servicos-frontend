@@ -28,9 +28,12 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
   const [role, setRole] = useState<'technician' | 'admin' | 'office_staff' | 'super_admin'>('technician');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
+    if (isSubmitting) return;
+
     setError('');
     setSuccess('');
 
@@ -42,6 +45,7 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
       color: color,
     };
 
+    setIsSubmitting(true);
     apiClient.post('/admin/invite-user', invitationData)
       .then((response) => {
         setSuccess(response.data.message || `Convite enviado para ${email}.`);
@@ -57,6 +61,9 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
         const errorMessage = err.response?.data?.error || "Erro ao enviar convite.";
         console.error("Erro ao convidar utilizador:", err);
         setError(errorMessage);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
   };
 
@@ -98,7 +105,9 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
           <label>Cor do Calendário</label>
           <input type="color" className="form-control form-control-color" value={color} onChange={e => setColor(e.target.value)} />
         </div>
-        <button type="submit" className="btn btn-primary mt-3">Enviar Convite</button>
+        <button type="submit" className="btn btn-primary mt-3" disabled={isSubmitting}>
+          {isSubmitting ? 'A enviar...' : 'Enviar Convite'}
+        </button>
       </form>
     </div>
   );

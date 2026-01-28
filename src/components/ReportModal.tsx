@@ -64,6 +64,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const damageRef = useRef<HTMLTextAreaElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const internalNotesRef = useRef<HTMLTextAreaElement>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { alert } = useConfirm();
 
   useEffect(() => {
@@ -193,7 +194,12 @@ const ReportModal: React.FC<ReportModalProps> = ({
       try {
         const response = await apiClient.get(`/api/parts/${part.reference}`);
         const newParts = [...parts];
-        newParts[index] = { ...newParts[index], designation: response.data.designation, isDesignationLocked: true };
+        newParts[index] = {
+          ...newParts[index],
+          id: response.data.id, // Save the ID for inventory abatement
+          designation: response.data.designation,
+          isDesignationLocked: true
+        };
         setParts(newParts);
       } catch (error: any) {
         if (error.response && error.response.status === 404) {
@@ -307,6 +313,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isSubmitting) return;
 
     if (!clientId) {
       await alert('É obrigatório selecionar um cliente.');
@@ -361,6 +368,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
       ? apiClient.put(`/api/reports/${reportToEdit.id}`, reportData)
       : apiClient.post('/api/reports', reportData);
 
+    setIsSubmitting(true);
+
     saveRequest
       .then(() => {
         onReportSaved();
@@ -371,6 +380,9 @@ const ReportModal: React.FC<ReportModalProps> = ({
         console.error("Detalhes do erro:", err.response || err.message);
         const errorMessage = err.response?.data?.error || "Erro ao guardar relatório.";
         await alert(errorMessage);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
       });
   };
 
@@ -623,8 +635,15 @@ const ReportModal: React.FC<ReportModalProps> = ({
                   <Printer size={18} className="me-2" />Ver Relatório
                 </button>
               )}
-              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">{isEditing ? 'Guardar Alterações' : 'Criar Relatório'}</button>
+              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Guardando...
+                  </>
+                ) : (isEditing ? 'Guardar Alterações' : 'Criar Relatório')}
+              </button>
             </div>
           </form>
         </div>
