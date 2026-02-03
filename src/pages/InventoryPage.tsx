@@ -13,6 +13,9 @@ interface PartInventory {
   stock_quantity: number;
   reserved_quantity: number;
   ordered_quantity: number;
+  stock_quantity_contract: number;
+  reserved_quantity_contract: number;
+  ordered_quantity_contract: number;
   is_composed?: boolean;
 }
 
@@ -35,7 +38,16 @@ const InventoryPage: React.FC = () => {
   const [modalType, setModalType] = useState<'stock' | 'order' | 'receive' | 'add_item' | 'reservations' | null>(null);
   const [reservations, setReservations] = useState<any[]>([]);
   const [loadingReservations, setLoadingReservations] = useState(false);
-  const [newItem, setNewItem] = useState<Omit<PartInventory, 'id'> & { id?: number }>({ reference: '', designation: '', stock_quantity: 0, reserved_quantity: 0, ordered_quantity: 0 });
+  const [newItem, setNewItem] = useState<Omit<PartInventory, 'id'> & { id?: number }>({
+    reference: '',
+    designation: '',
+    stock_quantity: 0,
+    reserved_quantity: 0,
+    ordered_quantity: 0,
+    stock_quantity_contract: 0,
+    reserved_quantity_contract: 0,
+    ordered_quantity_contract: 0
+  });
 
   // States for Schedule Detail
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
@@ -46,6 +58,7 @@ const InventoryPage: React.FC = () => {
   const [stockChange, setStockChange] = useState<number>(0);
   const [orderChange, setOrderChange] = useState<number>(0);
   const [receiveQuantity, setReceiveQuantity] = useState<number>(0);
+  const [targetStock, setTargetStock] = useState<'general' | 'contract'>('general');
 
   // States for Composed Parts
   const [isComposed, setIsComposed] = useState(false);
@@ -80,12 +93,22 @@ const InventoryPage: React.FC = () => {
     setStockChange(0);
     setOrderChange(0);
     setReceiveQuantity(0);
+    setTargetStock('general');
   };
 
   const closeModal = () => {
     setSelectedPart(null);
     setModalType(null);
-    setNewItem({ reference: '', designation: '', stock_quantity: 0, reserved_quantity: 0, ordered_quantity: 0 });
+    setNewItem({
+      reference: '',
+      designation: '',
+      stock_quantity: 0,
+      reserved_quantity: 0,
+      ordered_quantity: 0,
+      stock_quantity_contract: 0,
+      reserved_quantity_contract: 0,
+      ordered_quantity_contract: 0
+    });
     setReservations([]);
     setIsComposed(false);
     setComponents([]);
@@ -238,6 +261,9 @@ const InventoryPage: React.FC = () => {
       stock_quantity: part.stock_quantity,
       reserved_quantity: part.reserved_quantity,
       ordered_quantity: part.ordered_quantity,
+      stock_quantity_contract: part.stock_quantity_contract,
+      reserved_quantity_contract: part.reserved_quantity_contract,
+      ordered_quantity_contract: part.ordered_quantity_contract,
       id: part.id
     });
 
@@ -286,7 +312,11 @@ const InventoryPage: React.FC = () => {
     if (!selectedPart || stockChange === 0 || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await apiClient.put(`/api/inventory/${selectedPart.id}/stock`, { quantity: stockChange, fromOrder: false });
+      await apiClient.put(`/api/inventory/${selectedPart.id}/stock`, {
+        quantity: stockChange,
+        fromOrder: false,
+        targetStock: targetStock
+      });
       closeModal();
       fetchInventory();
     } catch (err: any) {
@@ -300,7 +330,10 @@ const InventoryPage: React.FC = () => {
     if (!selectedPart || orderChange <= 0 || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await apiClient.put(`/api/inventory/${selectedPart.id}/order`, { quantity: orderChange });
+      await apiClient.put(`/api/inventory/${selectedPart.id}/order`, {
+        quantity: orderChange,
+        targetStock: targetStock
+      });
       closeModal();
       fetchInventory();
     } catch (err: any) {
@@ -314,7 +347,11 @@ const InventoryPage: React.FC = () => {
     if (!selectedPart || receiveQuantity <= 0 || isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await apiClient.put(`/api/inventory/${selectedPart.id}/stock`, { quantity: receiveQuantity, fromOrder: true });
+      await apiClient.put(`/api/inventory/${selectedPart.id}/stock`, {
+        quantity: receiveQuantity,
+        fromOrder: true,
+        targetStock: targetStock
+      });
       closeModal();
       fetchInventory();
     } catch (err: any) {
@@ -587,11 +624,12 @@ const InventoryPage: React.FC = () => {
               <tr>
                 <th>Designação</th>
                 <th>Referência</th>
-                <th className="text-center">Disponível</th>
-                <th className="text-center">Reservado</th>
-                <th className="text-center">Stock Real</th>
-                <th className="text-center">Encomendado</th>
-                <th className="text-center">Ações</th>
+                <th className="text-center">Disp. (G)</th>
+                <th className="text-center">Disp. (C)</th>
+                <th className="text-center">Res. (G/C)</th>
+                <th className="text-center">Stock Real (G/C)</th>
+                <th className="text-center">Enc. (G/C)</th>
+                <th className="text-end pe-4">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -604,16 +642,46 @@ const InventoryPage: React.FC = () => {
                     )}
                   </td>
                   <td className="align-middle fw-bold text-muted">{part.reference}</td>
-                  <td className="text-center align-middle h5 mb-0">
+                  <td className="text-center align-middle">
                     <span className={`badge ${(part.stock_quantity - part.reserved_quantity) <= 5 ? 'bg-danger' : 'bg-success'}`}>
                       {part.stock_quantity - part.reserved_quantity}
                     </span>
                   </td>
-                  <td className="text-center align-middle">{part.reserved_quantity}</td>
-                  <td className="text-center align-middle">{part.is_composed ? '-' : part.stock_quantity}</td>
-                  <td className="text-center align-middle">{part.ordered_quantity}</td>
+                  <td className="text-center align-middle">
+                    <span className={`badge ${(part.stock_quantity_contract - part.reserved_quantity_contract) <= 5 ? 'bg-danger' : 'bg-info'}`}>
+                      {part.stock_quantity_contract - part.reserved_quantity_contract}
+                    </span>
+                  </td>
+                  <td className="text-center align-middle">
+                    <span className="text-muted">{part.reserved_quantity}</span> / <span className="text-info">{part.reserved_quantity_contract}</span>
+                  </td>
+                  <td className="text-center align-middle">
+                    {part.is_composed ? '-' : (
+                      <>
+                        <span className="text-muted">{part.stock_quantity}</span> / <span className="text-info">{part.stock_quantity_contract}</span>
+                      </>
+                    )}
+                  </td>
+                  <td className="text-center align-middle">
+                    <span className="text-muted">{part.ordered_quantity}</span> / <span className="text-info">{part.ordered_quantity_contract}</span>
+                  </td>
                   <td className="align-middle">
-                    <div className="d-flex flex-wrap gap-1 justify-content-center">
+                    <div className="d-flex justify-content-end gap-1">
+                      {/* Slot: Ajuste Manual de Stock */}
+                      {!part.is_composed ? (
+                        <button
+                          className="btn btn-sm btn-secondary shadow-sm"
+                          title="Ajuste Manual de Stock"
+                          onClick={() => openModal(part, 'stock')}
+                          style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <i className="bi bi-pencil-square"></i>
+                        </button>
+                      ) : (
+                        <div style={{ width: '32px', height: '32px' }} />
+                      )}
+
+                      {/* Slot: Ver/Editar Composição */}
                       {part.is_composed ? (
                         <button
                           className="btn btn-sm btn-outline-primary shadow-sm"
@@ -624,38 +692,25 @@ const InventoryPage: React.FC = () => {
                           <i className="bi bi-gear-fill"></i>
                         </button>
                       ) : (
-                        <>
-                          <button
-                            className="btn btn-sm btn-secondary shadow-sm"
-                            title="Ajuste Manual de Stock"
-                            onClick={() => openModal(part, 'stock')}
-                            style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            <i className="bi bi-pencil-square"></i>
-                          </button>
-                          <button
-                            className="btn btn-sm btn-warning shadow-sm"
-                            title="Registar Encomenda"
-                            onClick={() => openModal(part, 'order')}
-                            style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                          >
-                            <i className="bi bi-truck"></i>
-                          </button>
-                        </>
+                        <div style={{ width: '32px', height: '32px' }} />
                       )}
 
-                      {part.reserved_quantity > 0 && (
+                      {/* Slot: Registar Encomenda */}
+                      {!part.is_composed ? (
                         <button
-                          className="btn btn-sm btn-primary shadow-sm"
-                          title="Ver Reservas"
-                          onClick={() => handleViewReservations(part)}
+                          className="btn btn-sm btn-warning shadow-sm"
+                          title="Registar Encomenda"
+                          onClick={() => openModal(part, 'order')}
                           style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                         >
-                          <i className="bi bi-calendar-check text-white"></i>
+                          <i className="bi bi-truck"></i>
                         </button>
+                      ) : (
+                        <div style={{ width: '32px', height: '32px' }} />
                       )}
 
-                      {!part.is_composed && part.ordered_quantity > 0 && (
+                      {/* Slot: Receber Encomenda */}
+                      {!part.is_composed && part.ordered_quantity > 0 ? (
                         <button
                           className="btn btn-sm btn-info shadow-sm"
                           title="Receber Encomenda"
@@ -664,8 +719,25 @@ const InventoryPage: React.FC = () => {
                         >
                           <i className="bi bi-box-arrow-in-down"></i>
                         </button>
+                      ) : (
+                        <div style={{ width: '32px', height: '32px' }} />
                       )}
 
+                      {/* Slot: Ver Reservas */}
+                      {part.reserved_quantity > 0 ? (
+                        <button
+                          className="btn btn-sm btn-primary shadow-sm"
+                          title="Ver Reservas"
+                          onClick={() => handleViewReservations(part)}
+                          style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <i className="bi bi-calendar-check text-white"></i>
+                        </button>
+                      ) : (
+                        <div style={{ width: '32px', height: '32px' }} />
+                      )}
+
+                      {/* Slot: Apagar Item */}
                       <button
                         className="btn btn-sm btn-outline-danger shadow-sm"
                         title="Apagar Item"
@@ -693,7 +765,14 @@ const InventoryPage: React.FC = () => {
                 <button type="button" className="btn-close" onClick={closeModal}></button>
               </div>
               <div className="modal-body">
-                <p>Stock Atual: {selectedPart.stock_quantity}</p>
+                <p>Stock Atual: {targetStock === 'contract' ? selectedPart.stock_quantity_contract : selectedPart.stock_quantity}</p>
+                <div className="mb-3">
+                  <label className="form-label d-block">Canal de Inventário</label>
+                  <div className="btn-group w-100">
+                    <button type="button" className={`btn ${targetStock === 'general' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock('general')}>Geral</button>
+                    <button type="button" className={`btn ${targetStock === 'contract' ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock('contract')}>Contrato</button>
+                  </div>
+                </div>
                 <div className="mb-3">
                   <label htmlFor="stockChange" className="form-label">Adicionar / Remover Quantidade</label>
                   <input
@@ -726,16 +805,23 @@ const InventoryPage: React.FC = () => {
                 <button type="button" className="btn-close" onClick={closeModal}></button>
               </div>
               <div className="modal-body">
-                <p>Quantidade Encomendada Atualmente: {selectedPart.ordered_quantity}</p>
+                <p>Encomenda Atual (Pendente): {targetStock === 'contract' ? selectedPart.ordered_quantity_contract : selectedPart.ordered_quantity}</p>
                 <div className="mb-3">
-                  <label htmlFor="orderChange" className="form-label">Quantidade a Encomendar</label>
+                  <label className="form-label d-block">Canal de Inventário</label>
+                  <div className="btn-group w-100">
+                    <button type="button" className={`btn ${targetStock === 'general' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock('general')}>Geral</button>
+                    <button type="button" className={`btn ${targetStock === 'contract' ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock('contract')}>Contrato</button>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="orderChange" className="form-label">Quantidade Encomendada</label>
                   <input
                     type="number"
                     className="form-control"
                     id="orderChange"
                     value={orderChange}
-                    onChange={e => setOrderChange(parseInt(e.target.value, 10) || 0)}
                     min="1"
+                    onChange={e => setOrderChange(parseInt(e.target.value, 10) || 0)}
                   />
                 </div>
               </div>
@@ -760,17 +846,24 @@ const InventoryPage: React.FC = () => {
                 <button type="button" className="btn-close" onClick={closeModal}></button>
               </div>
               <div className="modal-body">
-                <p>Quantidade Encomendada: {selectedPart.ordered_quantity}</p>
+                <p>Encomenda Atual (Pendente): {targetStock === 'contract' ? selectedPart.ordered_quantity_contract : selectedPart.ordered_quantity}</p>
                 <div className="mb-3">
-                  <label htmlFor="receiveQuantity" className="form-label">Quantidade Recebida</label>
+                  <label className="form-label d-block">Receber em:</label>
+                  <div className="btn-group w-100">
+                    <button type="button" className={`btn ${targetStock === 'general' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock('general')}>Stock Geral</button>
+                    <button type="button" className={`btn ${targetStock === 'contract' ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock('contract')}>Stock Contrato</button>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label htmlFor="receiveQty" className="form-label">Quantidade Recebida</label>
                   <input
                     type="number"
                     className="form-control"
-                    id="receiveQuantity"
+                    id="receiveQty"
                     value={receiveQuantity}
-                    onChange={e => setReceiveQuantity(parseInt(e.target.value, 10) || 0)}
                     min="1"
-                    max={selectedPart.ordered_quantity}
+                    max={targetStock === 'contract' ? selectedPart.ordered_quantity_contract : selectedPart.ordered_quantity}
+                    onChange={e => setReceiveQuantity(parseInt(e.target.value, 10) || 0)}
                   />
                 </div>
               </div>
@@ -800,36 +893,85 @@ const InventoryPage: React.FC = () => {
                 ) : reservations.length === 0 ? (
                   <p>Não foram encontradas reservas ativas para este item.</p>
                 ) : (
-                  <div className="table-responsive">
-                    <table className="table table-sm">
-                      <thead>
-                        <tr>
-                          <th>Serviço / Título</th>
-                          <th>Data Prevista</th>
-                          <th>Cliente</th>
-                          <th className="text-center">Quantidade</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {reservations.map((res, index) => (
-                          <tr key={index}>
-                            <td>
-                              <button
-                                className="btn btn-link p-0 text-start"
-                                style={{ verticalAlign: 'baseline' }}
-                                onClick={() => handleOpenScheduleDetail(res.scheduleId)}
-                              >
-                                {res.title}
-                              </button>
-                            </td>
-                            <td>{new Date(res.startDate).toLocaleDateString()}</td>
-                            <td>{res.clientName}</td>
-                            <td className="text-center">{res.quantityReserved}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <>
+                    {/* General Stock Reservations */}
+                    <div className="mb-4">
+                      <h6 className="fw-bold text-primary border-bottom pb-2 mb-3">Reservas de Stock Geral</h6>
+                      {reservations.filter((r: any) => !r.stockType || r.stockType === 'general').length > 0 ? (
+                        <div className="table-responsive">
+                          <table className="table table-sm table-hover bg-white mb-0">
+                            <thead className="table-light">
+                              <tr>
+                                <th>Serviço / Título</th>
+                                <th>Data Prevista</th>
+                                <th>Cliente</th>
+                                <th className="text-center">Quantidade</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reservations.filter((r: any) => !r.stockType || r.stockType === 'general').map((res, index) => (
+                                <tr key={index}>
+                                  <td>
+                                    <button
+                                      className="btn btn-link p-0 text-start text-decoration-none"
+                                      style={{ verticalAlign: 'baseline', fontSize: '0.9rem' }}
+                                      onClick={() => handleOpenScheduleDetail(res.scheduleId)}
+                                    >
+                                      {res.title}
+                                    </button>
+                                  </td>
+                                  <td style={{ fontSize: '0.9rem' }}>{new Date(res.startDate).toLocaleDateString()}</td>
+                                  <td style={{ fontSize: '0.9rem' }}>{res.clientName}</td>
+                                  <td className="text-center fw-bold">{res.quantityReserved}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-muted fst-italic ms-2">Sem reservas de stock geral.</p>
+                      )}
+                    </div>
+
+                    {/* Contract Stock Reservations */}
+                    <div>
+                      <h6 className="fw-bold text-info border-bottom pb-2 mb-3">Reservas de Stock Contrato</h6>
+                      {reservations.filter((r: any) => r.stockType === 'contract').length > 0 ? (
+                        <div className="table-responsive">
+                          <table className="table table-sm table-hover bg-white mb-0">
+                            <thead className="table-light">
+                              <tr>
+                                <th>Serviço / Título</th>
+                                <th>Data Prevista</th>
+                                <th>Cliente</th>
+                                <th className="text-center">Quantidade</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {reservations.filter((r: any) => r.stockType === 'contract').map((res, index) => (
+                                <tr key={index}>
+                                  <td>
+                                    <button
+                                      className="btn btn-link p-0 text-start text-decoration-none"
+                                      style={{ verticalAlign: 'baseline', fontSize: '0.9rem' }}
+                                      onClick={() => handleOpenScheduleDetail(res.scheduleId)}
+                                    >
+                                      {res.title}
+                                    </button>
+                                  </td>
+                                  <td style={{ fontSize: '0.9rem' }}>{new Date(res.startDate).toLocaleDateString()}</td>
+                                  <td style={{ fontSize: '0.9rem' }}>{res.clientName}</td>
+                                  <td className="text-center fw-bold">{res.quantityReserved}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      ) : (
+                        <p className="text-muted fst-italic ms-2">Sem reservas de stock de contrato.</p>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
               <div className="modal-footer">

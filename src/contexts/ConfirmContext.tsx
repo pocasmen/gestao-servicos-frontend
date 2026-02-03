@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import ConfirmModal from '../components/ConfirmModal';
 
-interface ConfirmOptions {
+export interface ConfirmOptions {
     title?: string;
     message: React.ReactNode;
     confirmText?: string;

@@ -6,8 +6,7 @@ import apiClient, { searchPartByReference } from '../apiClient';
 import { ScheduleEvent, Client, Equipment, Technician, PartItem, TimeBlock } from '../types';
 import { SERVICE_TYPES_LIST } from '../constants';
 import { Copy, Clipboard, Trash2 } from 'lucide-react';
-import { useConfirm } from '../contexts/ConfirmContext';
-
+import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 registerLocale('pt', pt);
 
 interface ScheduleDetailModalProps {
@@ -27,6 +26,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const [internalNotes, setInternalNotes] = useState('');
   const [serviceType, setServiceType] = useState('');
   const [parts, setParts] = useState<PartItem[]>([]);
+  const [includesTravel, setIncludesTravel] = useState(false);
   const internalNotesRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -69,10 +69,11 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     setIsCompleted(event?.isCompleted || false);
     setInternalNotes(event?.internalNotes || '');
     setServiceType(event?.serviceType || (isTicketScheduling ? 'remota' : ''));
+    setIncludesTravel(event?.includes_travel || false);
     if (isTicketScheduling) {
       setParts([]);
     } else {
-      setParts(event?.parts && event.parts.length > 0 ? event.parts : [{ id: undefined, quantity: 1, reference: '', designation: '' }]);
+      setParts(event?.parts || []);
     }
   }, [event, isTicketScheduling]);
 
@@ -205,7 +206,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     setParts(newParts);
   };
 
-  const handlePartChange = (index: number, field: keyof PartItem, value: string | number) => {
+  const handlePartChange = (index: number, field: keyof PartItem, value: string | number | boolean) => {
     const newParts = [...parts];
     const item = { ...newParts[index] };
 
@@ -251,6 +252,10 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           newParts[index].id = part.id;
           newParts[index].designation = part.designation;
           newParts[index].isDesignationLocked = true;
+          newParts[index].stock_quantity = part.stock_quantity;
+          newParts[index].reserved_quantity = part.reserved_quantity;
+          newParts[index].stock_quantity_contract = part.stock_quantity_contract;
+          newParts[index].reserved_quantity_contract = part.reserved_quantity_contract;
           if (import.meta.env.DEV) {
             console.log('[DEBUG] Part found, updating designation to:', part.designation);
           }
@@ -397,6 +402,32 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       eventRest = rest;
     }
 
+    // Validação de stock insuficiente
+    const partsToValidate = parts.filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '');
+    const negativeStockParts = partsToValidate.filter(p => {
+      if (p.stockType === 'client' || p.stockType === 'warranty') return false;
+      const type = p.stockType || 'general';
+      if (type === 'general') {
+        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0);
+        return available < p.quantity;
+      } else {
+        const available = (p.stock_quantity_contract || 0) - (p.reserved_quantity_contract || 0);
+        return available < p.quantity;
+      }
+    });
+
+    if (negativeStockParts.length > 0) {
+      const partNames = negativeStockParts.map(p => p.designation || p.reference).join(', ');
+      const proceed = await confirm({
+        title: 'Aviso de Stock Insuficiente',
+        message: `As seguintes peças ficarão com stock negativo: ${partNames}. Gostaria de continuar?`,
+        variant: 'warning',
+        confirmText: 'Continuar',
+        cancelText: 'Cancelar'
+      } as ConfirmOptions);
+      if (!proceed) return;
+    }
+
     const scheduleData = {
       ...eventRest,
       startDate: sTime.toISOString(),
@@ -408,6 +439,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       ticketId: event?.ticketId,
       internalNotes,
       serviceType,
+      includesTravel,
       timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
       parts: parts
         .filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '')
@@ -415,7 +447,9 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           id: p.id,
           reference: p.reference,
           designation: p.designation,
-          quantity: p.quantity
+          quantity: p.quantity,
+          stockType: p.stockType || 'general',
+          isApplied: p.isApplied === false ? false : true
         })),
     };
 
@@ -496,6 +530,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       ticketId: event?.ticketId,
       internalNotes,
       serviceType,
+      includesTravel,
       timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() }))
     };
 
@@ -568,7 +603,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Tipo de Serviço</label>
+                <label className="text-secondary fw-bold">Tipo de Serviço</label>
                 <select className="form-control" value={serviceType} onChange={e => setServiceType(e.target.value)} disabled={isPastOrCompleted}>
                   <option value="">Selecione um tipo...</option>
                   {SERVICE_TYPES_LIST.map(type => (
@@ -576,9 +611,27 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                   ))}
                 </select>
               </div>
+              {/* Checkbox de Deslocação - Oculto para serviços remotos */}
+              {serviceType && serviceType !== 'remota' && (
+                <div className="form-group">
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="includesTravel"
+                      checked={includesTravel}
+                      onChange={(e) => setIncludesTravel(e.target.checked)}
+                      disabled={isPastOrCompleted}
+                    />
+                    <label className="form-check-label" htmlFor="includesTravel">
+                      Inclui deslocação às instalações do cliente
+                    </label>
+                  </div>
+                </div>
+              )}
               <div className="form-group mb-3">
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <label>Horários do Serviço</label>
+                  <label className="text-secondary fw-bold">Horários do Serviço</label>
                   {!isPastOrCompleted && (
                     <button type="button" className="btn btn-sm btn-outline-primary" onClick={handleAddBlock}>
                       + Adicionar Horário
@@ -633,7 +686,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                 ))}
               </div>
               <div className="form-group">
-                <label>Cliente</label>
+                <label className="text-secondary fw-bold">Cliente</label>
                 <input
                   className="form-control"
                   list="clientOptions"
@@ -648,7 +701,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                 </datalist>
               </div>
               <div className="form-group">
-                <label>Equipamento</label>
+                <label className="text-secondary fw-bold">Equipamento</label>
                 <select className="form-control" value={equipmentId} onChange={e => setEquipmentId(e.target.value)} required disabled={isPastOrCompleted || !clientId || isLoadingEquipments}>
                   <option value="">
                     {isLoadingEquipments ? 'A carregar equipamentos...' : 'Selecione um equipamento...'}
@@ -661,7 +714,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                 </select>
               </div>
               <div className="form-group">
-                <label>Técnico(s)</label>
+                <label className="text-secondary fw-bold">Técnico(s)</label>
                 <div className="technician-checkbox-group p-2 border rounded">
                   <div className="row">
                     {technicians.length === 0 ? (
@@ -694,54 +747,95 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
               {!isTicketScheduling && (
                 <div className="form-group mt-3">
                   <div className="d-flex justify-content-between align-items-center mb-2">
-                    <label className="mb-0">Peças a Utilizar</label>
+                    <label className="mb-0 text-secondary fw-bold">Peças a Utilizar</label>
                   </div>
-                  <div className="p-2 border rounded">
-                    <div className="d-flex mb-1 small text-muted px-2 gap-2">
-                      <div style={{ width: '75px' }}>Qtd</div>
-                      <div style={{ width: '150px' }}>Referência</div>
-                      <div className="flex-grow-1">Designação</div>
-                    </div>
-                    {parts.map((part, index) => (
-                      <div key={index} className="d-flex mb-2 align-items-center gap-2">
-                        <div style={{ width: '75px' }}>
-                          <input
-                            type="number"
-                            className="form-control"
-                            placeholder="Qtd"
-                            value={part.quantity}
-                            onChange={e => handlePartChange(index, 'quantity', parseInt(e.target.value) || 0)}
-                            disabled={isPastOrCompleted}
-                          />
-                        </div>
-                        <div style={{ width: '150px' }}>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Referência"
-                            value={part.reference}
-                            onChange={e => handlePartChange(index, 'reference', e.target.value)}
-                            onBlur={() => handleReferenceBlur(index)}
-                            disabled={isPastOrCompleted}
-                          />
-                        </div>
-                        <div className="flex-grow-1">
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Designação"
-                            value={part.designation}
-                            onChange={e => handlePartChange(index, 'designation', e.target.value)}
-                            disabled={part.isDesignationLocked || isPastOrCompleted}
-                          />
-                        </div>
-                        <div>
-                          <button type="button" className="btn btn-danger btn-sm" onClick={() => handleRemovePart(index)} disabled={isPastOrCompleted}>
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="table-responsive">
+                    <table className="table table-bordered">
+                      <thead className="table-light">
+                        <tr className="align-middle">
+                          <th style={{ width: '75px' }} className="small">Qt</th>
+                          <th style={{ width: '160px' }} className="small">Referência</th>
+                          <th className="small">Designação</th>
+                          <th style={{ width: '80px' }} className="text-center small">Aplicada</th>
+                          <th style={{ width: '120px' }} className="small">Origem</th>
+                          <th style={{ width: '50px' }}></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {parts.map((part, index) => (
+                          <tr key={index}>
+                            <td>
+                              <input
+                                type="number"
+                                className="form-control form-control-sm"
+                                placeholder="Qtd"
+                                value={part.quantity}
+                                onChange={e => handlePartChange(index, 'quantity', parseInt(e.target.value) || 0)}
+                                disabled={isPastOrCompleted}
+                                min="1"
+                                required
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                className="form-control form-control-sm"
+                                placeholder="Referência"
+                                value={part.reference}
+                                onChange={e => handlePartChange(index, 'reference', e.target.value)}
+                                onBlur={() => handleReferenceBlur(index)}
+                                disabled={isPastOrCompleted}
+                              />
+                            </td>
+                            <td>
+                              <input
+                                type="text"
+                                className="form-control form-control-sm"
+                                placeholder="Designação"
+                                value={part.designation}
+                                onChange={e => handlePartChange(index, 'designation', e.target.value)}
+                                disabled={part.isDesignationLocked || isPastOrCompleted}
+                              />
+                            </td>
+                            <td className="text-center align-middle">
+                              <div className="d-flex justify-content-center">
+                                <input
+                                  type="checkbox"
+                                  className="form-check-input mt-0"
+                                  checked={part.isApplied !== false}
+                                  onChange={e => handlePartChange(index, 'isApplied', e.target.checked)}
+                                  disabled={isPastOrCompleted}
+                                />
+                              </div>
+                            </td>
+                            <td>
+                              <select
+                                className="form-select form-select-sm"
+                                value={part.stockType || 'general'}
+                                onChange={e => handlePartChange(index, 'stockType', e.target.value)}
+                                disabled={isPastOrCompleted}
+                              >
+                                <option value="general">Geral</option>
+                                <option value="contract">Contrato</option>
+                                <option value="client">Cliente</option>
+                                <option value="warranty">Garantia</option>
+                              </select>
+                            </td>
+                            <td className="text-center align-middle">
+                              <button
+                                type="button"
+                                className="btn btn-outline-danger btn-sm"
+                                onClick={() => handleRemovePart(index)}
+                                disabled={isPastOrCompleted}
+                                title="Remover Peça"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                     {!isPastOrCompleted && (
                       <div className="d-flex align-items-center gap-2 mt-2">
                         <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddPart}>
@@ -773,7 +867,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
               {!isTicketScheduling && (
                 <div className="form-group">
-                  <label>Notas Internas</label>
+                  <label className="text-secondary fw-bold">Notas Internas</label>
                   <textarea
                     ref={internalNotesRef}
                     className="form-control"

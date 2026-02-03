@@ -23,9 +23,11 @@ interface DetailedReport {
     damage: string;
     technicianName: string;
     report_number: string;
+    technicians?: { id: string; name: string; color?: string; signature?: string }[];
     signature?: string;
     technician_signature?: string;
     timeBlocks?: { id: number; start: string; end: string }[];
+    includes_travel?: boolean;
 }
 
 const calculateHours = (start: Date, end: Date): number => {
@@ -259,7 +261,12 @@ const ReportPrintPage: React.FC = () => {
                                     <div key={index} className="part-item">
                                         <div className="part-header-row">
                                             <span className="part-reference">{part.reference}</span>
-                                            <span className="part-quantity">{part.quantity}x</span>
+                                            <div className="part-meta">
+                                                <span className={`part-status-badge ${part.isApplied !== false ? 'status-applied' : 'status-not-applied'}`}>
+                                                    {part.isApplied !== false ? 'Aplicada' : 'Não Aplicada'}
+                                                </span>
+                                                <span className="part-quantity">{part.quantity}x</span>
+                                            </div>
                                         </div>
                                         <div className="part-designation">{part.designation}</div>
                                     </div>
@@ -270,6 +277,12 @@ const ReportPrintPage: React.FC = () => {
                                 </div>
                             )}
                         </div>
+                        {report.includes_travel && (
+                            <div className="travel-included-badge">
+                                <span className="travel-icon">🚗</span>
+                                <span className="travel-text">Deslocação Incluída</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Horas de Trabalho */}
@@ -322,13 +335,26 @@ const ReportPrintPage: React.FC = () => {
                 {/* Footer com Assinaturas */}
                 <div className="footer-section">
                     <div className="signatures-container">
-                        <div className="signature-block">
-                            <div className="signature-label">Técnico Responsável</div>
-                            <div className="signature-line">
-                                {report.technician_signature ? (
-                                    <img src={report.technician_signature} alt="Assinatura Técnico" className="signature-image" />
+                        <div className="signature-block" style={{ minWidth: '200px', flex: '1' }}>
+                            <div className="signature-label">Técnicos Responsáveis</div>
+                            <div className="signature-line" style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                                {report.technicians && report.technicians.length > 0 ? (
+                                    report.technicians.map((tech: any, idx: number) => (
+                                        <div key={idx} style={{ textAlign: 'center', minWidth: '80px' }}>
+                                            {tech.signature ? (
+                                                <img src={tech.signature} alt={`Assinatura ${tech.name}`} className="signature-image" style={{ maxHeight: '50px', display: 'block', margin: '0 auto' }} />
+                                            ) : (
+                                                <div className="signature-placeholder" style={{ height: '50px', width: '50px', border: '1px dashed #ccc', margin: '0 auto' }}></div>
+                                            )}
+                                            <div className="signature-name" style={{ fontSize: '0.7rem', marginTop: '4px' }}>{tech.name}</div>
+                                        </div>
+                                    ))
                                 ) : (
-                                    <div className="signature-name">{report.technicianName}</div>
+                                    report.technician_signature ? (
+                                        <img src={report.technician_signature} alt="Assinatura Técnico" className="signature-image" />
+                                    ) : (
+                                        <div className="signature-name">{report.technicianName}</div>
+                                    )
                                 )}
                             </div>
                         </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { useConfirm } from '../contexts/ConfirmContext';
+import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 import apiClient from '../apiClient';
 import { AuthContext } from '../contexts/AuthContext';
 import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician } from '../types';
@@ -60,12 +60,14 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [serviceTypes, setServiceTypes] = useState<string[]>([]); // Alterado para array
   const [internalNotes, setInternalNotes] = useState(''); // Novo campo interno
   const [signature, setSignature] = useState<string | undefined>(undefined);
-  const [technicianSignature, setTechnicianSignature] = useState<string | undefined>(undefined);
+  const [technicianSignatures, setTechnicianSignatures] = useState<Record<string, string>>({});
+  const [technicianSignature, setTechnicianSignature] = useState<string | undefined>(undefined); // Legacy, keep for now but unused in new logic?
+  const [includesTravel, setIncludesTravel] = useState(false);
   const damageRef = useRef<HTMLTextAreaElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const internalNotesRef = useRef<HTMLTextAreaElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { alert } = useConfirm();
+  const { confirm, alert } = useConfirm();
 
   useEffect(() => {
     [damageRef, descriptionRef, internalNotesRef].forEach(ref => {
@@ -105,11 +107,30 @@ const ReportModal: React.FC<ReportModalProps> = ({
       setInternalNotes(reportToEdit.internalNotes || ''); // Carregar notas internas
       const loadedParts = reportToEdit.parts && reportToEdit.parts.length > 0 ? reportToEdit.parts : [];
       // Ensure we have an empty line at the end only if the last one is not already empty
-      const lastPart = loadedParts[loadedParts.length - 1];
-      const shouldAddEmpty = !lastPart || (lastPart.reference || lastPart.designation);
-      setParts(shouldAddEmpty ? [...loadedParts, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }] : loadedParts);
+      setParts(loadedParts);
       setSignature(reportToEdit.signature);
+
+      // Populate signatures map from report technicians
+      const sigs: Record<string, string> = {};
+      if (reportToEdit.technicians) {
+        reportToEdit.technicians.forEach(t => {
+          if (t.signature) sigs[t.id] = t.signature;
+        });
+      }
+      setTechnicianSignatures(sigs);
+
+      // Auto-sign for current user if not already signed
+      if (authUser && reportToEdit.technicians?.some(t => t.id === authUser.id) && !sigs[authUser.id]) {
+        apiClient.get('/api/technicians').then(res => {
+          const profile = res.data.find((p: any) => p.id === authUser.id);
+          if (profile && profile.signature) {
+            setTechnicianSignatures(prev => ({ ...prev, [authUser.id]: profile.signature }));
+          }
+        });
+      }
+
       setTechnicianSignature(reportToEdit.technician_signature);
+      setIncludesTravel(reportToEdit.includes_travel || false);
 
 
     } else if (!isEditing && schedule) {
@@ -134,7 +155,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
         isDesignationLocked: !!p.designation
       }));
 
-      setParts([...scheduledParts, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }]);
+      setParts(scheduledParts);
 
       setDescription('');
       setDamage(''); // Inicializar vazio
@@ -148,6 +169,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
       // Passar as notas internas do agendamento para o relatório
       setInternalNotes(schedule.internalNotes || '');
+      setIncludesTravel(schedule.includes_travel || false);
       setSignature(undefined);
 
       // Buscar assinatura do técnico logado para inclusão automática
@@ -156,6 +178,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
           const profile = res.data.find((p: any) => p.id === authUser.id);
           if (profile && profile.signature) {
             setTechnicianSignature(profile.signature);
+            // Default: if I am the creator, I am likely in the list (or should be).
+            // But strict logic: only if I am IN technicianIds. 
+            // In create mode, technicianIds are pre-filled from schedule.
+            const isMeInList = (schedule?.technicians?.map(t => t.id) || []).includes(authUser.id);
+            if (isMeInList || !schedule) { // If no schedule, maybe empty list?
+              setTechnicianSignatures(prev => ({ ...prev, [authUser.id]: profile.signature }));
+            }
           }
         });
       }
@@ -196,9 +225,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
         const newParts = [...parts];
         newParts[index] = {
           ...newParts[index],
-          id: response.data.id, // Save the ID for inventory abatement
+          id: response.data.id,
           designation: response.data.designation,
-          isDesignationLocked: true
+          isDesignationLocked: true,
+          stock_quantity: response.data.stock_quantity,
+          reserved_quantity: response.data.reserved_quantity,
+          stock_quantity_contract: response.data.stock_quantity_contract,
+          reserved_quantity_contract: response.data.reserved_quantity_contract
         };
         setParts(newParts);
       } catch (error: any) {
@@ -304,11 +337,23 @@ const ReportModal: React.FC<ReportModalProps> = ({
   };
 
   const handleTechnicianChange = (technicianId: string) => {
-    setTechnicianIds(prevIds =>
-      prevIds.includes(technicianId)
+    setTechnicianIds(prevIds => {
+      const exists = prevIds.includes(technicianId);
+      const newIds = exists
         ? prevIds.filter(id => id !== technicianId)
-        : [...prevIds, technicianId]
-    );
+        : [...prevIds, technicianId];
+
+      // If adding myself, add my signature
+      if (!exists && authUser && technicianId === authUser.id) {
+        // Need to fetch my signature if not available? 
+        // We can try to find it in allTechnicians if it has it
+        const me = allTechnicians.find(t => t.id === authUser.id);
+        if (me && (me as any).signature) {
+          setTechnicianSignatures(prev => ({ ...prev, [authUser.id]: (me as any).signature }));
+        }
+      }
+      return newIds;
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -345,6 +390,32 @@ const ReportModal: React.FC<ReportModalProps> = ({
       }
     }
 
+    // Verificação de stock negativo (Aviso)
+    const negativeStockParts = partsToSubmit.filter(p => {
+      if (p.stockType === 'client' || p.stockType === 'warranty') return false;
+
+      const type = p.stockType || 'general';
+      if (type === 'general') {
+        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0);
+        return available < p.quantity;
+      } else {
+        const available = (p.stock_quantity_contract || 0) - (p.reserved_quantity_contract || 0);
+        return available < p.quantity;
+      }
+    });
+
+    if (negativeStockParts.length > 0) {
+      const partNames = negativeStockParts.map(p => p.designation || p.reference).join(', ');
+      const proceed = await confirm({
+        title: 'Aviso de Stock Insuficiente',
+        message: `As seguintes peças ficarão com stock negativo: ${partNames}. Gostaria de continuar?`,
+        variant: 'warning',
+        confirmText: 'Continuar',
+        cancelText: 'Cancelar'
+      } as ConfirmOptions);
+      if (!proceed) return;
+    }
+
     const reportData = {
       clientId: Number(clientId),
       equipmentId: Number(equipmentId),
@@ -354,13 +425,18 @@ const ReportModal: React.FC<ReportModalProps> = ({
       technicianIds: technicianIds,
       serviceDate,
       hours: Number(hours),
-      parts: partsToSubmit,
       description,
       damage, // Incluir o novo campo
       serviceType: serviceTypes, // Enviar o array
       internalNotes, // Enviar notas internas
       signature, // Enviar assinatura
-      technician_signature: technicianSignature // Enviar assinatura do técnico
+      technician_signature: technicianSignature, // Enviar assinatura do técnico (Legacy)
+      technicianSignatures, // Access new map
+      includesTravel, // Enviar informação de deslocação
+      parts: partsToSubmit.map(p => ({
+        ...p,
+        isApplied: p.isApplied === false ? false : true
+      }))
     };
 
 
@@ -398,14 +474,14 @@ const ReportModal: React.FC<ReportModalProps> = ({
             <div className="modal-body">
               {/* ... form fields ... */}
               <div className="form-group">
-                <label>Cliente</label>
+                <label className="text-secondary fw-bold">Cliente</label>
                 <select className="form-control" value={clientId} onChange={e => setClientId(Number(e.target.value))} required>
                   <option value="">Selecione um cliente...</option>
                   {allClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
               </div>
               <div className="form-group">
-                <label>Equipamento</label>
+                <label className="text-secondary fw-bold">Equipamento</label>
                 <select className="form-control" value={equipmentId} onChange={e => setEquipmentId(Number(e.target.value))} required disabled={!clientId}>
                   <option value="">Selecione um equipamento...</option>
                   {clientEquipments.map(eq => (
@@ -417,7 +493,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label>Técnico(s) Responsável(eis)</label>
+                <label className="text-secondary fw-bold">Técnico(s) Responsável(eis)</label>
                 <div className="technician-checkbox-group p-2 border rounded">
                   <div className="row">
                     {allTechnicians.map(t => (
@@ -442,7 +518,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label>Tipo de Serviço</label>
+                <label className="text-secondary fw-bold">Tipo de Serviço</label>
                 <div className="d-flex flex-wrap">
                   {SERVICE_TYPES_LIST.map(type => (
                     <div key={type.id} className="form-check form-check-inline">
@@ -459,31 +535,46 @@ const ReportModal: React.FC<ReportModalProps> = ({
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Data e Hora do Serviço</label>
-                <input type="datetime-local" className="form-control" value={serviceDate} onChange={e => setServiceDate(e.target.value)} required />
-              </div>
+              {/* Checkbox de Deslocação - Oculto se apenas remota estiver selecionado ou nenhum */}
+              {serviceTypes.length > 0 && !serviceTypes.every(t => t === 'remota') && (
+                <div className="form-group mb-3">
+                  <div className="form-check">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="reportIncludesTravel"
+                      checked={includesTravel}
+                      onChange={(e) => setIncludesTravel(e.target.checked)}
+                    />
+                    <label className="form-check-label" htmlFor="reportIncludesTravel">
+                      Inclui deslocação às instalações do cliente
+                    </label>
+                  </div>
+                </div>
+              )}
 
               {schedule?.timeBlocks && schedule.timeBlocks.length > 0 && (
-                <div className="alert alert-info py-1 px-2 mt-2" style={{ fontSize: '0.85rem' }}>
-                  <strong>Blocos de Horário do Agendamento:</strong>
-                  <ul className="mb-0 ps-3">
-                    {schedule.timeBlocks.map((tb, idx) => (
-                      <li key={idx}>
-                        {new Date(tb.start).toLocaleDateString('pt-PT')} das {new Date(tb.start).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} às {new Date(tb.end).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
-                      </li>
-                    ))}
-                  </ul>
+                <div className="form-group">
+                  <label className="text-secondary fw-bold mb-1">Horários do Serviço (Agendamento)</label>
+                  <div className="p-2 border rounded bg-light">
+                    <ul className="mb-0 ps-3 small text-muted">
+                      {schedule.timeBlocks.map((tb, idx) => (
+                        <li key={idx}>
+                          {new Date(tb.start).toLocaleDateString('pt-PT')} das {new Date(tb.start).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} às {new Date(tb.end).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 </div>
               )}
 
               <div className="form-group">
-                <label>Horas Trabalhadas</label>
+                <label className="text-secondary fw-bold">Horas Trabalhadas</label>
                 <input type="number" className="form-control" value={hours} onChange={e => setHours(Number(e.target.value))} required min="0" step="1" />
               </div>
 
               <div className="form-group">
-                <label>Descrição da Avaria</label>
+                <label className="text-secondary fw-bold">Descrição da Avaria</label>
                 <textarea
                   ref={damageRef}
                   className="form-control"
@@ -495,7 +586,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label>Descrição da Intervenção</label>
+                <label className="text-secondary fw-bold">Descrição da Intervenção</label>
                 <textarea
                   ref={descriptionRef}
                   className="form-control"
@@ -508,7 +599,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
               </div>
 
               <div className="form-group p-2 bg-light border rounded">
-                <label className="text-primary font-weight-bold">Notas Internas (Não visível ao cliente)</label>
+                <label className="text-secondary fw-bold">Notas Internas (Não visível ao cliente)</label>
                 <textarea
                   ref={internalNotesRef}
                   className="form-control"
@@ -522,14 +613,16 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
               <div className="form-group mt-3">
                 <div className="d-flex justify-content-between align-items-center mb-2">
-                  <label className="mb-0">Peças Utilizadas</label>
+                  <label className="mb-0 text-secondary fw-bold">Peças Utilizadas</label>
                 </div>
                 <table className="table table-bordered">
-                  <thead>
-                    <tr>
-                      <th style={{ width: '75px' }}>Qt</th>
-                      <th style={{ width: '160px' }}>Referência</th>
-                      <th>Designação</th>
+                  <thead className="table-light">
+                    <tr className="align-middle">
+                      <th style={{ width: '75px' }} className="small">Qt</th>
+                      <th style={{ width: '160px' }} className="small">Referência</th>
+                      <th className="small">Designação</th>
+                      <th style={{ width: '80px' }} className="text-center small">Aplicada</th>
+                      <th style={{ width: '120px' }} className="small">Origem</th>
                       <th style={{ width: '50px' }}></th>
                     </tr>
                   </thead>
@@ -563,6 +656,28 @@ const ReportModal: React.FC<ReportModalProps> = ({
                             onChange={e => handlePartChange(index, 'designation', e.target.value)}
                             disabled={part.isDesignationLocked}
                           />
+                        </td>
+                        <td className="text-center align-middle">
+                          <div className="d-flex justify-content-center">
+                            <input
+                              type="checkbox"
+                              className="form-check-input mt-0"
+                              checked={part.isApplied !== false}
+                              onChange={e => handlePartChange(index, 'isApplied', e.target.checked)}
+                            />
+                          </div>
+                        </td>
+                        <td>
+                          <select
+                            className="form-select form-select-sm"
+                            value={part.stockType || 'general'}
+                            onChange={e => handlePartChange(index, 'stockType', e.target.value)}
+                          >
+                            <option value="general">Geral</option>
+                            <option value="contract">Contrato</option>
+                            <option value="client">Cliente</option>
+                            <option value="warranty">Garantia</option>
+                          </select>
                         </td>
                         <td className="text-center align-middle">
                           <button
@@ -606,6 +721,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
                   </div>
                 </div>
               </div>
+
+
 
               <div className="form-group mt-4">
                 <SignaturePad

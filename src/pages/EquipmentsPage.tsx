@@ -58,7 +58,8 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
       })
       .catch(async (error: any) => {
         console.error("Erro ao adicionar equipamento:", error);
-        await alert("Erro ao adicionar equipamento: " + (error.response?.data?.error || error.message));
+        const errorMsg = error.response?.data?.error || "Erro ao adicionar equipamento.";
+        await alert(errorMsg);
       })
       .finally(() => {
         setIsSubmitting(false);
@@ -357,7 +358,8 @@ const EquipmentsPage: React.FC = () => {
       })
       .catch(async (error: any) => {
         console.error("Erro ao atualizar equipamento:", error);
-        await alert("Erro ao atualizar equipamento.");
+        const errorMsg = error.response?.data?.error || "Erro ao atualizar equipamento.";
+        await alert(errorMsg);
         // Propagate error
         throw error;
       });

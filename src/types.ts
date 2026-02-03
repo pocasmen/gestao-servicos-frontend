@@ -19,6 +19,7 @@ export interface ScheduleEvent {
   clientName?: string;
   equipmentInfo?: string;
   timeBlocks?: TimeBlock[];
+  includes_travel?: boolean; // Indica se o serviço inclui deslocação
 }
 
 export interface TimeBlock {
@@ -126,13 +127,7 @@ export interface Technician {
 
 
   color: string;
-
-
-
-
-
-
-
+  signature?: string;
 }
 
 
@@ -233,31 +228,16 @@ export interface Ticket {
 
 
 export interface Part {
-
-
-
-
-
-
-
   id?: number;
-
-
-
-
-
-
-
   reference: string;
-
-
-
   designation: string;
-
   is_composed?: boolean;
-
-
-
+  stock_quantity?: number;
+  reserved_quantity?: number;
+  ordered_quantity?: number;
+  stock_quantity_contract?: number;
+  reserved_quantity_contract?: number;
+  ordered_quantity_contract?: number;
 }
 
 
@@ -267,53 +247,17 @@ export interface Part {
 
 
 export interface PartItem {
-
-
-
-
-
-
-
   id?: number;
-
-
-
-
-
-
-
   quantity: number;
-
-
-
-
-
-
-
   reference: string;
-
-
-
-
-
-
-
   designation: string;
-
-
-
-
-
-
-
   isDesignationLocked?: boolean;
-
-
-
-
-
-
-
+  stockType?: 'general' | 'contract' | 'client' | 'warranty';
+  isApplied?: boolean;
+  stock_quantity?: number;
+  reserved_quantity?: number;
+  stock_quantity_contract?: number;
+  reserved_quantity_contract?: number;
 }
 
 
@@ -338,6 +282,7 @@ export interface Report {
   internalNotes?: string;
   signature?: string; // Campo para armazenar a assinatura em Base64 ou URL
   technician_signature?: string; // Assinatura do técnico no momento do relatório
+  includes_travel?: boolean; // Indica se o serviço incluiu deslocação
   // Campos preenchidos por JOINs para a visualização do relatório
   clientName?: string;
   clientAddress?: string;
