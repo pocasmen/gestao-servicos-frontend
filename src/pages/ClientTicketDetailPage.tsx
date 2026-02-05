@@ -8,6 +8,7 @@ import { pt } from 'date-fns/locale';
 import './ClientTicketDetailPage.css'; // Para estilos personalizados
 import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
+import { UserRole, TicketStatus } from '../constants/enums';
 
 // New Attachment Interface
 interface Attachment {
@@ -327,7 +328,7 @@ const ClientTicketDetailPage: React.FC = () => {
       const displayTs = isFinite(dateMs) ? format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }) : '';
       const authorName = isClient ? clientName : 'Gestor';
       const avatarText = authorName.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2);
-      return { isClient, authorName, avatarText, content, dateMs, displayTs, role: 'client', authorId: ticket?.created_by_user_id };
+      return { isClient, authorName, avatarText, content, dateMs, displayTs, role: UserRole.CLIENT, authorId: ticket?.created_by_user_id };
     });
 
     const techMsgs = (ticket?.responses || []).map(r => {
@@ -338,8 +339,8 @@ const ClientTicketDetailPage: React.FC = () => {
       const authorName = r.authorName || 'Técnico';
       const avatarText = authorName.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2);
       const isUnread = !!(r as any).isNew;
-      const isClient = r.role === 'client' || r.role === 'pending_client';
-      return { isClient, authorName, avatarText, content: r.message, dateMs, displayTs: format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }), isUnread, role: r.role || 'gestor', authorId: r.user_id || r.technician_id };
+      const isClient = r.role === UserRole.CLIENT || r.role === UserRole.PENDING_CLIENT;
+      return { isClient, authorName, avatarText, content: r.message, dateMs, displayTs: format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }), isUnread, role: r.role || UserRole.ADMIN, authorId: r.user_id || r.technician_id };
     });
 
     const result = [...clientMsgs, ...techMsgs].sort((a, b) => (a.dateMs || 0) - (b.dateMs || 0));
@@ -499,7 +500,7 @@ const ClientTicketDetailPage: React.FC = () => {
     return <div className="container mt-4">Ticket não encontrado.</div>;
   }
 
-  const isTicketClosed = ticket.status === 'closed';
+  const isTicketClosed = ticket.status === TicketStatus.CLOSED;
 
   return (
     <div className="client-ticket-detail-page container-fluid mt-4">

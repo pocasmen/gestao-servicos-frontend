@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { Ticket } from '../types';
+import { TicketStatus } from '../constants/enums';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const TicketsPage: React.FC = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [activeTab, setActiveTab] = useState('open');
+  const [activeTab, setActiveTab] = useState<TicketStatus>(TicketStatus.OPEN);
   const navigate = useNavigate();
 
   const location = useLocation();
@@ -82,7 +83,7 @@ const TicketsPage: React.FC = () => {
             <td>{ticket.equipmentInfo}</td>
             <td style={{ maxWidth: '300px', whiteSpace: 'pre-wrap' }}>{ticket.faultDescription}</td>
             <td className="d-flex flex-wrap">
-              {(activeTab === 'open' || activeTab === 'acknowledged') && (
+              {(activeTab === TicketStatus.OPEN || activeTab === TicketStatus.ACKNOWLEDGED) && (
                 <button
                   className="btn btn-primary btn-sm me-2 mb-1"
                   onClick={() => handleScheduleTicket(ticket)}
@@ -90,7 +91,7 @@ const TicketsPage: React.FC = () => {
                   Agendar
                 </button>
               )}
-              {activeTab === 'scheduled' && (
+              {activeTab === TicketStatus.SCHEDULED && (
                 ticket.scheduleId ? (
                   <button
                     className="btn btn-secondary btn-sm me-2 mb-1"
@@ -107,7 +108,7 @@ const TicketsPage: React.FC = () => {
                   </button>
                 )
               )}
-              {activeTab === 'scheduled' && (
+              {activeTab === TicketStatus.SCHEDULED && (
                 <button
                   className="btn btn-outline-info btn-sm me-2 mb-1"
                   onClick={() => navigate(`/tickets/${ticket.id}`)}
@@ -115,7 +116,7 @@ const TicketsPage: React.FC = () => {
                   Detalhes
                 </button>
               )}
-              {activeTab === 'closed' && (
+              {activeTab === TicketStatus.CLOSED && (
                 <button
                   className="btn btn-info btn-sm me-2 mb-1"
                   onClick={() => handleCreateReportFromTicket(ticket)}
@@ -123,7 +124,7 @@ const TicketsPage: React.FC = () => {
                   Relatório
                 </button>
               )}
-              {activeTab !== 'closed' && activeTab !== 'deleted' && (
+              {activeTab !== TicketStatus.CLOSED && activeTab !== TicketStatus.DELETED && (
                 <button
                   className="btn btn-danger btn-sm mb-1"
                   onClick={() => handleDeleteTicket(ticket.id)}
@@ -144,16 +145,16 @@ const TicketsPage: React.FC = () => {
 
       <ul className="nav nav-tabs mb-3">
         <li className="nav-item">
-          <button className={`nav-link ${activeTab === 'open' ? 'active' : ''}`} onClick={() => setActiveTab('open')}>Abertos</button>
+          <button className={`nav-link ${activeTab === TicketStatus.OPEN ? 'active' : ''}`} onClick={() => setActiveTab(TicketStatus.OPEN)}>Abertos</button>
         </li>
         <li className="nav-item">
-          <button className={`nav-link ${activeTab === 'scheduled' ? 'active' : ''}`} onClick={() => setActiveTab('scheduled')}>Agendados</button>
+          <button className={`nav-link ${activeTab === TicketStatus.SCHEDULED ? 'active' : ''}`} onClick={() => setActiveTab(TicketStatus.SCHEDULED)}>Agendados</button>
         </li>
         <li className="nav-item">
-          <button className={`nav-link ${activeTab === 'closed' ? 'active' : ''}`} onClick={() => setActiveTab('closed')}>Fechados</button>
+          <button className={`nav-link ${activeTab === TicketStatus.CLOSED ? 'active' : ''}`} onClick={() => setActiveTab(TicketStatus.CLOSED)}>Fechados</button>
         </li>
         <li className="nav-item">
-          <button className={`nav-link ${activeTab === 'deleted' ? 'active' : ''}`} onClick={() => setActiveTab('deleted')}>Eliminados</button>
+          <button className={`nav-link ${activeTab === TicketStatus.DELETED ? 'active' : ''}`} onClick={() => setActiveTab(TicketStatus.DELETED)}>Eliminados</button>
         </li>
       </ul>
 

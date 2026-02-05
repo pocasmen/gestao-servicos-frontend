@@ -2,12 +2,13 @@ import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../apiClient';
 import { AuthContext } from '../contexts/AuthContext';
 import SignaturePad from '../components/SignaturePad';
+import { UserRole } from '../constants/enums';
 
 // Define interface locally to avoid dependency on TechniciansPage (which is admin-facing)
 interface UserProfile {
     id: string;
     email: string;
-    role: string;
+    role: UserRole;
     first_name: string;
     last_name: string;
     color?: string;

@@ -3,6 +3,7 @@ import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 import apiClient from '../apiClient';
 import { AuthContext } from '../contexts/AuthContext';
 import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician } from '../types';
+import { StockType, UserRole } from '../constants/enums';
 import SignaturePad from './SignaturePad';
 import { Copy, Clipboard, Trash2, Printer } from 'lucide-react';
 
@@ -90,7 +91,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
   useEffect(() => {
     apiClient.get('/api/clients').then(res => setAllClients(res.data));
-    apiClient.get('/api/technicians').then(res => setAllTechnicians((res.data || []).filter((t: any) => t.role !== 'office_staff')));
+    apiClient.get('/api/technicians').then(res => setAllTechnicians((res.data || []).filter((t: any) => t.role !== UserRole.OFFICE_STAFF)));
   }, []);
 
   useEffect(() => {
@@ -392,10 +393,10 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
     // Verificação de stock negativo (Aviso)
     const negativeStockParts = partsToSubmit.filter(p => {
-      if (p.stockType === 'client' || p.stockType === 'warranty') return false;
+      if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
 
-      const type = p.stockType || 'general';
-      if (type === 'general') {
+      const type = p.stockType || StockType.GENERAL;
+      if (type === StockType.GENERAL) {
         const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0);
         return available < p.quantity;
       } else {
@@ -670,13 +671,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
                         <td>
                           <select
                             className="form-select form-select-sm"
-                            value={part.stockType || 'general'}
+                            value={part.stockType || StockType.GENERAL}
                             onChange={e => handlePartChange(index, 'stockType', e.target.value)}
                           >
-                            <option value="general">Geral</option>
-                            <option value="contract">Contrato</option>
-                            <option value="client">Cliente</option>
-                            <option value="warranty">Garantia</option>
+                            <option value={StockType.GENERAL}>Geral</option>
+                            <option value={StockType.CONTRACT}>Contrato</option>
+                            <option value={StockType.CLIENT}>Cliente</option>
+                            <option value={StockType.WARRANTY}>Garantia</option>
                           </select>
                         </td>
                         <td className="text-center align-middle">

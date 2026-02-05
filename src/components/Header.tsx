@@ -4,19 +4,21 @@ import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
+import { UserRole } from '../constants/enums';
+
 const isInternalUser = (user: SupabaseUser | null) => {
   const role = user?.user_metadata?.role;
-  return role === 'technician' || role === 'office_staff' || role === 'admin' || role === 'super_admin';
+  return role === UserRole.TECHNICIAN || role === UserRole.OFFICE_STAFF || role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
 };
 
 const isUserAdmin = (user: SupabaseUser | null) => {
   const role = user?.user_metadata?.role;
-  return role === 'admin' || role === 'super_admin';
+  return role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
 }
 
 const isSystemAdmin = (user: SupabaseUser | null) => {
   const role = user?.user_metadata?.role;
-  return role === 'super_admin';
+  return role === UserRole.SUPER_ADMIN;
 }
 
 const Header: React.FC = () => {

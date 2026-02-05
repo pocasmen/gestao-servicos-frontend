@@ -1,4 +1,5 @@
 import { Event as BigCalendarEvent } from 'react-big-calendar';
+import { UserRole, TicketStatus, ScheduleStatus, StockType } from './constants/enums';
 
 export interface ScheduleEvent {
   id: number | string;
@@ -14,7 +15,7 @@ export interface ScheduleEvent {
   ticketId?: number;
   internalNotes?: string;
   serviceType?: string;
-  acknowledgementState?: 'pending' | 'accepted' | 'rejected';
+  acknowledgementState?: ScheduleStatus.PENDING | ScheduleStatus.ACCEPTED | ScheduleStatus.REJECTED;
   parts?: PartItem[]; // Adicionado
   clientName?: string;
   equipmentInfo?: string;
@@ -196,7 +197,7 @@ export interface Ticket {
   equipmentId: number;
   title: string;
   faultDescription: string;
-  status: 'open' | 'scheduled' | 'closed' | 'deleted';
+  status: TicketStatus;
   scheduleId?: number;
   createdAt: string;
   updatedAt: string;
@@ -252,7 +253,7 @@ export interface PartItem {
   reference: string;
   designation: string;
   isDesignationLocked?: boolean;
-  stockType?: 'general' | 'contract' | 'client' | 'warranty';
+  stockType?: StockType;
   isApplied?: boolean;
   stock_quantity?: number;
   reserved_quantity?: number;

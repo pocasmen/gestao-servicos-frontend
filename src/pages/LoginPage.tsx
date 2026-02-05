@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase'; // Importar o cliente Supabase
 import { AuthContext } from '../contexts/AuthContext';
+import { UserRole } from '../constants/enums';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -33,9 +34,9 @@ const LoginPage: React.FC = () => {
 
         // Redirecionar com base no role guardado nos metadados do utilizador no Supabase
         const userRole = data.user.user_metadata.role;
-        if (userRole === 'technician') {
+        if (userRole === UserRole.TECHNICIAN || userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN || userRole === UserRole.OFFICE_STAFF) {
           navigate('/calendar');
-        } else if (userRole === 'client') {
+        } else if (userRole === UserRole.CLIENT) {
           navigate('/portal');
         } else {
           navigate('/'); // Fallback

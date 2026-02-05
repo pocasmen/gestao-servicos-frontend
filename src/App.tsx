@@ -34,10 +34,8 @@ const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const ClientProfilePage = React.lazy(() => import('./pages/ClientProfilePage'));
 const ClientHistoryPage = React.lazy(() => import('./pages/ClientHistoryPage'));
 
-type UserRole = 'client' | 'technician' | 'office_staff' | 'admin' | 'super_admin';
-
 import { AuthContext } from './contexts/AuthContext';
-import type { AuthContextType } from './contexts/AuthContext';
+import { UserRole } from './constants/enums';
 
 // Helper para verificar a role do utilizador
 const userHasRole = (user: SupabaseUser | null, role: UserRole) => {
@@ -46,11 +44,11 @@ const userHasRole = (user: SupabaseUser | null, role: UserRole) => {
 
 const isInternalUser = (user: SupabaseUser | null) => {
   const role = user?.user_metadata?.role;
-  return role === 'technician' || role === 'office_staff' || role === 'admin' || role === 'super_admin';
+  return role === UserRole.TECHNICIAN || role === UserRole.OFFICE_STAFF || role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN;
 }
 
 const isPendingClient = (user: SupabaseUser | null) => {
-  return user?.user_metadata?.role === 'pending_client';
+  return user?.user_metadata?.role === UserRole.PENDING_CLIENT;
 }
 
 const mustSetPassword = (user: SupabaseUser | null) => {
@@ -76,11 +74,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectP
     return <Navigate to={redirectPath} replace state={{ from: location }} />;
   }
 
-  const userRole = user.user_metadata.role as UserRole;
+  const userRole = user.user_metadata.role;
   if (!allowedRoles.includes(userRole)) {
     if (isInternalUser(user)) {
       return <Navigate to="/dashboard" replace />;
-    } else if (userHasRole(user, 'client')) {
+    } else if (userHasRole(user, UserRole.CLIENT)) {
       return <Navigate to="/portal" replace />;
     }
     return <Navigate to="/unauthorized" replace />;
@@ -126,7 +124,7 @@ const AppRoutes: React.FC = () => {
     if (isInternalUser(user)) {
       return <Header />;
     }
-    if (userHasRole(user, 'client')) {
+    if (userHasRole(user, UserRole.CLIENT)) {
       return <ClientPortalHeader />;
     }
     return null;
@@ -164,30 +162,30 @@ const AppRoutes: React.FC = () => {
             />
 
             {/* Rotas de Admin/Técnico */}
-            <Route path="/dashboard" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><DashboardPage /></ProtectedRoute>} />
-            <Route path="/calendar" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><CalendarPage /></ProtectedRoute>} />
-            <Route path="/clients" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ClientsPage /></ProtectedRoute>} />
-            <Route path="/equipments" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><EquipmentsPage /></ProtectedRoute>} />
-            <Route path="/equipments/:id/history" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><EquipmentHistoryPage /></ProtectedRoute>} />
-            <Route path="/inventory" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><InventoryPage /></ProtectedRoute>} />
-            <Route path="/technicians" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']}><TechniciansPage /></ProtectedRoute>} />
-            <Route path="/admin/pending-users" element={<ProtectedRoute allowedRoles={['admin', 'super_admin']}><PendingUsersPage /></ProtectedRoute>} />
-            <Route path="/reports" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ReportsPage /></ProtectedRoute>} />
-            <Route path="/report/print/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin', 'client']}><ReportPrintPage /></ProtectedRoute>} />
-            <Route path="/tickets" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><TicketsPage /></ProtectedRoute>} />
-            <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><TicketDetailPage /></ProtectedRoute>} />
-            <Route path="/settings" element={<ProtectedRoute allowedRoles={['super_admin']}><SettingsPage /></ProtectedRoute>} /> {/* Apenas SuperAdmin pode mexer nas configs */}
-            <Route path="/profile" element={<ProtectedRoute allowedRoles={['technician', 'office_staff', 'admin', 'super_admin']}><ProfilePage /></ProtectedRoute>} />
+            <Route path="/dashboard" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><DashboardPage /></ProtectedRoute>} />
+            <Route path="/calendar" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><CalendarPage /></ProtectedRoute>} />
+            <Route path="/clients" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><ClientsPage /></ProtectedRoute>} />
+            <Route path="/equipments" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><EquipmentsPage /></ProtectedRoute>} />
+            <Route path="/equipments/:id/history" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><EquipmentHistoryPage /></ProtectedRoute>} />
+            <Route path="/inventory" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><InventoryPage /></ProtectedRoute>} />
+            <Route path="/technicians" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TechniciansPage /></ProtectedRoute>} />
+            <Route path="/admin/pending-users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><PendingUsersPage /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><ReportsPage /></ProtectedRoute>} />
+            <Route path="/report/print/:id" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.CLIENT]}><ReportPrintPage /></ProtectedRoute>} />
+            <Route path="/tickets" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TicketsPage /></ProtectedRoute>} />
+            <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TicketDetailPage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><SettingsPage /></ProtectedRoute>} /> {/* Apenas SuperAdmin pode mexer nas configs */}
+            <Route path="/profile" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><ProfilePage /></ProtectedRoute>} />
 
             {/* Rotas de Cliente (Flattened) */}
             <Route path="/portal" element={<Navigate to="/portal/tickets" replace />} />
-            <Route path="/portal/tickets" element={<ProtectedRoute allowedRoles={['client']}><ClientTicketsPage /></ProtectedRoute>} />
-            <Route path="/portal/tickets/:id" element={<ProtectedRoute allowedRoles={['client']}><ClientTicketDetailPage /></ProtectedRoute>} />
-            <Route path="/portal/schedules" element={<ProtectedRoute allowedRoles={['client']}><ClientSchedulesListPage /></ProtectedRoute>} />
-            <Route path="/portal/history" element={<ProtectedRoute allowedRoles={['client']}><ClientHistoryPage /></ProtectedRoute>} />
+            <Route path="/portal/tickets" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientTicketsPage /></ProtectedRoute>} />
+            <Route path="/portal/tickets/:id" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientTicketDetailPage /></ProtectedRoute>} />
+            <Route path="/portal/schedules" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientSchedulesListPage /></ProtectedRoute>} />
+            <Route path="/portal/history" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientHistoryPage /></ProtectedRoute>} />
             {/* Adicionada rota para o histórico de equipamento do cliente */}
-            <Route path="/portal/equipments/:id/history" element={<ProtectedRoute allowedRoles={['client']}><EquipmentHistoryPage /></ProtectedRoute>} />
-            <Route path="/portal/profile" element={<ProtectedRoute allowedRoles={['client']}><ClientProfilePage /></ProtectedRoute>} />
+            <Route path="/portal/equipments/:id/history" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><EquipmentHistoryPage /></ProtectedRoute>} />
+            <Route path="/portal/profile" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientProfilePage /></ProtectedRoute>} />
 
           </Routes>
         </React.Suspense>

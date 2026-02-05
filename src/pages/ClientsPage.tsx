@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { SmartInput } from '../components/SmartInput';
+import { UserRole } from '../constants/enums';
 
 // Interface para Cliente
 interface Client {
@@ -332,7 +333,7 @@ const ClientsPage: React.FC = () => {
     apiClient.post('/admin/invite-user', {
       client_id: selectedClientForInvite.id,
       email: inviteEmail,
-      role: 'client'
+      role: UserRole.CLIENT
     })
       .then(async () => {
         await alert(`Convite enviado com sucesso para ${inviteEmail}!`, 'Sucesso');

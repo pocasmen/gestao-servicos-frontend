@@ -2,6 +2,7 @@ import React, { useState, useContext } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
+import { UserRole } from '../constants/enums';
 
 const CompleteRegistrationPage: React.FC = () => {
     const [password, setPassword] = useState('');
@@ -17,7 +18,7 @@ const CompleteRegistrationPage: React.FC = () => {
     }
 
     // If user is here but not pending and doesn't need to set password, redirect them
-    const isPending = user.user_metadata.role === 'pending_client';
+    const isPending = user.user_metadata.role === UserRole.PENDING_CLIENT;
     const mustSet = user.user_metadata.must_set_password === true;
 
     if (!isPending && !mustSet) {

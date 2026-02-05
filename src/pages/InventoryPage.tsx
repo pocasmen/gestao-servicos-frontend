@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import apiClient from '../apiClient';
 import { ScheduleEvent, Report } from '../types';
+import { StockType } from '../constants/enums';
 import ScheduleDetailModal from '../components/ScheduleDetailModal';
 import ReportModal from '../components/ReportModal';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -58,7 +59,7 @@ const InventoryPage: React.FC = () => {
   const [stockChange, setStockChange] = useState<number>(0);
   const [orderChange, setOrderChange] = useState<number>(0);
   const [receiveQuantity, setReceiveQuantity] = useState<number>(0);
-  const [targetStock, setTargetStock] = useState<'general' | 'contract'>('general');
+  const [targetStock, setTargetStock] = useState<StockType>(StockType.GENERAL);
 
   // States for Composed Parts
   const [isComposed, setIsComposed] = useState(false);
@@ -93,7 +94,7 @@ const InventoryPage: React.FC = () => {
     setStockChange(0);
     setOrderChange(0);
     setReceiveQuantity(0);
-    setTargetStock('general');
+    setTargetStock(StockType.GENERAL);
   };
 
   const closeModal = () => {
@@ -765,12 +766,12 @@ const InventoryPage: React.FC = () => {
                 <button type="button" className="btn-close" onClick={closeModal}></button>
               </div>
               <div className="modal-body">
-                <p>Stock Atual: {targetStock === 'contract' ? selectedPart.stock_quantity_contract : selectedPart.stock_quantity}</p>
+                <p>Stock Atual: {targetStock === StockType.CONTRACT ? selectedPart.stock_quantity_contract : selectedPart.stock_quantity}</p>
                 <div className="mb-3">
                   <label className="form-label d-block">Canal de Inventário</label>
                   <div className="btn-group w-100">
-                    <button type="button" className={`btn ${targetStock === 'general' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock('general')}>Geral</button>
-                    <button type="button" className={`btn ${targetStock === 'contract' ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock('contract')}>Contrato</button>
+                    <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>Geral</button>
+                    <button type="button" className={`btn ${targetStock === StockType.CONTRACT ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.CONTRACT)}>Contrato</button>
                   </div>
                 </div>
                 <div className="mb-3">
@@ -805,12 +806,12 @@ const InventoryPage: React.FC = () => {
                 <button type="button" className="btn-close" onClick={closeModal}></button>
               </div>
               <div className="modal-body">
-                <p>Encomenda Atual (Pendente): {targetStock === 'contract' ? selectedPart.ordered_quantity_contract : selectedPart.ordered_quantity}</p>
+                <p>Encomenda Atual (Pendente): {targetStock === StockType.CONTRACT ? selectedPart.ordered_quantity_contract : selectedPart.ordered_quantity}</p>
                 <div className="mb-3">
                   <label className="form-label d-block">Canal de Inventário</label>
                   <div className="btn-group w-100">
-                    <button type="button" className={`btn ${targetStock === 'general' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock('general')}>Geral</button>
-                    <button type="button" className={`btn ${targetStock === 'contract' ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock('contract')}>Contrato</button>
+                    <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>Geral</button>
+                    <button type="button" className={`btn ${targetStock === StockType.CONTRACT ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.CONTRACT)}>Contrato</button>
                   </div>
                 </div>
                 <div className="mb-3">
@@ -850,8 +851,8 @@ const InventoryPage: React.FC = () => {
                 <div className="mb-3">
                   <label className="form-label d-block">Receber em:</label>
                   <div className="btn-group w-100">
-                    <button type="button" className={`btn ${targetStock === 'general' ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock('general')}>Stock Geral</button>
-                    <button type="button" className={`btn ${targetStock === 'contract' ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock('contract')}>Stock Contrato</button>
+                    <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>Stock Geral</button>
+                    <button type="button" className={`btn ${targetStock === StockType.CONTRACT ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.CONTRACT)}>Stock Contrato</button>
                   </div>
                 </div>
                 <div className="mb-3">
@@ -897,7 +898,7 @@ const InventoryPage: React.FC = () => {
                     {/* General Stock Reservations */}
                     <div className="mb-4">
                       <h6 className="fw-bold text-primary border-bottom pb-2 mb-3">Reservas de Stock Geral</h6>
-                      {reservations.filter((r: any) => !r.stockType || r.stockType === 'general').length > 0 ? (
+                      {reservations.filter((r: any) => !r.stockType || r.stockType === StockType.GENERAL).length > 0 ? (
                         <div className="table-responsive">
                           <table className="table table-sm table-hover bg-white mb-0">
                             <thead className="table-light">
@@ -909,7 +910,7 @@ const InventoryPage: React.FC = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {reservations.filter((r: any) => !r.stockType || r.stockType === 'general').map((res, index) => (
+                              {reservations.filter((r: any) => !r.stockType || r.stockType === StockType.GENERAL).map((res, index) => (
                                 <tr key={index}>
                                   <td>
                                     <button
@@ -936,7 +937,7 @@ const InventoryPage: React.FC = () => {
                     {/* Contract Stock Reservations */}
                     <div>
                       <h6 className="fw-bold text-info border-bottom pb-2 mb-3">Reservas de Stock Contrato</h6>
-                      {reservations.filter((r: any) => r.stockType === 'contract').length > 0 ? (
+                      {reservations.filter((r: any) => r.stockType === StockType.CONTRACT).length > 0 ? (
                         <div className="table-responsive">
                           <table className="table table-sm table-hover bg-white mb-0">
                             <thead className="table-light">
@@ -948,7 +949,7 @@ const InventoryPage: React.FC = () => {
                               </tr>
                             </thead>
                             <tbody>
-                              {reservations.filter((r: any) => r.stockType === 'contract').map((res, index) => (
+                              {reservations.filter((r: any) => r.stockType === StockType.CONTRACT).map((res, index) => (
                                 <tr key={index}>
                                   <td>
                                     <button

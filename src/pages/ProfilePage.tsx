@@ -4,6 +4,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { AppUser } from './TechniciansPage';
 import SignaturePad from '../components/SignaturePad';
 import GoogleColorPicker from '../components/GoogleColorPicker';
+import { UserRole } from '../constants/enums';
 
 const ProfilePage: React.FC = () => {
     const { user: authUser } = useContext(AuthContext);
@@ -124,9 +125,9 @@ const ProfilePage: React.FC = () => {
                             <div className="col-md-6 mb-3">
                                 <label className="form-label">Função</label>
                                 <input type="text" className="form-control bg-light" value={
-                                    user.role === 'super_admin' ? 'Super Administrador' :
-                                        user.role === 'admin' ? 'Administrador' :
-                                            user.role === 'office_staff' ? 'Administrativo' :
+                                    user.role === UserRole.SUPER_ADMIN ? 'Super Administrador' :
+                                        user.role === UserRole.ADMIN ? 'Administrador' :
+                                            user.role === UserRole.OFFICE_STAFF ? 'Administrativo' :
                                                 'Técnico'
                                 } disabled readOnly />
                             </div>

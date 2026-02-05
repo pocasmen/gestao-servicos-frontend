@@ -4,6 +4,7 @@ import { pt } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
 import apiClient, { searchPartByReference } from '../apiClient';
 import { ScheduleEvent, Client, Equipment, Technician, PartItem, TimeBlock } from '../types';
+import { StockType, UserRole } from '../constants/enums';
 import { SERVICE_TYPES_LIST } from '../constants';
 import { Copy, Clipboard, Trash2 } from 'lucide-react';
 import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
@@ -79,7 +80,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
   useEffect(() => {
     apiClient.get('/api/clients').then(res => setClients(res.data));
-    apiClient.get('/api/technicians').then(res => setTechnicians((res.data || []).filter((t: any) => t.role === 'technician' || t.role === 'admin' || t.role === 'super_admin')));
+    apiClient.get('/api/technicians').then(res => setTechnicians((res.data || []).filter((t: any) => t.role === UserRole.TECHNICIAN || t.role === UserRole.ADMIN || t.role === UserRole.SUPER_ADMIN)));
   }, []);
 
   useEffect(() => {
@@ -405,9 +406,9 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     // Validação de stock insuficiente
     const partsToValidate = parts.filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '');
     const negativeStockParts = partsToValidate.filter(p => {
-      if (p.stockType === 'client' || p.stockType === 'warranty') return false;
-      const type = p.stockType || 'general';
-      if (type === 'general') {
+      if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
+      const type = p.stockType || StockType.GENERAL;
+      if (type === StockType.GENERAL) {
         const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0);
         return available < p.quantity;
       } else {
@@ -448,7 +449,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           reference: p.reference,
           designation: p.designation,
           quantity: p.quantity,
-          stockType: p.stockType || 'general',
+          stockType: p.stockType || StockType.GENERAL,
           isApplied: p.isApplied === false ? false : true
         })),
     };
@@ -811,14 +812,14 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                             <td>
                               <select
                                 className="form-select form-select-sm"
-                                value={part.stockType || 'general'}
+                                value={part.stockType || StockType.GENERAL}
                                 onChange={e => handlePartChange(index, 'stockType', e.target.value)}
                                 disabled={isPastOrCompleted}
                               >
-                                <option value="general">Geral</option>
-                                <option value="contract">Contrato</option>
-                                <option value="client">Cliente</option>
-                                <option value="warranty">Garantia</option>
+                                <option value={StockType.GENERAL}>Geral</option>
+                                <option value={StockType.CONTRACT}>Contrato</option>
+                                <option value={StockType.CLIENT}>Cliente</option>
+                                <option value={StockType.WARRANTY}>Garantia</option>
                               </select>
                             </td>
                             <td className="text-center align-middle">

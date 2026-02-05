@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { UserRole } from '../constants/enums';
 
 // A interface para um utilizador pendente, vindo do auth
 interface PendingUser {

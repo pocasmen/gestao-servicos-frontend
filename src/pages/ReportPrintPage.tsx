@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Calendar, Clock, User, Wrench, Package, FileText, CheckCircle2, FileDown, Monitor } from 'lucide-react';
 import apiClient from '../apiClient';
 import { PartItem } from '../types';
+import logo from '../logo.png';
 import './ReportPrintPage.css';
 import { SERVICE_TYPE_LABELS } from '../constants';
 
@@ -123,11 +124,11 @@ const ReportPrintPage: React.FC = () => {
                     <div className="header-content">
                         <div className="header-left">
                             <div className="header-icon">
-                                <Wrench className="wrench-icon" />
+                                <img src={logo} alt="Micro Átomo" className="header-logo" />
                             </div>
                             <div>
                                 <h1 className="header-title">Relatório de Serviço</h1>
-                                <p className="header-subtitle">Micro Átomo Tecnologia</p>
+                                <p className="header-subtitle">Micro Átomo Tecnologia Unipessoal Lda</p>
                             </div>
                         </div>
                         <div className="header-right">
@@ -335,33 +336,49 @@ const ReportPrintPage: React.FC = () => {
                 {/* Footer com Assinaturas */}
                 <div className="footer-section">
                     <div className="signatures-container">
-                        <div className="signature-block" style={{ minWidth: '200px', flex: '1' }}>
+                        <div className="signature-block">
                             <div className="signature-label">Técnicos Responsáveis</div>
-                            <div className="signature-line" style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                            <div className="signature-line">
                                 {report.technicians && report.technicians.length > 0 ? (
                                     report.technicians.map((tech: any, idx: number) => (
-                                        <div key={idx} style={{ textAlign: 'center', minWidth: '80px' }}>
-                                            {tech.signature ? (
-                                                <img src={tech.signature} alt={`Assinatura ${tech.name}`} className="signature-image" style={{ maxHeight: '50px', display: 'block', margin: '0 auto' }} />
-                                            ) : (
-                                                <div className="signature-placeholder" style={{ height: '50px', width: '50px', border: '1px dashed #ccc', margin: '0 auto' }}></div>
-                                            )}
-                                            <div className="signature-name" style={{ fontSize: '0.7rem', marginTop: '4px' }}>{tech.name}</div>
+                                        <div key={idx} className="signature-item">
+                                            <div className="signature-area">
+                                                {tech.signature ? (
+                                                    <img src={tech.signature} alt={`Assinatura ${tech.name}`} className="signature-image" />
+                                                ) : (
+                                                    <div className="signature-placeholder"></div>
+                                                )}
+                                            </div>
+                                            {/*<div className="signature-name">{tech.name}</div>*/}
                                         </div>
                                     ))
                                 ) : (
-                                    report.technician_signature ? (
-                                        <img src={report.technician_signature} alt="Assinatura Técnico" className="signature-image" />
-                                    ) : (
-                                        <div className="signature-name">{report.technicianName}</div>
-                                    )
+                                    <div className="signature-item">
+                                        <div className="signature-area">
+                                            {report.technician_signature ? (
+                                                <img src={report.technician_signature} alt="Assinatura Técnico" className="signature-image" />
+                                            ) : (
+                                                <div className="signature-placeholder"></div>
+                                            )}
+                                        </div>
+                                        {/*<div className="signature-name">{report.technicianName}</div>*/}
+                                    </div>
                                 )}
                             </div>
                         </div>
                         <div className="signature-block">
                             <div className="signature-label">Assinatura do Cliente</div>
                             <div className="signature-line">
-                                {report.signature && <img src={report.signature} alt="Assinatura" className="signature-image" />}
+                                <div className="signature-item">
+                                    <div className="signature-area">
+                                        {report.signature ? (
+                                            <img src={report.signature} alt="Assinatura Cliente" className="signature-image" />
+                                        ) : (
+                                            <div className="signature-placeholder" style={{ opacity: 0 }}></div>
+                                        )}
+                                    </div>
+                                    {/*<div className="signature-name">{report.clientName}</div>*/}
+                                </div>
                             </div>
                         </div>
                     </div>

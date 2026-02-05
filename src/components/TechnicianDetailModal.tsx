@@ -3,6 +3,7 @@ import apiClient from '../apiClient';
 import { AppUser } from '../pages/TechniciansPage'; // Import the new generic interface
 import GoogleColorPicker from './GoogleColorPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { UserRole } from '../constants/enums';
 
 interface ModalProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ interface ModalProps {
   user: AppUser | null;
   onUserUpdated: () => void;
   onUserDeleted: () => void;
-  currentUserRole: string;
+  currentUserRole: UserRole;
 }
 
 // ... (interface remains)
@@ -19,7 +20,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [color, setColor] = useState('#3174ad');
-  const [role, setRole] = useState<'technician' | 'admin' | 'office_staff' | 'super_admin'>('technician');
+  const [role, setRole] = useState<UserRole>(UserRole.TECHNICIAN);
   const [telegramchatid, setTelegramchatid] = useState('');
   const [googleCalendarColorId, setGoogleCalendarColorId] = useState('9');
   const [errorMessage, setErrorMessage] = useState('');
@@ -39,7 +40,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
       setFirstName(user.first_name || '');
       setLastName(user.last_name || '');
       setColor(user.color || '#3174ad');
-      setRole(user.role || 'technician');
+      setRole(user.role || UserRole.TECHNICIAN);
       setTelegramchatid(user.telegramchatid || '');
       setGoogleCalendarColorId(user.google_calendar_color_id || '9');
       setErrorMessage('');
@@ -153,13 +154,13 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
                   <select
                     className="form-select"
                     value={role}
-                    onChange={e => setRole(e.target.value as any)}
+                    onChange={e => setRole(e.target.value as UserRole)}
                   >
-                    <option value="technician">Técnico</option>
-                    <option value="office_staff">Administrativo</option>
-                    <option value="admin">Admin</option>
-                    {currentUserRole === 'super_admin' && (
-                      <option value="super_admin">Super Admin</option>
+                    <option value={UserRole.TECHNICIAN}>Técnico</option>
+                    <option value={UserRole.OFFICE_STAFF}>Administrativo</option>
+                    <option value={UserRole.ADMIN}>Admin</option>
+                    {currentUserRole === UserRole.SUPER_ADMIN && (
+                      <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
                     )}
                   </select>
                 </div>

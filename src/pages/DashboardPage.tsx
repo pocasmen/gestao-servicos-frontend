@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import StatCard from '../components/StatCard';
 import { Link } from 'react-router-dom';
+import { TicketStatus } from '../constants/enums';
 
 interface DashboardStats {
   tickets: {
@@ -401,8 +402,8 @@ const DashboardPage: React.FC = () => {
                           </Link>
                         </td>
                         <td>
-                          <span className={`badge bg-${t.status === 'closed' ? 'success' : t.status === 'open' ? 'danger' : 'warning'}`}>
-                            {t.status === 'closed' ? 'Fechado' : t.status === 'open' ? 'Aberto' : 'Agendado'}
+                          <span className={`badge bg-${t.status === TicketStatus.CLOSED ? 'success' : t.status === TicketStatus.OPEN ? 'danger' : 'warning'}`}>
+                            {t.status === TicketStatus.CLOSED ? 'Fechado' : t.status === TicketStatus.OPEN ? 'Aberto' : 'Agendado'}
                           </span>
                         </td>
                         <td>{t.subject}</td>

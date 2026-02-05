@@ -8,6 +8,7 @@ import { pt } from 'date-fns/locale';
 import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
+import { UserRole, TicketStatus } from '../constants/enums';
 
 
 
@@ -341,13 +342,13 @@ const TicketDetailPage: React.FC = () => {
       const content = l.replace(/^\[.*?\]\s?/, '');
       const displayTs = isFinite(dateMs) ? format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }) : '';
       const authorName = isClient ? `${ticket?.userFirstName || ''} ${ticket?.userLastName || ''}`.trim() || 'Cliente' : 'Gestor';
-      return { isClient, content, dateMs, displayTs, authorName, role: 'client', authorId: ticket?.created_by_user_id };
+      return { isClient, content, dateMs, displayTs, authorName, role: UserRole.CLIENT, authorId: ticket?.created_by_user_id };
     });
 
     const techMsgs = (ticket?.responses || []).map(r => {
       const dateMs = new Date(r.created_at).getTime();
-      const role = r.role || 'gestor';
-      const isClient = role === 'client' || role === 'pending_client';
+      const role = (r.role as UserRole) || UserRole.ADMIN;
+      const isClient = role === UserRole.CLIENT || role === UserRole.PENDING_CLIENT;
       const isUnread = !!(r as any).isNew && isClient;
       return {
         isClient,
@@ -515,7 +516,7 @@ const TicketDetailPage: React.FC = () => {
     return <div className="container mt-4">Ticket não encontrado.</div>;
   }
 
-  const isTicketClosed = ticket.status === 'closed';
+  const isTicketClosed = ticket.status === TicketStatus.CLOSED;
 
   return (
     <div className="container-fluid mt-4 admin-ticket-detail-page">
@@ -633,8 +634,8 @@ const TicketDetailPage: React.FC = () => {
                       <div className="thread-meta d-flex flex-column">
                         <strong className="thread-author mb-0">{(m as any).authorName || (m.isClient ? 'Cliente' : 'Gestor')}</strong>
                         <small className="thread-role d-block mb-0">
-                          {m.role === 'client' || m.role === 'pending_client' ? <img src="/images/client-icon.png" alt="Cliente" className="me-2" style={{ width: '1.5em', height: '1.5em' }} /> : <img src="/images/technician-icon.png" alt="Técnico" className="me-2" style={{ width: '1.5em', height: '1.5em' }} />}
-                          {m.role === 'client' || m.role === 'pending_client' ? 'Cliente' : 'Técnico'}
+                          {m.role === UserRole.CLIENT || m.role === UserRole.PENDING_CLIENT ? <img src="/images/client-icon.png" alt="Cliente" className="me-2" style={{ width: '1.5em', height: '1.5em' }} /> : <img src="/images/technician-icon.png" alt="Técnico" className="me-2" style={{ width: '1.5em', height: '1.5em' }} />}
+                          {m.role === UserRole.CLIENT || m.role === UserRole.PENDING_CLIENT ? 'Cliente' : 'Técnico'}
                         </small>
                         <small className="thread-timestamp">{m.displayTs}</small>
                       </div>

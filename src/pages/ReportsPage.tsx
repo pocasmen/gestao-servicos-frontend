@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import apiClient, { createReport, searchPartByReference, createPart, getTechnicians } from '../apiClient';
 import { Link } from 'react-router-dom';
 import { Report, Client, Equipment, PartItem, Technician } from '../types';
+import { UserRole } from '../constants/enums';
 import ReportModal from '../components/ReportModal';
 import { Copy, Clipboard } from 'lucide-react';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -51,7 +52,7 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
   useEffect(() => {
     getTechnicians().then(res => {
       if (Array.isArray(res)) {
-        setTechnicians(res.filter((t: any) => t.role !== 'office_staff'));
+        setTechnicians(res.filter((t: any) => t.role !== UserRole.OFFICE_STAFF));
       } else {
         setTechnicians([]);
       }

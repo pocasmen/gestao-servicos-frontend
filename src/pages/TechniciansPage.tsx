@@ -2,12 +2,13 @@ import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../apiClient';
 import UserDetailModal from '../components/TechnicianDetailModal';
 import { AuthContext } from '../contexts/AuthContext';
+import { UserRole } from '../constants/enums';
 
 // Updated interface to match the new backend response
 export interface AppUser {
   id: string; // Now a UUID string
   email: string;
-  role: 'admin' | 'technician' | 'office_staff' | 'super_admin';
+  role: UserRole;
   first_name: string;
   last_name: string;
   color: string;
@@ -20,12 +21,12 @@ export interface AppUser {
 }
 
 // New form to invite users (technicians, admins, or clients)
-const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRole: string }> = ({ onUserInvited, currentUserRole }) => {
+const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRole: UserRole }> = ({ onUserInvited, currentUserRole }) => {
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [color, setColor] = useState('#3174ad');
-  const [role, setRole] = useState<'technician' | 'admin' | 'office_staff' | 'super_admin'>('technician');
+  const [role, setRole] = useState<UserRole>(UserRole.TECHNICIAN);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -53,7 +54,7 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
         setEmail('');
         setFirstName('');
         setLastName('');
-        setRole('technician');
+        setRole(UserRole.TECHNICIAN);
         setColor('#3174ad');
         onUserInvited();
       })
@@ -80,12 +81,12 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
           </div>
           <div className="col-md-6 mb-3">
             <label className="form-label">Função (Role)</label>
-            <select className="form-select" value={role} onChange={e => setRole(e.target.value as any)}>
-              <option value="technician">Técnico</option>
-              <option value="office_staff">Administrativo (Office Staff)</option>
-              <option value="admin">Admin</option>
-              {currentUserRole === 'super_admin' && (
-                <option value="super_admin">Super Admin</option>
+            <select className="form-select" value={role} onChange={e => setRole(e.target.value as UserRole)}>
+              <option value={UserRole.TECHNICIAN}>Técnico</option>
+              <option value={UserRole.OFFICE_STAFF}>Administrativo (Office Staff)</option>
+              <option value={UserRole.ADMIN}>Admin</option>
+              {currentUserRole === UserRole.SUPER_ADMIN && (
+                <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
               )}
             </select>
           </div>
@@ -131,7 +132,7 @@ const UserList: React.FC<{ users: AppUser[], onSelectUser: (user: AppUser) => vo
             <tr key={user.id} onClick={() => onSelectUser(user)} style={{ cursor: 'pointer' }}>
               <td>{user.name}</td>
               <td>{user.email}</td>
-              <td><span className={`badge bg-${user.role === 'admin' ? 'danger' : 'secondary'}`}>{user.role}</span></td>
+              <td><span className={`badge bg-${user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN ? 'danger' : 'secondary'}`}>{user.role}</span></td>
               <td>
                 <div style={{ width: '20px', height: '20px', backgroundColor: user.color, borderRadius: '50%' }}></div>
               </td>
@@ -179,7 +180,7 @@ const TechniciansPage: React.FC = () => {
 
   return (
     <div className="container mt-4">
-      <InviteTechnicianForm onUserInvited={handleUserChange} currentUserRole={user?.user_metadata?.role || ''} />
+      <InviteTechnicianForm onUserInvited={handleUserChange} currentUserRole={user?.user_metadata?.role as UserRole} />
       <hr />
       <UserList users={users} onSelectUser={handleSelectUser} />
 
@@ -190,7 +191,7 @@ const TechniciansPage: React.FC = () => {
           user={selectedUser}
           onUserUpdated={handleUserChange}
           onUserDeleted={handleUserChange}
-          currentUserRole={user?.user_metadata?.role || ''}
+          currentUserRole={user?.user_metadata?.role as UserRole}
         />
       )}
     </div>
