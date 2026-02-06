@@ -5,7 +5,8 @@ import apiClient from '../apiClient';
 import { PartItem } from '../types';
 import logo from '../logo.png';
 import './ReportPrintPage.css';
-import { SERVICE_TYPE_LABELS } from '../constants';
+import { SERVICE_TYPE_LABELS, STOCK_TYPE_LABELS, SERVICE_CLASSIFICATION_LABELS } from '../constants';
+import { StockType, ServiceClassification } from '../constants/enums';
 
 
 interface DetailedReport {
@@ -29,6 +30,7 @@ interface DetailedReport {
     technician_signature?: string;
     timeBlocks?: { id: number; start: string; end: string }[];
     includes_travel?: boolean;
+    classification?: ServiceClassification;
 }
 
 const calculateHours = (start: Date, end: Date): number => {
@@ -143,6 +145,15 @@ const ReportPrintPage: React.FC = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Classificação do Serviço */}
+                {report.classification && report.classification !== ServiceClassification.GERAL && (
+                    <div className="classification-row" style={{ marginTop: '-15px', marginBottom: '15px', textAlign: 'right', paddingRight: '15px', display: 'flex', justifyContent: 'flex-end' }}>
+                        <span className={`badge ${report.classification === ServiceClassification.CONTRATO ? 'bg-primary' : report.classification === ServiceClassification.GARANTIA ? 'bg-warning text-dark' : 'bg-info'}`} style={{ fontSize: '0.9rem', padding: '5px 12px', borderRadius: '20px' }}>
+                            {SERVICE_CLASSIFICATION_LABELS[report.classification]}
+                        </span>
+                    </div>
+                )}
 
                 {/* Tipo de Serviço */}
                 <div className="service-type-section">
@@ -263,6 +274,9 @@ const ReportPrintPage: React.FC = () => {
                                         <div className="part-header-row">
                                             <span className="part-reference">{part.reference}</span>
                                             <div className="part-meta">
+                                                <span className={`part-origin-badge origin-${part.stockType || 'general'}`}>
+                                                    {STOCK_TYPE_LABELS[(part.stockType as StockType) || StockType.GENERAL]}
+                                                </span>
                                                 <span className={`part-status-badge ${part.isApplied !== false ? 'status-applied' : 'status-not-applied'}`}>
                                                     {part.isApplied !== false ? 'Aplicada' : 'Não Aplicada'}
                                                 </span>

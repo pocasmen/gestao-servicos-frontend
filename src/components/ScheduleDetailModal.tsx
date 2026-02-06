@@ -4,8 +4,8 @@ import { pt } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
 import apiClient, { searchPartByReference } from '../apiClient';
 import { ScheduleEvent, Client, Equipment, Technician, PartItem, TimeBlock } from '../types';
-import { StockType, UserRole } from '../constants/enums';
-import { SERVICE_TYPES_LIST } from '../constants';
+import { StockType, UserRole, ServiceClassification } from '../constants/enums';
+import { SERVICE_TYPES_LIST, SERVICE_CLASSIFICATIONS_LIST } from '../constants';
 import { Copy, Clipboard, Trash2 } from 'lucide-react';
 import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 registerLocale('pt', pt);
@@ -28,6 +28,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const [serviceType, setServiceType] = useState('');
   const [parts, setParts] = useState<PartItem[]>([]);
   const [includesTravel, setIncludesTravel] = useState(false);
+  const [classification, setClassification] = useState<ServiceClassification>(ServiceClassification.GERAL);
   const internalNotesRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -71,6 +72,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     setInternalNotes(event?.internalNotes || '');
     setServiceType(event?.serviceType || (isTicketScheduling ? 'remota' : ''));
     setIncludesTravel(event?.includes_travel || false);
+    setClassification(event?.classification || ServiceClassification.GERAL);
     if (isTicketScheduling) {
       setParts([]);
     } else {
@@ -441,6 +443,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       internalNotes,
       serviceType,
       includesTravel,
+      classification,
       timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
       parts: parts
         .filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '')
@@ -532,6 +535,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       internalNotes,
       serviceType,
       includesTravel,
+      classification,
       timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() }))
     };
 
@@ -603,14 +607,28 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
               <button type="button" className="btn-close" onClick={onClose}></button>
             </div>
             <div className="modal-body">
-              <div className="form-group">
-                <label className="text-secondary fw-bold">Tipo de Serviço</label>
-                <select className="form-control" value={serviceType} onChange={e => setServiceType(e.target.value)} disabled={isPastOrCompleted}>
-                  <option value="">Selecione um tipo...</option>
-                  {SERVICE_TYPES_LIST.map(type => (
-                    <option key={type.id} value={type.id}>{type.label}</option>
-                  ))}
-                </select>
+              <div className="row">
+                <div className="col-md-6">
+                  <div className="form-group">
+                    <label className="text-secondary fw-bold">Tipo de Serviço</label>
+                    <select className="form-control" value={serviceType} onChange={e => setServiceType(e.target.value)} disabled={isPastOrCompleted}>
+                      <option value="">Selecione um tipo...</option>
+                      {SERVICE_TYPES_LIST.map(type => (
+                        <option key={type.id} value={type.id}>{type.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="form-group">
+                    <label className="text-secondary fw-bold">Classificação</label>
+                    <select className="form-control" value={classification} onChange={e => setClassification(e.target.value as ServiceClassification)} disabled={isPastOrCompleted}>
+                      {SERVICE_CLASSIFICATIONS_LIST.map(item => (
+                        <option key={item.id} value={item.id}>{item.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
               {/* Checkbox de Deslocação - Oculto para serviços remotos */}
               {serviceType && serviceType !== 'remota' && (

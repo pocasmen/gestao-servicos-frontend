@@ -1,5 +1,4 @@
-import { Event as BigCalendarEvent } from 'react-big-calendar';
-import { UserRole, TicketStatus, ScheduleStatus, StockType } from './constants/enums';
+import { UserRole, TicketStatus, ScheduleStatus, StockType, ServiceClassification } from './constants/enums';
 
 export interface ScheduleEvent {
   id: number | string;
@@ -21,6 +20,7 @@ export interface ScheduleEvent {
   equipmentInfo?: string;
   timeBlocks?: TimeBlock[];
   includes_travel?: boolean; // Indica se o serviço inclui deslocação
+  classification?: ServiceClassification;
 }
 
 export interface TimeBlock {
@@ -284,6 +284,7 @@ export interface Report {
   signature?: string; // Campo para armazenar a assinatura em Base64 ou URL
   technician_signature?: string; // Assinatura do técnico no momento do relatório
   includes_travel?: boolean; // Indica se o serviço incluiu deslocação
+  classification?: ServiceClassification;
   // Campos preenchidos por JOINs para a visualização do relatório
   clientName?: string;
   clientAddress?: string;

@@ -3,7 +3,7 @@ import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 import apiClient from '../apiClient';
 import { AuthContext } from '../contexts/AuthContext';
 import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician } from '../types';
-import { StockType, UserRole } from '../constants/enums';
+import { StockType, UserRole, ServiceClassification } from '../constants/enums';
 import SignaturePad from './SignaturePad';
 import { Copy, Clipboard, Trash2, Printer } from 'lucide-react';
 
@@ -16,7 +16,7 @@ interface ReportModalProps {
   onReportSaved: () => void; // Callback unificado
 }
 
-import { SERVICE_TYPES_LIST } from '../constants';
+import { SERVICE_TYPES_LIST, SERVICE_CLASSIFICATIONS_LIST } from '../constants';
 
 // Função para calcular horas trabalhadas com desconto de almoço e arredondamento para cima
 const calculateHours = (start: Date, end: Date): number => {
@@ -64,6 +64,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [technicianSignatures, setTechnicianSignatures] = useState<Record<string, string>>({});
   const [technicianSignature, setTechnicianSignature] = useState<string | undefined>(undefined); // Legacy, keep for now but unused in new logic?
   const [includesTravel, setIncludesTravel] = useState(false);
+  const [classification, setClassification] = useState<ServiceClassification>(ServiceClassification.GERAL);
   const damageRef = useRef<HTMLTextAreaElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const internalNotesRef = useRef<HTMLTextAreaElement>(null);
@@ -132,6 +133,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
       setTechnicianSignature(reportToEdit.technician_signature);
       setIncludesTravel(reportToEdit.includes_travel || false);
+      setClassification(reportToEdit.classification || ServiceClassification.GERAL);
 
 
     } else if (!isEditing && schedule) {
@@ -171,6 +173,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
       // Passar as notas internas do agendamento para o relatório
       setInternalNotes(schedule.internalNotes || '');
       setIncludesTravel(schedule.includes_travel || false);
+      setClassification(schedule.classification || ServiceClassification.GERAL);
       setSignature(undefined);
 
       // Buscar assinatura do técnico logado para inclusão automática
@@ -434,6 +437,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
       technician_signature: technicianSignature, // Enviar assinatura do técnico (Legacy)
       technicianSignatures, // Access new map
       includesTravel, // Enviar informação de deslocação
+      classification,
       parts: partsToSubmit.map(p => ({
         ...p,
         isApplied: p.isApplied === false ? false : true
@@ -518,7 +522,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
                 </div>
               </div>
 
-              <div className="form-group">
+              <div className="form-group mb-3">
                 <label className="text-secondary fw-bold">Tipo de Serviço</label>
                 <div className="d-flex flex-wrap">
                   {SERVICE_TYPES_LIST.map(type => (
@@ -534,6 +538,19 @@ const ReportModal: React.FC<ReportModalProps> = ({
                     </div>
                   ))}
                 </div>
+              </div>
+
+              <div className="form-group mb-3">
+                <label className="text-secondary fw-bold">Classificação do Serviço</label>
+                <select
+                  className="form-control"
+                  value={classification}
+                  onChange={e => setClassification(e.target.value as ServiceClassification)}
+                >
+                  {SERVICE_CLASSIFICATIONS_LIST.map(item => (
+                    <option key={item.id} value={item.id}>{item.label}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Checkbox de Deslocação - Oculto se apenas remota estiver selecionado ou nenhum */}
