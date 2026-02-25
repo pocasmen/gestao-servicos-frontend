@@ -52,6 +52,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [includesTravel, setIncludesTravel] = useState(false);
   const [classification, setClassification] = useState<ServiceClassification>(ServiceClassification.GERAL);
   const [isBillingPending, setIsBillingPending] = useState(false);
+  const [timeBlocks, setTimeBlocks] = useState<{ start: Date; end: Date }[]>([]);
 
   const damageRef = useRef<HTMLTextAreaElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
@@ -89,39 +90,58 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
   useEffect(() => {
     if (isEditing && reportToEdit) {
-      setClientId(reportToEdit.clientId);
-      setEquipmentId(reportToEdit.equipmentId);
-      setTechnicianIds(reportToEdit.technicians?.map(t => t.id) || []);
-      setServiceDate(new Date(reportToEdit.serviceDate).toISOString().slice(0, 16));
-      setHours(reportToEdit.hours);
-      setDescription(reportToEdit.description);
-      setDamage(reportToEdit.damage || '');
-      setServiceTypes(reportToEdit.serviceType || []);
-      setInternalNotes(reportToEdit.internalNotes || '');
-      setParts(reportToEdit.parts && reportToEdit.parts.length > 0 ? reportToEdit.parts : []);
-      setSignature(reportToEdit.signature);
+      // Fetch details to ensure we have everything (especially timeBlocks if coming from fallback)
+      apiClient.get(`/api/reports/${reportToEdit.id}`).then(res => {
+        const fullReport = res.data;
+        setClientId(fullReport.clientId);
+        setEquipmentId(fullReport.equipmentId);
+        setTechnicianIds(fullReport.technicians?.map((t: any) => t.id) || []);
+        setServiceDate(new Date(fullReport.serviceDate).toISOString().slice(0, 16));
+        setHours(fullReport.hours);
+        setDescription(fullReport.description);
+        setDamage(fullReport.damage || '');
+        setServiceTypes(fullReport.serviceType || []);
+        setInternalNotes(fullReport.internalNotes || '');
+        setParts(fullReport.parts && fullReport.parts.length > 0 ? fullReport.parts : []);
+        setSignature(fullReport.signature);
 
-      const sigs: Record<string, string> = {};
-      if (reportToEdit.technicians) {
-        reportToEdit.technicians.forEach(t => {
-          if (t.signature) sigs[t.id] = t.signature;
-        });
-      }
-      setTechnicianSignatures(sigs);
+        const sigs: Record<string, string> = {};
+        if (fullReport.technicians) {
+          fullReport.technicians.forEach((t: any) => {
+            if (t.signature) sigs[t.id] = t.signature;
+          });
+        }
+        setTechnicianSignatures(sigs);
 
-      if (authUser && reportToEdit.technicians?.some(t => t.id === authUser.id) && !sigs[authUser.id]) {
-        apiClient.get('/api/technicians').then(res => {
-          const profile = res.data.find((p: any) => p.id === authUser.id);
-          if (profile && profile.signature) {
-            setTechnicianSignatures(prev => ({ ...prev, [authUser.id]: profile.signature }));
-          }
-        });
-      }
+        setTechnicianSignature(fullReport.technician_signature);
+        setIncludesTravel(fullReport.includes_travel || false);
+        setClassification(fullReport.classification || ServiceClassification.GERAL);
+        setIsBillingPending(fullReport.billing_status === BillingStatus.PENDING_COMPLETION);
 
-      setTechnicianSignature(reportToEdit.technician_signature);
-      setIncludesTravel(reportToEdit.includes_travel || false);
-      setClassification(reportToEdit.classification || ServiceClassification.GERAL);
-      setIsBillingPending(reportToEdit.billing_status === BillingStatus.PENDING_COMPLETION);
+        if (fullReport.timeBlocks && fullReport.timeBlocks.length > 0) {
+          setTimeBlocks(fullReport.timeBlocks.map((tb: any) => ({ start: new Date(tb.start), end: new Date(tb.end) })));
+        } else {
+          setTimeBlocks([]);
+        }
+      }).catch(err => {
+        logger.error(err, "Erro ao carregar detalhes do relatório:");
+        // Fallback to what we already have in props if fetch fails
+        setClientId(reportToEdit.clientId);
+        setEquipmentId(reportToEdit.equipmentId);
+        setTechnicianIds(reportToEdit.technicians?.map(t => t.id) || []);
+        setServiceDate(new Date(reportToEdit.serviceDate).toISOString().slice(0, 16));
+        setHours(reportToEdit.hours);
+        setDescription(reportToEdit.description);
+        setDamage(reportToEdit.damage || '');
+        setServiceTypes(reportToEdit.serviceType || []);
+        setInternalNotes(reportToEdit.internalNotes || '');
+        setParts(reportToEdit.parts && reportToEdit.parts.length > 0 ? reportToEdit.parts : []);
+        setSignature(reportToEdit.signature);
+        setTechnicianSignature(reportToEdit.technician_signature);
+        setIncludesTravel(reportToEdit.includes_travel || false);
+        setClassification(reportToEdit.classification || ServiceClassification.GERAL);
+        setIsBillingPending(reportToEdit.billing_status === BillingStatus.PENDING_COMPLETION);
+      });
 
     } else if (!isEditing && schedule) {
       setClientId(schedule.clientId);
@@ -150,6 +170,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
       setServiceDate(serviceStartDate.toISOString().slice(0, 16));
       setHours(totalCalculatedHours);
+      if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
+        setTimeBlocks(schedule.timeBlocks.map(tb => ({ start: new Date(tb.start), end: new Date(tb.end) })));
+      } else if (schedule.start && schedule.end) {
+        setTimeBlocks([{ start: new Date(schedule.start), end: new Date(schedule.end) }]);
+      } else {
+        setTimeBlocks([]);
+      }
       setParts((schedule.parts || []).map(p => ({ ...p, isDesignationLocked: !!p.designation })));
       setDescription('');
       setDamage('');
@@ -243,6 +270,32 @@ const ReportModal: React.FC<ReportModalProps> = ({
     });
   };
 
+  const handleAddBlock = () => {
+    setTimeBlocks([...timeBlocks, { start: new Date(), end: new Date() }]);
+  };
+
+  const handleRemoveBlock = (index: number) => {
+    const newBlocks = timeBlocks.filter((_, i) => i !== index);
+    setTimeBlocks(newBlocks);
+    updateTotalHours(newBlocks);
+  };
+
+  const handleBlockChange = (index: number, field: 'start' | 'end', value: Date | null) => {
+    if (!value) return;
+    const newBlocks = [...timeBlocks];
+    newBlocks[index] = { ...newBlocks[index], [field]: value };
+    setTimeBlocks(newBlocks);
+    updateTotalHours(newBlocks);
+  };
+
+  const updateTotalHours = (blocks: { start: Date; end: Date }[]) => {
+    let total = 0;
+    blocks.forEach(block => {
+      total += calculateHours(block.start, block.end);
+    });
+    setHours(total);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSubmitting) return;
@@ -311,6 +364,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
       includesTravel,
       classification,
       parts: finalPartsToSubmit.map(p => ({ ...p, isApplied: p.isApplied === false ? false : true })),
+      timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
       isBillingPending: isBillingPending,
       markAsReadyForBilling: !isBillingPending
     };
@@ -345,7 +399,15 @@ const ReportModal: React.FC<ReportModalProps> = ({
                 classification={classification} setClassification={setClassification}
                 includesTravel={includesTravel} setIncludesTravel={setIncludesTravel}
               />
-              <ReportTimeInfo schedule={schedule} hours={hours} setHours={(val) => setHours(val)} />
+              <ReportTimeInfo
+                schedule={schedule}
+                hours={hours}
+                setHours={(val) => setHours(val)}
+                timeBlocks={timeBlocks}
+                handleBlockChange={handleBlockChange}
+                handleAddBlock={handleAddBlock}
+                handleRemoveBlock={handleRemoveBlock}
+              />
               <ReportClientEquipment
                 clientId={clientId} setClientId={(val) => setClientId(val)} allClients={allClients}
                 equipmentId={equipmentId} setEquipmentId={(val) => setEquipmentId(val)} clientEquipments={clientEquipments}
