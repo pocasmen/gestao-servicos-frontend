@@ -4,7 +4,6 @@ import logger from '../../utils/logger';
 import { StockType } from '../../constants/enums';
 import { Trash2, Copy, Clipboard } from 'lucide-react';
 import { useConfirm } from '../../contexts/ConfirmContext';
-import { SmartInput } from '../SmartInput';
 
 interface ReportPartsTableProps {
     parts: PartItem[];
@@ -106,7 +105,7 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
     };
 
     return (
-        <div className="form-group mb-3">
+        <div className="form-group mt-3">
             <div className="d-flex justify-content-between align-items-center mb-2">
                 <label className="mb-0 text-secondary fw-bold">Peças Utilizadas</label>
             </div>
@@ -116,7 +115,7 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
                         <tr className="align-middle">
                             <th style={{ width: '75px' }} className="small">Qt</th>
                             <th style={{ width: '160px' }} className="small">Referência</th>
-                            <th>Designação</th>
+                            <th className="small">Designação</th>
                             <th style={{ width: '80px' }} className="text-center small">Aplicada</th>
                             <th style={{ width: '120px' }} className="small">Origem</th>
                             <th style={{ width: '50px' }}></th>
@@ -129,6 +128,7 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
                                     <input
                                         type="number"
                                         className="form-control form-control-sm"
+                                        placeholder="Qtd"
                                         value={part.quantity}
                                         onChange={e => handlePartChange(index, 'quantity', Number(e.target.value))}
                                         min="1"
@@ -136,26 +136,23 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
                                     />
                                 </td>
                                 <td>
-                                    <SmartInput
-                                        label="Ref"
-                                        hideLabel
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        placeholder="Referência"
                                         value={part.reference}
-                                        onChange={val => handlePartChange(index, 'reference', val)}
+                                        onChange={e => handlePartChange(index, 'reference', e.target.value)}
                                         onBlur={() => handleReferenceBlur(index)}
-                                        onAudit={(action, details) => {
-                                            if (action === 'correction') handleReferenceBlur(index);
-                                        }}
-                                        options={{ blockScripts: true, disableHeuristics: true }}
                                     />
                                 </td>
                                 <td>
-                                    <SmartInput
-                                        label="Desig"
-                                        hideLabel
+                                    <input
+                                        type="text"
+                                        className="form-control form-control-sm"
+                                        placeholder="Designação"
                                         value={part.designation}
-                                        onChange={val => handlePartChange(index, 'designation', val)}
+                                        onChange={e => handlePartChange(index, 'designation', e.target.value)}
                                         disabled={part.isDesignationLocked}
-                                        options={{ blockScripts: true }}
                                     />
                                 </td>
                                 <td className="text-center align-middle">
