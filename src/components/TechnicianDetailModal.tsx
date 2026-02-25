@@ -4,6 +4,7 @@ import { AppUser } from '../pages/TechniciansPage'; // Import the new generic in
 import GoogleColorPicker from './GoogleColorPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { UserRole } from '../constants/enums';
+import logger from '../utils/logger';
 
 interface ModalProps {
   isOpen: boolean;
@@ -32,7 +33,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
   useEffect(() => {
     apiClient.get('/api/telegram/bot-info').then(res => {
       setBotUsername(res.data.username);
-    }).catch(err => console.error("Erro ao obter info do bot:", err));
+    }).catch(err => logger.error(err, "Erro ao obter info do bot:"));
   }, []);
 
   useEffect(() => {
@@ -94,7 +95,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
         onClose();
       })
       .catch((err: any) => {
-        console.error("Erro ao atualizar o utilizador:", err);
+        logger.error(err, "Erro ao atualizar o utilizador:");
         setErrorMessage(err.response?.data?.error || 'Ocorreu um erro.');
       });
   };
@@ -112,7 +113,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
           onClose();
         })
         .catch(async (err: any) => {
-          console.error("Erro ao eliminar o utilizador:", err);
+          logger.error(err, "Erro ao eliminar o utilizador:");
           setErrorMessage(err.response?.data?.error || 'Ocorreu um erro ao eliminar.');
           await alert(err.response?.data?.error || 'Ocorreu um erro ao eliminar.');
         });

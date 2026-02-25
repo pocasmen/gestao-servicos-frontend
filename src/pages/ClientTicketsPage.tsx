@@ -1,41 +1,57 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../apiClient';
 import { Equipment, Ticket } from '../types';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useConfirm } from '../contexts/ConfirmContext';
+import logger from '../utils/logger';
 
 const ClientTicketsPage: React.FC = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
   const [selectedEquipmentId, setSelectedEquipmentId] = useState<number | string>('');
   const [title, setTitle] = useState('');
   const [faultDescription, setFaultDescription] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  const { alert } = useConfirm();
 
-  const fetchClientData = useCallback(async () => {
+  useEffect(() => {
+    if (location.state && (location.state as any).equipmentId) {
+      setSelectedEquipmentId((location.state as any).equipmentId);
+    }
+  }, [location.state]);
+
+  const fetchClientData = useCallback(async (page = 1) => {
     try {
       const equipmentsRes = await apiClient.get('/api/my-equipments');
       setEquipments(equipmentsRes.data);
-      const ticketsRes = await apiClient.get('/api/my-tickets');
-      setTickets(ticketsRes.data);
+
+      const ticketsRes = await apiClient.get(`/api/my-tickets?page=${page}&limit=10`);
+      if (ticketsRes.data && ticketsRes.data.data) {
+        if (page === 1) {
+          setTickets(ticketsRes.data.data);
+        } else {
+          setTickets(prev => [...prev, ...ticketsRes.data.data]);
+        }
+        setPagination(ticketsRes.data.pagination);
+      } else {
+        setTickets(ticketsRes.data);
+      }
     } catch (err: any) {
-      console.error("Erro ao carregar dados do cliente:", err);
-      setError('Não foi possível carregar os seus dados. Por favor, tente novamente.');
+      logger.error(err, "Erro ao carregar dados do cliente:");
+      alert('Não foi possível carregar os seus dados. Por favor, tente novamente.');
     }
-  }, []);
+  }, [alert]);
 
   useEffect(() => {
     fetchClientData();
   }, [fetchClientData]);
-
+  // ... handleSubmitTicket, handleViewReport unchanged ...
   const handleSubmitTicket = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
-
     if (!selectedEquipmentId || !title.trim() || !faultDescription.trim()) {
-      setError('Por favor, selecione um equipamento, indique o título e descreva a avaria.');
+      alert('Por favor, selecione um equipamento, indique o título e descreva a avaria.');
       return;
     }
 
@@ -45,14 +61,14 @@ const ClientTicketsPage: React.FC = () => {
         title: title.trim(),
         faultDescription,
       });
-      setSuccess('O seu pedido foi submetido com sucesso! Em breve entraremos em contacto.');
+      alert('O seu pedido foi submetido com sucesso! Em breve entraremos em contacto.', 'Sucesso');
       setFaultDescription('');
       setTitle('');
       setSelectedEquipmentId('');
-      fetchClientData(); // Atualizar a lista de tickets
+      fetchClientData(1); // Reset to page 1
     } catch (err: any) {
-      console.error("Erro ao submeter ticket:", err);
-      setError(err.response?.data?.error || 'Ocorreu um erro ao submeter o pedido.');
+      logger.error(err, "Erro ao submeter ticket:");
+      alert(err.response?.data?.error || 'Ocorreu um erro ao submeter o pedido.');
     }
   };
 
@@ -63,20 +79,18 @@ const ClientTicketsPage: React.FC = () => {
       if (response.data && response.data.id) {
         navigate(`/report/print/${response.data.id}`);
       } else {
-        setError("Relatório não encontrado.");
+        alert("Relatório não encontrado.");
       }
     } catch (error) {
-      console.error("Erro ao carregar o relatório:", error);
-      setError("Não foi possível carregar o relatório. Por favor, tente mais tarde.");
+      logger.error(error, "Erro ao carregar o relatório:");
+      alert("Não foi possível carregar o relatório. Por favor, tente mais tarde.");
     }
   };
 
   return (
-    <div className="container mt-4">
-      {error && <div className="alert alert-danger">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
-
+    <div className="container-fluid mt-4">
       <div className="row">
+        {/* Submeter Novo Pedido column ... same ... */}
         <div className="col-md-6">
           <div className="card mb-4">
             <div className="card-header">Submeter Novo Pedido</div>
@@ -134,58 +148,66 @@ const ClientTicketsPage: React.FC = () => {
             <div className="card-header">Os Seus Pedidos Recentes</div>
             <div className="card-body">
               {tickets.length > 0 ? (
-                <ul className="list-group">
-                  {tickets.map((ticket) => (
-                    <Link to={`/portal/tickets/${ticket.id}`} key={ticket.id} className="list-group-item list-group-item-action">
-                      <>
-                        <div className="d-flex justify-content-between align-items-start">
-                          <div>
-                            <strong>Ticket #{ticket.id}</strong> - {ticket.equipmentInfo}
-                            <br />
-                            <small className="text-muted">Pedido em: {new Date(ticket.createdAt).toLocaleString('pt-PT')}</small>
-                            <p className="mb-1">{ticket.faultDescription}</p>
+                <>
+                  <ul className="list-group">
+                    {tickets.map((ticket) => (
+                      <Link to={`/portal/tickets/${ticket.id}`} key={ticket.id} className="list-group-item list-group-item-action">
+                        <>
+                          <div className="d-flex justify-content-between align-items-start">
+                            <div>
+                              <strong>Ticket #{ticket.id}</strong> - {ticket.equipmentInfo}
+                              <br />
+                              <small className="text-muted">Pedido em: {new Date(ticket.createdAt).toLocaleString('pt-PT')}</small>
+                              <p className="mb-1">{ticket.faultDescription}</p>
+                            </div>
+                            <span className={`badge ${ticket.status === 'open' ? 'bg-danger'
+                              : ticket.status === 'acknowledged' ? 'bg-warning'
+                                : ticket.status === 'scheduled' ? 'bg-info'
+                                  : ticket.status === 'deleted' ? 'bg-secondary'
+                                    : 'bg-success'
+                              }`}>
+                              {ticket.status === 'open' && 'Aberto'}
+                              {ticket.status === 'acknowledged' && 'Em Análise'}
+                              {ticket.status === 'scheduled' && 'Agendado'}
+                              {ticket.status === 'closed' && 'Fechado'}
+                              {ticket.status === 'deleted' && 'Eliminado'}
+                            </span>
                           </div>
-                          <span className={`badge ${ticket.status === 'open' ? 'bg-danger'
-                            : ticket.status === 'scheduled' ? 'bg-info'
-                              : ticket.status === 'deleted' ? 'bg-secondary'
-                                : 'bg-success'
-                            }`}>
-                            {ticket.status === 'open' && 'Aberto'}
-                            {ticket.status === 'scheduled' && 'Agendado'}
-                            {ticket.status === 'closed' && 'Fechado'}
-                            {ticket.status === 'deleted' && 'Eliminado'}
-                          </span>
-                        </div>
 
-                        {/* Lógica para Agendamentos */}
-                        {ticket.status === 'scheduled' && ticket.startDate && (
-                          <div className="mt-2 pt-2 border-top">
-                            <p className="mb-1">
-                              <strong>Agendado para:</strong> {new Date(ticket.startDate).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                              {ticket.endDate && ` - ${new Date(ticket.endDate).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`}
-                            </p>
-
-                          </div>
-                        )}
-
-                        {/* Lógica para Relatórios em Tickets Fechados */}
-                        {ticket.status === 'closed' && (
-                          <div className="mt-2 pt-2 border-top">
-                            {ticket.hasReport ? (
-                              <button className="btn btn-primary btn-sm" onClick={(e) => { e.preventDefault(); handleViewReport(ticket); }}>
-                                Ver Relatório
-                              </button>
-                            ) : (
-                              <p className="mb-0 fst-italic text-muted">
-                                Relatório em Elaboração...
+                          {ticket.status === 'scheduled' && ticket.startDate && (
+                            <div className="mt-2 pt-2 border-top">
+                              <p className="mb-1">
+                                <strong>Agendado para:</strong> {new Date(ticket.startDate).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                {ticket.endDate && ` - ${new Date(ticket.endDate).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}`}
                               </p>
-                            )}
-                          </div>
-                        )}
-                      </>
-                    </Link>
-                  ))}
-                </ul>
+                            </div>
+                          )}
+
+                          {ticket.status === 'closed' && (
+                            <div className="mt-2 pt-2 border-top">
+                              {ticket.hasReport ? (
+                                <button className="btn btn-primary btn-sm" onClick={(e) => { e.preventDefault(); handleViewReport(ticket); }}>
+                                  Ver Relatório
+                                </button>
+                              ) : (
+                                <p className="mb-0 fst-italic text-muted">
+                                  Relatório em Elaboração...
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </>
+                      </Link>
+                    ))}
+                  </ul>
+                  {pagination.page < pagination.totalPages && (
+                    <div className="text-center mt-3">
+                      <button className="btn btn-outline-primary btn-sm" onClick={() => fetchClientData(pagination.page + 1)}>
+                        Carregar Mais Pedidos
+                      </button>
+                    </div>
+                  )}
+                </>
               ) : (
                 <p>Não submeteu nenhum pedido ainda.</p>
               )}

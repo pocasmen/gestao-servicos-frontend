@@ -33,8 +33,14 @@ const CompleteRegistrationPage = React.lazy(() => import('./pages/CompleteRegist
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const ClientProfilePage = React.lazy(() => import('./pages/ClientProfilePage'));
 const ClientHistoryPage = React.lazy(() => import('./pages/ClientHistoryPage'));
+const BillingPage = React.lazy(() => import('./pages/BillingPage'));
+const TasksPage = React.lazy(() => import('./pages/TasksPage'));
+const ClientPortalDashboardPage = React.lazy(() => import('./pages/ClientPortalDashboardPage'));
+const ClientEntityDashboardPage = React.lazy(() => import('./pages/ClientEntityDashboardPage'));
+const ClientEquipmentsPage = React.lazy(() => import('./pages/ClientEquipmentsPage'));
 
 import { AuthContext } from './contexts/AuthContext';
+import { ActiveClientProvider } from './contexts/ActiveClientContext';
 import { UserRole } from './constants/enums';
 
 // Helper para verificar a role do utilizador
@@ -133,11 +139,13 @@ const AppRoutes: React.FC = () => {
   return (
     <>
       {renderHeader()}
-      <div className="container-fluid mt-3">
+      <main className="app-main">
         {urlError && (
-          <div className="alert alert-warning alert-dismissible fade show mx-auto" role="alert" style={{ maxWidth: '600px' }}>
-            <strong>Aviso:</strong> {urlError}
-            <button type="button" className="btn-close" onClick={() => setUrlError(null)} aria-label="Close"></button>
+          <div className="container mt-3">
+            <div className="alert alert-warning alert-dismissible fade show mx-auto" role="alert" style={{ maxWidth: '600px' }}>
+              <strong>Aviso:</strong> {urlError}
+              <button type="button" className="btn-close" onClick={() => setUrlError(null)} aria-label="Close"></button>
+            </div>
           </div>
         )}
         <React.Suspense fallback={<div className="d-flex justify-content-center mt-5"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">A carregar...</span></div></div>}>
@@ -175,21 +183,23 @@ const AppRoutes: React.FC = () => {
             <Route path="/tickets" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TicketsPage /></ProtectedRoute>} />
             <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TicketDetailPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><SettingsPage /></ProtectedRoute>} /> {/* Apenas SuperAdmin pode mexer nas configs */}
+            <Route path="/billing" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><BillingPage /></ProtectedRoute>} />
+            <Route path="/tasks" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TasksPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><ProfilePage /></ProtectedRoute>} />
 
             {/* Rotas de Cliente (Flattened) */}
-            <Route path="/portal" element={<Navigate to="/portal/tickets" replace />} />
+            <Route path="/portal" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientPortalDashboardPage /></ProtectedRoute>} />
+            <Route path="/portal/dashboard" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientEntityDashboardPage /></ProtectedRoute>} />
             <Route path="/portal/tickets" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientTicketsPage /></ProtectedRoute>} />
             <Route path="/portal/tickets/:id" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientTicketDetailPage /></ProtectedRoute>} />
             <Route path="/portal/schedules" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientSchedulesListPage /></ProtectedRoute>} />
             <Route path="/portal/history" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientHistoryPage /></ProtectedRoute>} />
-            {/* Adicionada rota para o histórico de equipamento do cliente */}
-            <Route path="/portal/equipments/:id/history" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><EquipmentHistoryPage /></ProtectedRoute>} />
+            <Route path="/portal/equipments" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientEquipmentsPage /></ProtectedRoute>} />
             <Route path="/portal/profile" element={<ProtectedRoute allowedRoles={[UserRole.CLIENT]}><ClientProfilePage /></ProtectedRoute>} />
 
           </Routes>
         </React.Suspense>
-      </div>
+      </main>
     </>
   );
 };
@@ -215,9 +225,11 @@ function App() {
   return (
     <AuthContext.Provider value={{ user: session?.user ?? null, session, loading, setSession }}>
       <ConfirmProvider>
-        <Router>
-          <AppRoutes />
-        </Router>
+        <ActiveClientProvider>
+          <Router>
+            <AppRoutes />
+          </Router>
+        </ActiveClientProvider>
       </ConfirmProvider>
     </AuthContext.Provider>
   );

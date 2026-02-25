@@ -122,3 +122,32 @@
 .rbc-month-row {
   overflow: hidden;
 }
+
+/* Backlog Sidebar Styles */
+.backlog-sidebar .card {
+  border: none;
+  background-color: #f8f9fa;
+}
+
+.backlog-sidebar .card-header {
+  font-size: 0.9rem;
+  padding: 0.75rem;
+}
+
+.backlog-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.backlog-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  background-color: #f0f7ff;
+}
+
+.backlog-item .card-body {
+  line-height: 1.2;
+}
+
+.backlog-item .badge {
+  font-weight: 500;
+}

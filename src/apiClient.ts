@@ -1,4 +1,5 @@
 import axios from 'axios';
+import logger from './utils/logger';
 import { Report } from './types';
 import { supabase } from './supabase'; // Importar o cliente Supabase
 
@@ -15,6 +16,20 @@ apiClient.interceptors.request.use(
 
     if (session?.access_token) {
       config.headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+
+    if (config.url?.includes('/api/my-') && !config.url.includes('companies')) {
+      const savedClient = localStorage.getItem('activeClient');
+      if (savedClient) {
+        try {
+          const client = JSON.parse(savedClient);
+          if (client && client.id) {
+            config.params = { ...config.params, clientId: client.id };
+          }
+        } catch (e) {
+          // ignore parsing error
+        }
+      }
     }
 
     return config;
@@ -49,21 +64,21 @@ export const updateReport = async (id: number, reportData: Report) => {
 export const searchPartByReference = async (reference: string) => {
   try {
     if (import.meta.env.DEV) {
-      console.log('[DEBUG] Searching for part with reference:', reference);
+      logger.debug({ reference }, '[DEBUG] Searching for part with reference');
     }
     const response = await apiClient.get(`/api/parts/${reference}`);
     if (import.meta.env.DEV) {
-      console.log('[DEBUG] Part found:', response.data);
+      logger.debug(response.data, '[DEBUG] Part found:');
     }
     return response.data;
   } catch (error) {
     if (axios.isAxiosError(error) && error.response?.status === 404) {
       if (import.meta.env.DEV) {
-        console.log('[DEBUG] Part not found for reference:', reference);
+        logger.debug({ reference }, '[DEBUG] Part not found for reference');
       }
       return null; // Part not found
     }
-    console.error('[ERROR] Error searching for part:', error);
+    logger.error(error, '[ERROR] Error searching for part:');
     throw error;
   }
 };

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../apiClient';
+import logger from '../utils/logger';
 import { AuthContext } from '../contexts/AuthContext';
 import { AppUser } from './TechniciansPage';
 import SignaturePad from '../components/SignaturePad';
 import GoogleColorPicker from '../components/GoogleColorPicker';
 import { UserRole } from '../constants/enums';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 const ProfilePage: React.FC = () => {
     const { user: authUser } = useContext(AuthContext);
@@ -15,20 +17,19 @@ const ProfilePage: React.FC = () => {
     const [telegramchatid, setTelegramchatid] = useState('');
     const [phone, setPhone] = useState('');
     const [signature, setSignature] = useState('');
-    const [errorMessage, setErrorMessage] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
     const [botUsername, setBotUsername] = useState('');
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncStatus, setSyncStatus] = useState('');
     const [dailyNotificationsEnabled, setDailyNotificationsEnabled] = useState(false);
     const [notificationTime, setNotificationTime] = useState('08:00');
     const [googleCalendarColorId, setGoogleCalendarColorId] = useState('9');
+    const { alert } = useConfirm();
 
 
     useEffect(() => {
         apiClient.get('/api/telegram/bot-info').then(res => {
             setBotUsername(res.data.username);
-        }).catch(err => console.error("Erro ao obter info do bot:", err));
+        }).catch(err => logger.error(err, "Erro ao obter info do bot:"));
     }, []);
 
     const fetchUserProfile = () => {
@@ -48,8 +49,8 @@ const ProfilePage: React.FC = () => {
                 setGoogleCalendarColorId(currentUser.google_calendar_color_id || '9');
             }
         }).catch(err => {
-            console.error("Erro ao carregar perfil:", err);
-            setErrorMessage("Erro ao carregar os dados do perfil.");
+            logger.error(err, "Erro ao carregar perfil:");
+            alert("Erro ao carregar os dados do perfil.");
         });
     };
 
@@ -70,14 +71,15 @@ const ProfilePage: React.FC = () => {
                     setSyncStatus('Erro na sincronização.');
                 }
             })
-            .catch(() => setSyncStatus('Erro ao contactar o servidor.'))
+            .catch(() => {
+                setSyncStatus('');
+                alert('Erro ao contactar o servidor.');
+            })
             .finally(() => setIsSyncing(false));
     };
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        setErrorMessage('');
-        setSuccessMessage('');
 
         if (!user) return;
 
@@ -95,27 +97,23 @@ const ProfilePage: React.FC = () => {
 
         apiClient.put(`/api/technicians/${user.id}`, updatedData)
             .then(() => {
-                setSuccessMessage('Perfil atualizado com sucesso!');
-                setTimeout(() => setSuccessMessage(''), 3000);
+                alert('Perfil atualizado com sucesso!');
             })
             .catch((err: any) => {
-                console.error("Erro ao atualizar o perfil:", err);
-                setErrorMessage(err.response?.data?.error || 'Ocorreu um erro ao atualizar.');
+                logger.error(err, "Erro ao atualizar o perfil:");
+                alert(err.response?.data?.error || 'Ocorreu um erro ao atualizar.');
             });
     };
 
-    if (!user) return <div className="container mt-4">A carregar perfil...</div>;
+    if (!user) return <div className="container-fluid mt-4">A carregar perfil...</div>;
 
     return (
-        <div className="container mt-4" style={{ maxWidth: '800px' }}>
+        <div className="container-fluid mt-4">
             <div className="card shadow-sm">
                 <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">O Meu Perfil</h4>
                 </div>
                 <div className="card-body">
-                    {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
-                    {successMessage && <div className="alert alert-success">{successMessage}</div>}
-
                     <form onSubmit={handleSave}>
                         <div className="row">
                             <div className="col-md-6 mb-3">

@@ -9,28 +9,13 @@ import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { UserRole, TicketStatus } from '../constants/enums';
+import logger from '../utils/logger';
+import { DetailedTicketSchema } from '../schemas';
+import { Attachment, DetailedTicket, TicketResponse } from '../types';
 
 
 
-interface Attachment {
-  id: string;
-  ticket_id: number;
-  file_name: string;
-  mime_type: string;
-  storage_path: string;
-  uploaded_by_user_id: string;
-  created_at: string;
-  url: string;
-}
-
-export interface DetailedTicket extends Ticket {
-  clientName: string;
-  equipmentInfo: string;
-  userFirstName: string;
-  userLastName: string;
-  attachments: Attachment[];
-  responses?: Array<{ id: number; ticket_id: number; user_id?: string; technician_id?: string; authorName?: string; message: string; created_at: string; role?: string; authorId?: string }>;
-}
+// Local interfaces removed, using definitions from schemas/types
 
 interface PresenceMessage {
   text: string;
@@ -39,12 +24,11 @@ interface PresenceMessage {
 }
 
 const TicketDetailPage: React.FC = () => {
-  console.log('[DEBUG:RENDER] TicketDetailPage rendering');
+  logger.debug('[DEBUG:RENDER] TicketDetailPage rendering');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [ticket, setTicket] = useState<DetailedTicket | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [isReplying, setIsReplying] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -63,7 +47,7 @@ const TicketDetailPage: React.FC = () => {
     if (presenceQueue.length === 0 || isPopupActiveRef.current) return;
 
     const nextMsg = presenceQueue[0];
-    console.log('[DEBUG:PRESENCE] Showing notification:', nextMsg);
+    logger.debug(nextMsg, '[DEBUG:PRESENCE] Showing notification:');
     setCurrentPresenceMsg(nextMsg);
     setShowPresencePopup(true);
     isPopupActiveRef.current = true;
@@ -98,12 +82,18 @@ const TicketDetailPage: React.FC = () => {
       if (!isSilent) setLoading(true);
       if (isFromRealtime) setIsRealtimeUpdate(true);
 
-      console.log(`[DEBUG:FETCH] Fetching ticket details (silent: ${isSilent}, realtime: ${isFromRealtime})`);
-      const ticketRes = await apiClient.get(`/api/tickets/${id}`);
-      console.log('[DEBUG:FETCH] Data received:', ticketRes.data);
-      setTicket(ticketRes.data);
-    } catch (err) {
-      if (!isSilent) setError('Não foi possível carregar os detalhes do ticket.');
+      logger.debug({ isSilent, isFromRealtime }, `[DEBUG:FETCH] Fetching ticket details`);
+      const response = await apiClient.get(`/api/tickets/${id}`);
+
+      const result = DetailedTicketSchema.safeParse(response.data);
+      if (!result.success) {
+        logger.error(result.error.format(), '[SCHEMA_ERROR] Detailed ticket validation failed:');
+        setTicket(response.data as DetailedTicket);
+      } else {
+        setTicket(result.data as DetailedTicket);
+      }
+    } catch (err: unknown) {
+      if (!isSilent) alert('Não foi possível carregar os detalhes do ticket.');
     } finally {
       if (!isSilent) setLoading(false);
     }
@@ -116,7 +106,7 @@ const TicketDetailPage: React.FC = () => {
   useEffect(() => {
     if (!id) return;
 
-    console.log('[DEBUG:REALTIME] A iniciar subscrição para o ticket:', id);
+    logger.debug({ ticketId: id }, '[DEBUG:REALTIME] A iniciar subscrição para o ticket');
 
     const channel = supabase
       .channel(`ticket_room_${id}`) // Nome único para o canal
@@ -128,7 +118,7 @@ const TicketDetailPage: React.FC = () => {
           table: 'ticket_responses', // Tabela de mensagens
         },
         (payload) => {
-          console.log('[DEBUG:REALTIME] Evento recebido na tabela responses:', payload);
+          logger.debug(payload, '[DEBUG:REALTIME] Evento recebido na tabela responses:');
 
           // Filtramos aqui manualmente para garantir que funciona mesmo que os tipos (int/string) sejam diferentes
           // @ts-ignore
@@ -136,7 +126,7 @@ const TicketDetailPage: React.FC = () => {
 
           // Apenas atualiza se o evento for deste ticket
           if (String(ticketIdChanged) === String(id)) {
-            console.log('[DEBUG:REALTIME] Atualização relevante detetada (responses)! A recarregar...');
+            logger.debug('[DEBUG:REALTIME] Atualização relevante detetada (responses)! A recarregar...');
             setIsRealtimeUpdate(true);
             fetchTicketDetails(true, true);
           }
@@ -151,11 +141,11 @@ const TicketDetailPage: React.FC = () => {
           table: 'ticket_attachments',
         },
         (payload) => {
-          console.log('[DEBUG:REALTIME] Evento recebido na tabela attachments:', payload);
+          logger.debug(payload, '[DEBUG:REALTIME] Evento recebido na tabela attachments:');
           // @ts-ignore
           const ticketIdChanged = payload.new?.ticket_id || payload.old?.ticket_id;
           if (String(ticketIdChanged) === String(id)) {
-            console.log('[DEBUG:REALTIME] Atualização relevante detetada (attachments)! A recarregar...');
+            logger.debug('[DEBUG:REALTIME] Atualização relevante detetada (attachments)! A recarregar...');
             fetchTicketDetails(true, true);
           }
         }
@@ -165,25 +155,25 @@ const TicketDetailPage: React.FC = () => {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'tickets', filter: `id=eq.${id}` },
         (payload) => {
-          console.log('[DEBUG:REALTIME] Ticket status alterado');
+          logger.debug('[DEBUG:REALTIME] Ticket status alterado');
           fetchTicketDetails(true, true);
         }
       )
       .subscribe((status, err) => {
         // ISTO É O MAIS IMPORTANTE PARA O DEBUG
-        console.log(`[DEBUG:REALTIME] Status da conexão: ${status}`, err ? err : '');
+        logger.debug({ err }, `[DEBUG:REALTIME] Status da conexão: ${status}`);
 
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Conectado ao Realtime com sucesso.');
+          logger.info('✅ Conectado ao Realtime com sucesso.');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Erro ao conectar ao Realtime. Verifique a consola do browser e configurações do Supabase.');
+          logger.error('❌ Erro ao conectar ao Realtime. Verifique a consola do browser e configurações do Supabase.');
         } else if (status === 'TIMED_OUT') {
-          console.error('⚠️ A conexão expirou. A internet pode estar instável.');
+          logger.error('⚠️ A conexão expirou. A internet pode estar instável.');
         }
       });
 
     return () => {
-      console.log('[DEBUG:REALTIME] A limpar canal...');
+      logger.debug('[DEBUG:REALTIME] A limpar canal...');
       supabase.removeChannel(channel);
     };
   }, [id, fetchTicketDetails]);
@@ -198,7 +188,7 @@ const TicketDetailPage: React.FC = () => {
       try {
         await apiClient.put(`/api/my-tickets/${id}/mark-as-read`);
       } catch (error) {
-        console.error('Failed to mark messages as read:', error);
+        logger.error(error, 'Failed to mark messages as read:');
       }
     };
     markAsRead();
@@ -227,7 +217,7 @@ const TicketDetailPage: React.FC = () => {
 
     presenceChannel.on('broadcast', { event: 'presence' }, payload => {
       const p: any = payload?.payload;
-      console.log('[DEBUG:PRESENCE] Broadcast received:', p);
+      logger.debug(p, '[DEBUG:PRESENCE] Broadcast received:');
       if (p?.userId && typeof p?.ts === 'number') {
         setUserPresence(prev => {
           const lastTs = prev[p.userId] || 0;
@@ -267,7 +257,7 @@ const TicketDetailPage: React.FC = () => {
     if (!replyContent.trim()) return;
     setIsReplying(true);
     try {
-      await apiClient.post(`/api/tickets/${id}/reply`, { message: replyContent });
+      await apiClient.post(`/api/tickets/${id}/responses`, { message: replyContent });
       setReplyContent('');
       await fetchTicketDetails();
     } catch (err) {
@@ -319,8 +309,8 @@ const TicketDetailPage: React.FC = () => {
 
   const messages = React.useMemo(() => {
     const text = ticket?.faultDescription || '';
-    const lines = text.split('\n').filter(l => l.trim().length > 0);
-    const clientMsgs = lines.map((l, idx) => {
+    const lines = text.split('\n').filter((l: string) => l.trim().length > 0);
+    const clientMsgs = lines.map((l: string, idx: number) => {
       const isClient = l.includes('Resposta do cliente') || (!l.includes('Resposta do gestor') && idx === 0);
       const m = l.match(/em\s(\d{2}\/\d{2}\/\d{4})\s(\d{2}:\d{2})(?::\d{2})?/);
       let dateMs = NaN;
@@ -334,7 +324,7 @@ const TicketDetailPage: React.FC = () => {
             dateMs = parsedDate.getTime();
           }
         } catch (e) {
-          console.error("Error parsing date from line:", l, e);
+          logger.error(e, `Error parsing date from line: ${l}`);
         }
       } else if (idx === 0 && ticket?.createdAt) {
         dateMs = new Date(ticket.createdAt).getTime();
@@ -342,28 +332,32 @@ const TicketDetailPage: React.FC = () => {
       const content = l.replace(/^\[.*?\]\s?/, '');
       const displayTs = isFinite(dateMs) ? format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }) : '';
       const authorName = isClient ? `${ticket?.userFirstName || ''} ${ticket?.userLastName || ''}`.trim() || 'Cliente' : 'Gestor';
-      return { isClient, content, dateMs, displayTs, authorName, role: UserRole.CLIENT, authorId: ticket?.created_by_user_id };
+      const avatarText = authorName.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2);
+      return { isClient, content, dateMs, displayTs, authorName, avatarText, role: UserRole.CLIENT, authorId: ticket?.created_by_user_id };
     });
 
-    const techMsgs = (ticket?.responses || []).map(r => {
+    const techMsgs = (ticket?.responses || []).map((r: TicketResponse) => {
       const dateMs = new Date(r.created_at).getTime();
       const role = (r.role as UserRole) || UserRole.ADMIN;
       const isClient = role === UserRole.CLIENT || role === UserRole.PENDING_CLIENT;
-      const isUnread = !!(r as any).isNew && isClient;
+      const isUnread = !!r.isNew && isClient;
+      const authorName = r.authorName || 'Gestor';
+      const avatarText = authorName.split(' ').map((s: string) => s[0]).join('').toUpperCase().slice(0, 2);
       return {
         isClient,
         content: r.message,
         dateMs,
         displayTs: format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }),
         isUnread,
-        authorName: r.authorName || 'Gestor',
+        authorName,
+        avatarText,
         role: r.role || 'gestor',
         authorId: r.user_id || r.technician_id,
       };
     });
 
     const result = [...clientMsgs, ...techMsgs].sort((a, b) => (a.dateMs || 0) - (b.dateMs || 0));
-    console.log(`[DEBUG:MESSAGES] Recalculated messages list. Total: ${result.length}`);
+    logger.debug(`[DEBUG:MESSAGES] Recalculated messages list. Total: ${result.length}`);
     return result;
   }, [ticket?.id, ticket?.faultDescription, ticket?.responses, ticket?.createdAt, ticket?.userFirstName, ticket?.userLastName, ticket?.created_by_user_id]);
 
@@ -439,7 +433,7 @@ const TicketDetailPage: React.FC = () => {
     const timer = setTimeout(() => {
       if (chatBodyRef.current) {
         chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-        console.log('[DEBUG:SCROLL] Initial scroll to bottom executed');
+        logger.debug('[DEBUG:SCROLL] Initial scroll to bottom executed');
       }
     }, 100);
 
@@ -456,10 +450,10 @@ const TicketDetailPage: React.FC = () => {
     if (!isRealtimeUpdate) return;
 
     const previousCount = previousMessageCountRef.current;
-    console.log('[DEBUG:SCROLL] Realtime update detected (admin)', {
+    logger.debug({
       currentCount: messages.length,
       previousCount: previousCount
-    });
+    }, '[DEBUG:SCROLL] Realtime update detected (admin)');
 
     const currentCount = messages.length;
 
@@ -467,14 +461,14 @@ const TicketDetailPage: React.FC = () => {
       const timer = setTimeout(() => {
         if (chatBodyRef.current) {
           chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-          console.log('[DEBUG:SCROLL] Scrolled to bottom after realtime update (admin)');
+          logger.debug('[DEBUG:SCROLL] Scrolled to bottom after realtime update (admin)');
         }
       }, 150);
 
       // Reset flag depois
       const resetTimer = setTimeout(() => {
         setIsRealtimeUpdate(false);
-        console.log('[DEBUG:SCROLL] Reset isRealtimeUpdate flag (admin)');
+        logger.debug('[DEBUG:SCROLL] Reset isRealtimeUpdate flag (admin)');
       }, 200);
 
       return () => {
@@ -495,7 +489,7 @@ const TicketDetailPage: React.FC = () => {
       const el = chatBodyRef.current?.querySelector('.thread-new') as HTMLElement | null;
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        console.log('[DEBUG:SCROLL] Scrolled to new message marker (admin)');
+        logger.debug('[DEBUG:SCROLL] Scrolled to new message marker (admin)');
       }
     }, 100);
 
@@ -505,15 +499,11 @@ const TicketDetailPage: React.FC = () => {
 
 
   if (loading) {
-    return <div className="container mt-4">A carregar...</div>;
-  }
-
-  if (error) {
-    return <div className="container mt-4 alert alert-danger">{error}</div>;
+    return <div className="container-fluid mt-4">A carregar...</div>;
   }
 
   if (!ticket) {
-    return <div className="container mt-4">Ticket não encontrado.</div>;
+    return <div className="container-fluid mt-4">Ticket não encontrado.</div>;
   }
 
   const isTicketClosed = ticket.status === TicketStatus.CLOSED;
@@ -622,20 +612,16 @@ const TicketDetailPage: React.FC = () => {
                   >
                     <div className="thread-header">
                       <div className="thread-avatar">
-                        {(m as any).authorName ? (m as any).authorName.split(' ').map((s: string) => s[0]).join('').toUpperCase().slice(0, 2) : 'G'}
+                        {m.avatarText}
                         {m.authorId && (
-                          <span className={`status-indicator ${isUserOnline(m.authorId) ? 'online' : 'offline'}`} title={isUserOnline(m.authorId) ? 'Online' : 'Offline'}>
-                            <span className={`status-badge badge bg-${isUserOnline(m.authorId) ? 'success' : 'secondary'}`}>
-                              {isUserOnline(m.authorId) ? 'online' : 'offline'}
-                            </span>
-                          </span>
+                          <span className={`status-indicator ${isUserOnline(m.authorId) ? 'online' : 'offline'}`} title={isUserOnline(m.authorId) ? 'Online' : 'Offline'}></span>
                         )}
                       </div>
-                      <div className="thread-meta d-flex flex-column">
-                        <strong className="thread-author mb-0">{(m as any).authorName || (m.isClient ? 'Cliente' : 'Gestor')}</strong>
+                      <div className="thread-meta">
+                        <strong className="thread-author">{m.authorName}</strong>
                         <small className="thread-role d-block mb-0">
-                          {m.role === UserRole.CLIENT || m.role === UserRole.PENDING_CLIENT ? <img src="/images/client-icon.png" alt="Cliente" className="me-2" style={{ width: '1.5em', height: '1.5em' }} /> : <img src="/images/technician-icon.png" alt="Técnico" className="me-2" style={{ width: '1.5em', height: '1.5em' }} />}
-                          {m.role === UserRole.CLIENT || m.role === UserRole.PENDING_CLIENT ? 'Cliente' : 'Técnico'}
+                          {m.isClient ? <img src="/images/client-icon.png" alt="Cliente" className="me-2" style={{ width: '1.5em', height: '1.5em' }} /> : <img src="/images/technician-icon.png" alt="Técnico" className="me-2" style={{ width: '1.5em', height: '1.5em' }} />}
+                          {m.isClient ? 'Cliente' : 'Técnico'}
                         </small>
                         <small className="thread-timestamp">{m.displayTs}</small>
                       </div>

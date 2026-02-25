@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useConfirm } from '../contexts/ConfirmContext';
+import logger from '../utils/logger';
 import apiClient from '../apiClient';
 import { Equipment } from '../types';
 
@@ -14,7 +16,7 @@ const EquipmentHistoryPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const [history, setHistory] = useState<EquipmentHistory | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { alert } = useConfirm();
 
   useEffect(() => {
     if (id) {
@@ -23,8 +25,8 @@ const EquipmentHistoryPage: React.FC = () => {
           setHistory(response.data);
         })
         .catch(err => {
-          console.error(`Erro ao carregar histórico do equipamento ${id}:`, err);
-          setError('Não foi possível carregar o histórico do equipamento.');
+          logger.error(err, `Erro ao carregar histórico do equipamento ${id}:`);
+          alert('Não foi possível carregar o histórico do equipamento.');
         })
         .finally(() => {
           setLoading(false);
@@ -33,21 +35,40 @@ const EquipmentHistoryPage: React.FC = () => {
   }, [id]);
 
   if (loading) {
-    return <div className="container mt-4">A carregar...</div>;
-  }
-
-  if (error) {
-    return <div className="container mt-4 alert alert-danger">{error}</div>;
+    return (
+      <div className="container-fluid mt-4">
+        <div className="skeleton skeleton-title" style={{ width: '400px' }}></div>
+        <div className="row">
+          <div className="col-lg-4">
+            <div className="card mb-4 p-4">
+              <div className="skeleton skeleton-title" style={{ width: '80%' }}></div>
+              <div className="skeleton skeleton-text"></div>
+              <div className="skeleton skeleton-text" style={{ width: '90%' }}></div>
+            </div>
+          </div>
+          <div className="col-lg-8">
+            <div className="skeleton mb-3" style={{ height: '42px', borderRadius: '8px' }}></div>
+            <div className="card p-4">
+              {[1, 2, 3].map(i => (
+                <div key={i} className="mb-3">
+                  <div className="skeleton skeleton-text" style={{ width: '100%' }}></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (!history) {
-    return <div className="container mt-4">Nenhum dado encontrado para este equipamento.</div>;
+    return <div className="container-fluid mt-4">Nenhum dado encontrado para este equipamento.</div>;
   }
 
   const { details, tickets, schedules, reports } = history;
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid mt-4">
       <h1 className="mb-3">Histórico do Equipamento</h1>
 
       <div className="row">
@@ -81,7 +102,7 @@ const EquipmentHistoryPage: React.FC = () => {
           <div className="tab-content" id="historyTabsContent">
             <div className="tab-pane fade show active" id="tickets" role="tabpanel">
               <div className="table-responsive mt-3">
-                <table className="table table-striped table-sm">
+                <table className="table">
                   <thead><tr><th>ID</th><th>Data Criação</th><th>Descrição</th><th>Estado</th></tr></thead>
                   <tbody>
                     {tickets.map(ticket => (
@@ -98,7 +119,7 @@ const EquipmentHistoryPage: React.FC = () => {
             </div>
             <div className="tab-pane fade" id="schedules" role="tabpanel">
               <div className="table-responsive mt-3">
-                <table className="table table-striped table-sm">
+                <table className="table">
                   <thead><tr><th>ID</th><th>Data</th><th>Título</th><th>Técnicos</th><th>Concluído</th></tr></thead>
                   <tbody>
                     {schedules.map(schedule => (
@@ -116,7 +137,7 @@ const EquipmentHistoryPage: React.FC = () => {
             </div>
             <div className="tab-pane fade" id="reports" role="tabpanel">
               <div className="table-responsive mt-3">
-                <table className="table table-striped table-sm">
+                <table className="table">
                   <thead><tr><th>ID</th><th>Data</th><th>Horas</th><th>Descrição</th></tr></thead>
                   <tbody>
                     {reports.map(report => (

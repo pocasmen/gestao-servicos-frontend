@@ -7,6 +7,7 @@ import logo from '../logo.png';
 import './ReportPrintPage.css';
 import { SERVICE_TYPE_LABELS, STOCK_TYPE_LABELS, SERVICE_CLASSIFICATION_LABELS } from '../constants';
 import { StockType, ServiceClassification } from '../constants/enums';
+import { logger } from '../utils/logger';
 
 
 interface DetailedReport {
@@ -57,14 +58,19 @@ const calculateHours = (start: Date, end: Date): number => {
 const ReportPrintPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const [report, setReport] = useState<DetailedReport | null>(null);
+    const [error, setError] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const reportRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (id) {
+            setError(null);
             apiClient.get(`/report/${id}`)
                 .then(res => setReport(res.data))
-                .catch(err => console.error("Erro ao carregar o relatório:", err));
+                .catch(err => {
+                    logger.error(err, "Erro ao carregar o relatório:");
+                    setError("O relatório solicitado não foi encontrado ou não existe.");
+                });
         }
     }, [id]);
 
@@ -98,13 +104,33 @@ const ReportPrintPage: React.FC = () => {
             const html2pdf = (await import('html2pdf.js')).default;
             await html2pdf().set(opt).from(element).save();
         } catch (err) {
-            console.error("Erro ao gerar PDF:", err);
+            logger.error(err, "Erro ao gerar PDF:");
             window.print();
         } finally {
             element.classList.remove('pdf-rendering');
             setIsGenerating(false);
         }
     };
+
+    if (error) {
+        return (
+            <div className="modern-report-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <div className="alert alert-danger text-center p-5" style={{ maxWidth: '600px', width: '100%', borderRadius: '1rem' }}>
+                    <div className="mb-4 d-flex justify-content-center">
+                        <FileText className="text-danger" style={{ width: '4rem', height: '4rem' }} />
+                    </div>
+                    <h2 className="h3 mb-3 text-danger fw-bold" style={{ borderBottom: 'none', display: 'block' }}>Relatório Não Encontrado</h2>
+                    <p className="text-muted mb-4">{error}</p>
+                    <button
+                        className="btn btn-primary px-4 py-2 rounded-pill"
+                        onClick={() => window.history.back()}
+                    >
+                        Voltar atrás
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     if (!report) {
         return <div className="loading-container">A carregar dados do relatório...</div>;
@@ -146,17 +172,8 @@ const ReportPrintPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Classificação do Serviço */}
-                {report.classification && report.classification !== ServiceClassification.GERAL && (
-                    <div className="classification-row" style={{ marginTop: '-15px', marginBottom: '15px', textAlign: 'right', paddingRight: '15px', display: 'flex', justifyContent: 'flex-end' }}>
-                        <span className={`badge ${report.classification === ServiceClassification.CONTRATO ? 'bg-primary' : report.classification === ServiceClassification.GARANTIA ? 'bg-warning text-dark' : 'bg-info'}`} style={{ fontSize: '0.9rem', padding: '5px 12px', borderRadius: '20px' }}>
-                            {SERVICE_CLASSIFICATION_LABELS[report.classification]}
-                        </span>
-                    </div>
-                )}
-
-                {/* Tipo de Serviço */}
-                <div className="service-type-section">
+                {/* Tipo de Serviço e Classificação */}
+                <div className="service-type-section" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
                     <div className="service-type-badges">
                         {Object.keys(serviceTypeLabels).map(type => (
                             <div
@@ -170,6 +187,14 @@ const ReportPrintPage: React.FC = () => {
                             </div>
                         ))}
                     </div>
+
+                    {report.classification && report.classification !== ServiceClassification.GERAL && (
+                        <div className="classification-badge-container" style={{ flexShrink: 0 }}>
+                            <span className={`badge ${report.classification === ServiceClassification.CONTRATO ? 'bg-primary' : report.classification === ServiceClassification.GARANTIA ? 'bg-warning text-dark' : 'bg-info'}`} style={{ fontSize: '0.9rem', padding: '5px 12px', borderRadius: '20px' }}>
+                                {SERVICE_CLASSIFICATION_LABELS[report.classification]}
+                            </span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Informação do Cliente e Equipamento */}

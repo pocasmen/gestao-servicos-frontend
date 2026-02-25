@@ -1,4 +1,4 @@
-import { StockType, ServiceClassification } from './constants/enums';
+import { StockType, ServiceClassification, SchedulePriority } from './constants/enums';
 
 export const STOCK_TYPE_LABELS: Record<StockType, string> = {
     [StockType.GENERAL]: 'Geral',
@@ -7,6 +7,7 @@ export const STOCK_TYPE_LABELS: Record<StockType, string> = {
     [StockType.WARRANTY]: 'Garantia',
 };
 
+// Valores lowercase que correspondem ao que vem do backend/BD
 export const SERVICE_TYPES = {
     REPARACAO: 'reparacao',
     INSTALACAO: 'instalacao',
@@ -15,12 +16,13 @@ export const SERVICE_TYPES = {
     REMOTA: 'remota',
 } as const;
 
+// Mapeamento de valores lowercase para labels formatados
 export const SERVICE_TYPE_LABELS: Record<string, string> = {
-    [SERVICE_TYPES.REPARACAO]: 'Reparação',
-    [SERVICE_TYPES.INSTALACAO]: 'Instalação',
-    [SERVICE_TYPES.ASSISTENCIA]: 'Assistência',
-    [SERVICE_TYPES.MANUTENCAO]: 'Manutenção',
-    [SERVICE_TYPES.REMOTA]: 'Remota',
+    'reparacao': 'Reparação',
+    'instalacao': 'Instalação',
+    'assistencia': 'Assistência',
+    'manutencao': 'Manutenção',
+    'remota': 'Remota',
 };
 
 export const SERVICE_TYPES_LIST = [
@@ -44,3 +46,16 @@ export const SERVICE_CLASSIFICATIONS_LIST = [
     { id: ServiceClassification.GARANTIA, label: SERVICE_CLASSIFICATION_LABELS[ServiceClassification.GARANTIA] },
     { id: ServiceClassification.OFERTA, label: SERVICE_CLASSIFICATION_LABELS[ServiceClassification.OFERTA] },
 ];
+
+export const SCHEDULE_PRIORITY_LABELS: Record<SchedulePriority, string> = {
+    [SchedulePriority.HIGH]: 'Alta',
+    [SchedulePriority.MEDIUM]: 'Média',
+    [SchedulePriority.LOW]: 'Baixa',
+};
+
+export const SCHEDULE_PRIORITIES_LIST = [
+    { id: SchedulePriority.HIGH, label: SCHEDULE_PRIORITY_LABELS[SchedulePriority.HIGH] },
+    { id: SchedulePriority.MEDIUM, label: SCHEDULE_PRIORITY_LABELS[SchedulePriority.MEDIUM] },
+    { id: SchedulePriority.LOW, label: SCHEDULE_PRIORITY_LABELS[SchedulePriority.LOW] },
+];
+

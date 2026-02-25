@@ -11,8 +11,11 @@ interface SmartInputProps {
     type?: 'text' | 'textarea' | 'email' | 'tel' | 'number';
     disabled?: boolean;
     required?: boolean;
+    hideLabel?: boolean;
+    className?: string; // Additional classes for the wrapper
     onValidationChange?: (isValid: boolean) => void;
     onAudit?: (action: 'correction' | 'override' | 'ignore', details: any) => void;
+    onBlur?: () => void;
 }
 
 export const SmartInput: React.FC<SmartInputProps> = ({
@@ -24,8 +27,11 @@ export const SmartInput: React.FC<SmartInputProps> = ({
     type = 'text',
     disabled,
     required,
+    hideLabel = false,
+    className,
     onValidationChange,
-    onAudit
+    onAudit,
+    onBlur
 }) => {
     const [internalValue, setInternalValue] = useState(value);
     const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
@@ -88,6 +94,7 @@ export const SmartInput: React.FC<SmartInputProps> = ({
         }
 
         validate(valueToValidate);
+        onBlur?.();
     };
 
     const applyCorrection = () => {
@@ -149,11 +156,13 @@ export const SmartInput: React.FC<SmartInputProps> = ({
     };
 
     return (
-        <div className={styles.container}>
-            <label className={styles.label}>
-                {label}
-                {required && <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>}
-            </label>
+        <div className={`${styles.container} ${className || ''}`}>
+            {!hideLabel && (
+                <label className={styles.label}>
+                    {label}
+                    {required && <span style={{ color: '#ef4444', marginLeft: '4px' }}>*</span>}
+                </label>
+            )}
 
             <div className={styles.inputWrapper}>
                 {renderInput()}

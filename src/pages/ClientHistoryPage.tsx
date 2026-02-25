@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import { format } from 'date-fns';
 import { Ticket } from '../types';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useConfirm } from '../contexts/ConfirmContext';
+import logger from '../utils/logger';
 
 interface ClientSchedule {
     id: number;
@@ -14,36 +16,48 @@ interface ClientSchedule {
     serviceType: string;
     technicians: string[];
     equipmentInfo: string;
+    equipmentId?: number;
 }
 
 const ClientHistoryPage: React.FC = () => {
     const [schedules, setSchedules] = useState<ClientSchedule[]>([]);
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState('');
+    const { alert } = useConfirm();
     const navigate = useNavigate();
+    const location = useLocation();
+    const [filterEquipmentId, setFilterEquipmentId] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (location.state && (location.state as any).equipmentId) {
+            setFilterEquipmentId((location.state as any).equipmentId);
+        }
+    }, [location.state]);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
                 const [schedulesRes, ticketsRes] = await Promise.all([
-                    apiClient.get('/api/my-schedules'),
-                    apiClient.get('/api/my-tickets')
+                    apiClient.get('/api/my-schedules?page=1&limit=50'),
+                    apiClient.get('/api/my-tickets?page=1&limit=50')
                 ]);
 
+                // Handle paginated response structure
+                const schedulesData = schedulesRes.data.data ? schedulesRes.data.data : schedulesRes.data;
+                const ticketsData = ticketsRes.data.data ? ticketsRes.data.data : ticketsRes.data;
+
                 // Filter for History: Completed Schedules
-                const historySchedules = schedulesRes.data.filter((s: ClientSchedule) => s.isCompleted);
+                let historySchedules = (Array.isArray(schedulesData) ? schedulesData : []).filter((s: any) => s.isCompleted);
 
                 // Filter for History: Closed Tickets
-                const historyTickets = ticketsRes.data.filter((t: Ticket) => t.status === 'closed');
+                let historyTickets = (Array.isArray(ticketsData) ? ticketsData : []).filter((t: any) => t.status === 'closed');
 
                 setSchedules(historySchedules);
                 setTickets(historyTickets);
-                setError('');
             } catch (err) {
-                console.error('Erro ao carregar histórico:', err);
-                setError('Ocorreu um erro ao carregar o histórico.');
+                logger.error(err, 'Erro ao carregar histórico:');
+                alert('Ocorreu um erro ao carregar o histórico.');
             } finally {
                 setLoading(false);
             }
@@ -66,30 +80,42 @@ const ClientHistoryPage: React.FC = () => {
             if (response.data && response.data.id) {
                 navigate(`/report/print/${response.data.id}`);
             } else {
-                setError("Relatório não encontrado.");
+                alert("Relatório não encontrado.");
             }
         } catch (error) {
-            console.error("Erro ao carregar o relatório:", error);
-            setError("Não foi possível carregar o relatório. Por favor, tente mais tarde.");
+            logger.error(error, "Erro ao carregar o relatório:");
+            alert("Não foi possível carregar o relatório. Por favor, tente mais tarde.");
         }
     };
 
+    const filteredSchedules = filterEquipmentId
+        ? schedules.filter(s => s.equipmentId === filterEquipmentId)
+        : schedules;
+
+    const filteredTickets = filterEquipmentId
+        ? tickets.filter(t => t.equipmentId === filterEquipmentId)
+        : tickets;
+
     if (loading) {
-        return <div className="container mt-4">A carregar histórico...</div>;
+        return <div className="container-fluid mt-4">A carregar histórico...</div>;
     }
 
     return (
-        <div className="container mt-4" style={{ maxWidth: '1000px' }}>
+        <div className="container-fluid mt-4">
             <div className="card shadow-sm">
-                <div className="card-header bg-secondary text-white">
+                <div className="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
                     <h4 className="mb-0">Histórico de Atividade</h4>
+                    {filterEquipmentId && (
+                        <button className="btn btn-sm btn-light" onClick={() => setFilterEquipmentId(null)}>
+                            Limpar Filtro de Equipamento
+                        </button>
+                    )}
                 </div>
                 <div className="card-body">
-                    {error && <div className="alert alert-danger">{error}</div>}
 
                     {/* Section: Past Schedules (Services) */}
                     <h5 className="mb-3 text-secondary border-bottom pb-2">Serviços Realizados</h5>
-                    {schedules.length === 0 ? (
+                    {filteredSchedules.length === 0 ? (
                         <p className="text-muted fst-italic mb-4">Sem histórico de serviços.</p>
                     ) : (
                         <div className="table-responsive mb-4">
@@ -104,7 +130,7 @@ const ClientHistoryPage: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {schedules.map((schedule) => (
+                                    {filteredSchedules.map((schedule) => (
                                         <tr key={schedule.id}>
                                             <td>
                                                 <div className="fw-bold">{format(new Date(schedule.startDate), 'dd/MM/yyyy')}</div>
@@ -132,11 +158,11 @@ const ClientHistoryPage: React.FC = () => {
 
                     {/* Section: Closed Tickets */}
                     <h5 className="mb-3 text-secondary border-bottom pb-2">Tickets Fechados</h5>
-                    {tickets.length === 0 ? (
+                    {filteredTickets.length === 0 ? (
                         <p className="text-muted fst-italic">Sem tickets fechados.</p>
                     ) : (
                         <div className="list-group">
-                            {tickets.map((ticket) => (
+                            {filteredTickets.map((ticket) => (
                                 <div key={ticket.id} className="list-group-item list-group-item-action flex-column align-items-start">
                                     <div className="d-flex w-100 justify-content-between">
                                         <h6 className="mb-1">#{ticket.id} - {ticket.title}</h6>

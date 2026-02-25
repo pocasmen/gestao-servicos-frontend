@@ -3,14 +3,15 @@ import { Navigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
 import { UserRole } from '../constants/enums';
+import { useConfirm } from '../contexts/ConfirmContext';
+import logger from '../utils/logger';
 
 const CompleteRegistrationPage: React.FC = () => {
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
     const [loading, setLoading] = useState(false);
     const { user } = useContext(AuthContext);
+    const { alert } = useConfirm();
 
     // If no user is in context, they shouldn't be here.
     if (!user) {
@@ -44,15 +45,13 @@ const CompleteRegistrationPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
-        setSuccess('');
 
         if (password !== confirmPassword) {
-            setError('As passwords não coincidem.');
+            alert('As passwords não coincidem.');
             return;
         }
         if (password.length < 6) {
-            setError('A password deve ter no mínimo 6 caracteres.');
+            alert('A password deve ter no mínimo 6 caracteres.');
             return;
         }
 
@@ -65,10 +64,10 @@ const CompleteRegistrationPage: React.FC = () => {
             if (updateError) {
                 throw updateError;
             }
-            setSuccess('A sua password foi definida com sucesso. A sua conta aguarda agora a aprovação de um administrador. Será notificado quando for ativada.');
+            alert('A sua password foi definida com sucesso. A sua conta aguarda agora a aprovação de um administrador. Será notificado quando for ativada.', 'Sucesso');
         } catch (err: any) {
-            console.error(err);
-            setError(err.message || 'Ocorreu um erro ao definir a sua password.');
+            logger.error(err);
+            alert(err.message || 'Ocorreu um erro ao definir a sua password.');
         } finally {
             setLoading(false);
         }
@@ -79,47 +78,34 @@ const CompleteRegistrationPage: React.FC = () => {
             <div className="card shadow-sm" style={{ width: '100%', maxWidth: '500px' }}>
                 <div className="card-body p-4">
                     <h3 className="card-title text-center mb-4">Finalizar Registo</h3>
-
-                    {success ? (
-                        <div className="alert alert-success">
-                            <p>{success}</p>
-                            <div className="text-center mt-3">
-                                <Link to="/login" className="btn btn-primary">Voltar ao Login</Link>
-                            </div>
+                    <p className="text-muted text-center">Bem-vindo(a), {user.email}. Por favor, defina a sua password para completar o registo.</p>
+                    <form onSubmit={handleSubmit}>
+                        <div className="form-group mb-3">
+                            <label htmlFor="password">Password</label>
+                            <input
+                                type="password"
+                                className="form-control"
+                                id="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
                         </div>
-                    ) : (
-                        <>
-                            <p className="text-muted text-center">Bem-vindo(a), {user.email}. Por favor, defina a sua password para completar o registo.</p>
-                            <form onSubmit={handleSubmit}>
-                                <div className="form-group mb-3">
-                                    <label htmlFor="password">Password</label>
-                                    <input
-                                        type="password"
-                                        className="form-control"
-                                        id="password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                <div className="form-group mb-3">
-                                    <label htmlFor="confirmPassword">Confirmar Password</label>
-                                    <input
-                                        type="password"
-                                        className="form-control"
-                                        id="confirmPassword"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        required
-                                    />
-                                </div>
-                                {error && <div className="alert alert-danger">{error}</div>}
-                                <button type="submit" className="btn btn-primary w-100" disabled={loading}>
-                                    {loading ? 'A guardar...' : 'Definir Password e Concluir'}
-                                </button>
-                            </form>
-                        </>
-                    )}
+                        <div className="form-group mb-3">
+                            <label htmlFor="confirmPassword">Confirmar Password</label>
+                            <input
+                                type="password"
+                                className="form-control"
+                                id="confirmPassword"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+                            {loading ? 'A guardar...' : 'Definir Password e Concluir'}
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
+import logger from '../utils/logger';
 
 const SettingsPage: React.FC = () => {
-  const { confirm } = useConfirm();
-  const [settings, setSettings] = useState({
+  const [settings, setSettings] = useState<Record<string, string>>({
     ticket_notification_active: 'true',
     ticket_notification_time: '17:00',
     google_calendar_sync_enabled: 'false',
+    img_compression_quality: '0.7',
+    img_compression_max_width: '1280'
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const { confirm, alert } = useConfirm();
   const [emailTemplates, setEmailTemplates] = useState<Record<string, any>>({});
   const [selectedTemplateKey, setSelectedTemplateKey] = useState<string>('');
   const [templateLoading, setTemplateLoading] = useState(false);
@@ -31,8 +32,8 @@ const SettingsPage: React.FC = () => {
         setSelectedTemplateKey(Object.keys(templatesResponse.data)[0]);
       }
     } catch (err) {
-      console.error("Erro ao carregar configurações:", err);
-      setError('Não foi possível carregar as configurações.');
+      logger.error(err, "Erro ao carregar configurações:");
+      alert('Não foi possível carregar as configurações.');
     } finally {
       setIsLoading(false);
     }
@@ -65,18 +66,16 @@ const SettingsPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    setError('');
-    setSuccess('');
     try {
       await apiClient.put('/api/settings', settings);
 
       // Save templates
       await apiClient.put('/api/admin/email-templates', emailTemplates);
 
-      setSuccess('Configurações guardadas com sucesso!');
+      alert('Configurações guardadas com sucesso!', 'Sucesso');
     } catch (err) {
-      console.error("Erro ao guardar configurações:", err);
-      setError('Ocorreu um erro ao guardar as configurações.');
+      logger.error(err, "Erro ao guardar configurações:");
+      alert('Ocorreu um erro ao guardar as configurações.');
     }
   };
 
@@ -87,18 +86,13 @@ const SettingsPage: React.FC = () => {
       confirmText: 'Sincronizar'
     })) return;
 
-    setIsSyncing(true);
-    setError('');
-    setSuccess('');
-    setSyncResult(null);
-
     try {
       const response = await apiClient.post('/api/admin/sync-google-calendar');
       setSyncResult(response.data);
-      setSuccess(`Sincronização concluída: ${response.data.success} sucesso(s), ${response.data.fail} falha(s).`);
+      alert(`Sincronização concluída: ${response.data.success} sucesso(s), ${response.data.fail} falha(s).`, 'Sucesso');
     } catch (err: any) {
-      console.error("Erro na sincronização:", err);
-      setError(err.response?.data?.error || 'Erro ao sincronizar com o Google Calendar.');
+      logger.error(err, "Erro na sincronização:");
+      alert(err.response?.data?.error || 'Erro ao sincronizar com o Google Calendar.');
     } finally {
       setIsSyncing(false);
     }
@@ -112,34 +106,26 @@ const SettingsPage: React.FC = () => {
       confirmText: 'Apagar Tudo'
     })) return;
 
-    setIsClearing(true);
-    setError('');
-    setSuccess('');
-    setSyncResult(null);
-
     try {
       const response = await apiClient.post('/api/admin/clear-google-calendar');
-      setSuccess(`Limpeza concluída: ${response.data.success} removido(s), ${response.data.fail} falha(s).`);
+      alert(`Limpeza concluída: ${response.data.success} removido(s), ${response.data.fail} falha(s).`, 'Sucesso');
     } catch (err: any) {
-      console.error("Erro na limpeza:", err);
-      setError(err.response?.data?.error || 'Erro ao limpar o Google Calendar.');
+      logger.error(err, "Erro na limpeza:");
+      alert(err.response?.data?.error || 'Erro ao limpar o Google Calendar.');
     } finally {
       setIsClearing(false);
     }
   };
 
   if (isLoading) {
-    return <div className="container mt-4"><p>A carregar configurações...</p></div>;
+    return <div className="container-fluid mt-4"><p>A carregar configurações...</p></div>;
   }
 
   const selectedTemplate = emailTemplates[selectedTemplateKey];
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid mt-4">
       <h2>Configurações Gerais</h2>
-
-      {error && <div className="alert alert-danger">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
 
       <div className="card mb-4">
         <div className="card-header">
@@ -239,6 +225,42 @@ const SettingsPage: React.FC = () => {
               </div>
             </>
           )}
+        </div>
+      </div>
+
+      <div className="card mb-4 border-info">
+        <div className="card-header bg-info text-white">
+          Configuração de Imagens (Relatórios/Tarefas)
+        </div>
+        <div className="card-body">
+          <div className="mb-3">
+            <label htmlFor="img_compression_quality" className="form-label">Qualidade de Compressão (0.1 a 1.0)</label>
+            <input
+              type="number"
+              step="0.1"
+              min="0.1"
+              max="1.0"
+              className="form-control"
+              id="img_compression_quality"
+              name="img_compression_quality"
+              value={settings.img_compression_quality || '0.7'}
+              onChange={handleInputChange}
+            />
+            <div className="form-text">0.7 é o recomendado (reduz ~80% do tamanho com boa qualidade).</div>
+          </div>
+
+          <div className="mb-3">
+            <label htmlFor="img_compression_max_width" className="form-label">Largura Máxima (Pixels)</label>
+            <input
+              type="number"
+              className="form-control"
+              id="img_compression_max_width"
+              name="img_compression_max_width"
+              value={settings.img_compression_max_width || '1280'}
+              onChange={handleInputChange}
+            />
+            <div className="form-text">Imagens maiores que este valor serão redimensionadas proporcionalmente.</div>
+          </div>
         </div>
       </div>
 

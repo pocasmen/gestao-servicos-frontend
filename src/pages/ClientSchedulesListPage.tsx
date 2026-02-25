@@ -3,6 +3,8 @@ import apiClient from '../apiClient';
 import { format, isFuture, isPast } from 'date-fns';
 import { Ticket } from '../types';
 import { Link } from 'react-router-dom';
+import { useConfirm } from '../contexts/ConfirmContext';
+import logger from '../utils/logger';
 
 interface ClientSchedule {
   id: number;
@@ -20,32 +22,32 @@ const ClientSchedulesListPage: React.FC = () => {
   const [schedules, setSchedules] = useState<ClientSchedule[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { alert } = useConfirm();
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const [schedulesRes, ticketsRes] = await Promise.all([
-          apiClient.get('/api/my-schedules'),
-          apiClient.get('/api/my-tickets')
+          apiClient.get('/api/my-schedules?page=1&limit=50'),
+          apiClient.get('/api/my-tickets?page=1&limit=50')
         ]);
 
+        // Handle paginated response structure
+        const schedulesData = schedulesRes.data.data ? schedulesRes.data.data : schedulesRes.data;
+        const ticketsData = ticketsRes.data.data ? ticketsRes.data.data : ticketsRes.data;
+
         // Filter for Future Schedules (Not Completed)
-        // Filter also by date? User said "serviços futuros, ou seja, foram agendados mais ainda não foram concluidos".
-        // Usually !isCompleted implies it's future or in progress or delayed. I will stick to !isCompleted.
-        const activeSchedules = schedulesRes.data.filter((s: ClientSchedule) => !s.isCompleted);
+        const activeSchedules = (Array.isArray(schedulesData) ? schedulesData : []).filter((s: any) => !s.isCompleted);
 
         // Filter for Open Tickets (Not Closed)
-        // Assuming status 'closed' means done. 'deleted' should probably be ignored too.
-        const activeTickets = ticketsRes.data.filter((t: Ticket) => t.status !== 'closed' && t.status !== 'deleted');
+        const activeTickets = (Array.isArray(ticketsData) ? ticketsData : []).filter((t: any) => t.status !== 'closed' && t.status !== 'deleted');
 
         setSchedules(activeSchedules);
         setTickets(activeTickets);
-        setError('');
       } catch (err) {
-        console.error('Erro ao carregar dados:', err);
-        setError('Ocorreu um erro ao carregar os seus serviços.');
+        logger.error(err, 'Erro ao carregar dados:');
+        alert('Ocorreu um erro ao carregar os seus serviços.');
       } finally {
         setLoading(false);
       }
@@ -55,17 +57,16 @@ const ClientSchedulesListPage: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <div className="container mt-4">A carregar serviços...</div>;
+    return <div className="container-fluid mt-4">A carregar serviços...</div>;
   }
 
   return (
-    <div className="container mt-4" style={{ maxWidth: '1000px' }}>
+    <div className="container-fluid mt-4">
       <div className="card shadow-sm">
         <div className="card-header bg-primary text-white">
           <h4 className="mb-0">Serviços e Tickets Ativos</h4>
         </div>
         <div className="card-body">
-          {error && <div className="alert alert-danger">{error}</div>}
 
           {/* Section: Future/Active Schedules */}
           <h5 className="mb-3 text-primary border-bottom pb-2">Agendamentos Confirmados</h5>

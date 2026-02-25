@@ -1,4 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
+import logger from '../utils/logger';
 import './SignaturePad.css';
 import { Maximize2, Minimize2, Trash2, CheckCircle } from 'lucide-react';
 
@@ -152,7 +153,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClear, initial
                     };
                     img.onerror = () => {
                         isLoadingImgRef.current = false;
-                        console.error("Erro ao carregar imagem da assinatura inicial");
+                        logger.error("Erro ao carregar imagem da assinatura inicial");
                     };
                     img.src = initialSignature;
                 }

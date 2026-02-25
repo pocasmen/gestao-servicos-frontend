@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
@@ -7,15 +8,18 @@ import { format, parse, startOfWeek, getDay, addHours } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import apiClient from '../apiClient';
 import { supabase } from '../supabase';
+import logger from '../utils/logger';
 
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import './CalendarPage.css';
 
-import { ScheduleEvent, Report, Ticket } from '../types';
+import { ScheduleEvent, Report, Ticket, Technician } from '../types';
+import { ScheduleEventSchema } from '../schemas';
 import ScheduleDetailModal from '../components/ScheduleDetailModal';
 import ReportModal from '../components/ReportModal';
-import { SERVICE_TYPE_LABELS } from '../constants';
+import { SERVICE_TYPE_LABELS, SCHEDULE_PRIORITY_LABELS } from '../constants';
+import { ScheduleStatus, SchedulePriority } from '../constants/enums';
 
 const locales = { 'pt-PT': pt };
 
@@ -54,7 +58,8 @@ const messages = {
 const calendarViews = [Views.MONTH, Views.WORK_WEEK, Views.DAY, Views.AGENDA];
 
 const CalendarPage: React.FC = () => {
-  const [events, setEvents] = useState<ScheduleEvent[]>([]);
+  const queryClient = useQueryClient();
+  const { confirm: contextConfirm, alert: contextAlert } = useConfirm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -62,62 +67,121 @@ const CalendarPage: React.FC = () => {
   const [date, setDate] = useState(new Date());
   const [view, setView] = useState(Views.WORK_WEEK);
   const [dirtyEventIds, setDirtyEventIds] = useState<Set<string | number>>(new Set());
+  const [showOnlyMyBacklog, setShowOnlyMyBacklog] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [draggedItemMetadata, setDraggedItemMetadata] = useState<ScheduleEvent | null>(null);
+  const [backlogSortMode, setBacklogSortMode] = useState<'date' | 'priority'>('priority');
 
   const location = useLocation();
   const navigate = useNavigate();
 
-
-
-
-  const fetchSchedules = useCallback(() => {
-    apiClient.get('/api/schedules').then(response => {
-      const fetchedEvents: ScheduleEvent[] = [];
-
-      response.data.forEach((schedule: any) => {
-        const serviceLabel = SERVICE_TYPE_LABELS[schedule.serviceType] || schedule.serviceType || 'Serviço';
-        const equipLabel = schedule.equipmentInfo || 'Mod. Desconhecido';
-        const clientLabel = schedule.clientName || 'Cliente Desconhecido';
-        const title = `${serviceLabel} - ${equipLabel} - ${clientLabel}`;
-
-        const baseEvent = {
-          ...schedule,
-          scheduleId: schedule.id,
-          title,
-        };
-
-        if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
-          schedule.timeBlocks.forEach((tb: any, index: number) => {
-            fetchedEvents.push({
-              ...baseEvent,
-              id: tb.id ? `blk_${tb.id}` : `s${schedule.id}_idx${index}`, // Unique ID for calendar
-              // Store DB block id if available, handled via virtual ID for now
-              start: new Date(tb.start),
-              end: new Date(tb.end),
-            });
-          });
-        } else {
-          fetchedEvents.push({
-            ...baseEvent,
-            id: schedule.id,
-            start: new Date(schedule.startDate),
-            end: new Date(schedule.endDate),
-          });
-        }
-      });
-      setEvents(fetchedEvents);
-    }).catch(console.error);
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setCurrentUserId(data.user.id);
+    });
   }, []);
 
+  // Queries
+  const { data: rawSchedules = [], refetch: fetchSchedules } = useQuery({
+    queryKey: ['schedules'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/schedules');
+      return response.data.data || [];
+    }
+  });
+
+  const processedSchedules = useMemo(() => {
+    const fetchedEvents: ScheduleEvent[] = [];
+    const fetchedBacklog: ScheduleEvent[] = [];
+
+    rawSchedules.forEach((item: unknown) => {
+      const result = ScheduleEventSchema.safeParse(item);
+      if (!result.success) {
+        logger.error(result.error.format(), '[SCHEMA_ERROR] Invalid schedule data received:');
+        return;
+      }
+
+      const schedule = result.data;
+      const serviceLabel = SERVICE_TYPE_LABELS[schedule.serviceType || ''] || schedule.serviceType || 'Serviço';
+      const equipLabel = schedule.equipmentInfo || 'Mod. Desconhecido';
+      const clientLabel = schedule.clientName || 'Cliente Desconhecido';
+      const title = `${serviceLabel} - ${equipLabel} - ${clientLabel}`;
+
+      const baseEvent = {
+        ...schedule,
+        id: schedule.id,
+        scheduleId: schedule.scheduleId || (typeof schedule.id === 'number' ? schedule.id : undefined),
+        title,
+        start: schedule.startDate ? new Date(schedule.startDate) : undefined,
+        end: schedule.endDate ? new Date(schedule.endDate) : undefined,
+        technicians: schedule.technicians || [],
+      } as ScheduleEvent;
+
+      const isUnscheduled = schedule.acknowledgementState === ScheduleStatus.PENDING_SCHEDULING || !schedule.startDate;
+
+      if (isUnscheduled) {
+        fetchedBacklog.push(baseEvent);
+      } else if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
+        schedule.timeBlocks.forEach((tb, index: number) => {
+          fetchedEvents.push({
+            ...baseEvent,
+            id: tb.id ? `blk_${tb.id}` : `s${schedule.id}_idx${index}`,
+            start: new Date(tb.start),
+            end: new Date(tb.end),
+          });
+        });
+      } else {
+        fetchedEvents.push({
+          ...baseEvent,
+          id: schedule.id,
+          start: schedule.startDate ? new Date(schedule.startDate) : undefined,
+          end: schedule.endDate ? new Date(schedule.endDate) : undefined,
+        } as ScheduleEvent);
+      }
+    });
+
+    return { events: fetchedEvents, backlog: fetchedBacklog };
+  }, [rawSchedules]);
+
+  const [eventsState, setEvents] = useState<ScheduleEvent[]>([]);
+
+  // We sync eventsState with processedSchedules only when rawSchedules changes
+  // to allow local updates (drag/resize) to persist until save.
   useEffect(() => {
-    fetchSchedules();
-  }, [fetchSchedules]);
+    setEvents(processedSchedules.events);
+  }, [processedSchedules.events]);
+
+  const events = eventsState;
+  const backlog = processedSchedules.backlog;
+
+  const filteredBacklog = useMemo(() => {
+    return backlog
+      .filter(item => !showOnlyMyBacklog || (item.technicians && item.technicians.some(t => t.id === currentUserId)))
+      .sort((a, b) => {
+        if (backlogSortMode === 'date') {
+          const aDate = new Date(a.id as number).getTime();
+          const bDate = new Date(b.id as number).getTime();
+          return aDate - bDate;
+        } else {
+          const priorityOrder = { [SchedulePriority.HIGH]: 0, [SchedulePriority.MEDIUM]: 1, [SchedulePriority.LOW]: 2 };
+          const aPriority = a.priority || SchedulePriority.MEDIUM;
+          const bPriority = b.priority || SchedulePriority.MEDIUM;
+
+          if (priorityOrder[aPriority] !== priorityOrder[bPriority]) {
+            return priorityOrder[aPriority] - priorityOrder[bPriority];
+          }
+
+          const aDate = new Date(a.id as number).getTime();
+          const bDate = new Date(b.id as number).getTime();
+          return aDate - bDate;
+        }
+      });
+  }, [backlog, showOnlyMyBacklog, currentUserId, backlogSortMode]);
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedEvent(null);
   }, []);
-
-  const { confirm: contextConfirm, alert: contextAlert } = useConfirm();
 
   const handleManageReport = useCallback(async (event: ScheduleEvent) => {
     handleCloseModal();
@@ -130,11 +194,21 @@ const CalendarPage: React.FC = () => {
     try {
       const response = await apiClient.get<Report>(`/api/reports/by-schedule/${numericId}`);
       setReportToEdit(response.data);
-    } catch (error: any) {
-      if (error.response && error.response.status === 404) {
-        setReportToEdit(null);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response: { status: number } };
+        if (axiosError.response.status === 404) {
+          setReportToEdit(null);
+          // 404 means no report exists, so we proceed to open modal in "Create" mode
+          // Do not return here.
+        } else {
+          // For other errors, we might want to stop or alert
+          logger.error(error, "Erro ao verificar relatório existente:");
+          await contextAlert("Não foi possível verificar o relatório do serviço.");
+          return; // Stop if it's a non-404 error?
+        }
       } else {
-        console.error("Erro ao verificar relatório existente:", error);
+        logger.error(error, "Erro desconhecido ao verificar relatório:");
         await contextAlert("Não foi possível verificar o relatório do serviço.");
         return;
       }
@@ -187,26 +261,30 @@ const CalendarPage: React.FC = () => {
       if (eventToEdit) {
         setSelectedEvent(eventToEdit);
         setIsModalOpen(true);
-        setDate(eventToEdit.start);
+        if (eventToEdit.start) setDate(eventToEdit.start);
         navigate(location.pathname, { replace: true, state: {} });
       }
     } else if (ticketToReport) {
       const scheduleEvent = events.find(e => (e.scheduleId === (ticketToReport as Ticket).scheduleId) || (e.id === (ticketToReport as Ticket).scheduleId));
       if (scheduleEvent) {
         handleManageReport(scheduleEvent);
-        setDate(scheduleEvent.start);
+        if (scheduleEvent.start) setDate(scheduleEvent.start);
         navigate(location.pathname, { replace: true, state: {} });
       }
     }
   }, [location, navigate, events, handleManageReport]);
 
-  const handleEventDrop = useCallback(({ event, start, end, isAllDay }: any) => {
-    setEvents(prev => prev.map(e => e.id === event.id ? { ...e, start, end } : e));
+  const handleEventDrop = useCallback(({ event, start, end }: { event: ScheduleEvent, start: string | Date, end: string | Date }) => {
+    const s = typeof start === 'string' ? new Date(start) : start;
+    const e = typeof end === 'string' ? new Date(end) : end;
+    setEvents(prev => prev.map(ev => ev.id === event.id ? { ...ev, start: s, end: e } : ev));
     setDirtyEventIds(prev => new Set(prev).add(event.id));
   }, []);
 
-  const handleEventResize = useCallback(({ event, start, end }: any) => {
-    setEvents(prev => prev.map(e => e.id === event.id ? { ...e, start, end } : e));
+  const handleEventResize = useCallback(({ event, start, end }: { event: ScheduleEvent, start: string | Date, end: string | Date }) => {
+    const s = typeof start === 'string' ? new Date(start) : start;
+    const e = typeof end === 'string' ? new Date(end) : end;
+    setEvents(prev => prev.map(ev => ev.id === event.id ? { ...ev, start: s, end: e } : ev));
     setDirtyEventIds(prev => new Set(prev).add(event.id));
   }, []);
 
@@ -220,24 +298,49 @@ const CalendarPage: React.FC = () => {
     setIsModalOpen(true);
   }, []);
 
+  const onDropFromOutside = useCallback(({ start, end, allDay }: any) => {
+    if (draggedItemMetadata) {
+      setSelectedEvent({
+        ...draggedItemMetadata,
+        start,
+        end: addHours(start, 1),
+      });
+      setIsModalOpen(true);
+      setDraggedItemMetadata(null);
+    }
+  }, [draggedItemMetadata]);
+
+  const handleDragStart = useCallback((item: ScheduleEvent) => {
+    setDraggedItemMetadata(item);
+  }, []);
+
+  const dragFromOutsideItem = useCallback(() => {
+    return draggedItemMetadata || {} as ScheduleEvent;
+  }, [draggedItemMetadata]);
+
+  const handleBacklogClick = (item: ScheduleEvent) => {
+    setSelectedEvent({
+      ...item,
+      start: new Date(), // Default to now if clicking
+      end: addHours(new Date(), 1)
+    });
+    setIsModalOpen(true);
+  };
+
   const handleScheduleUpdated = useCallback((savedSchedule?: ScheduleEvent) => {
-    fetchSchedules();
+    queryClient.invalidateQueries({ queryKey: ['schedules'] });
     handleCloseModal();
-  }, [fetchSchedules, handleCloseModal]);
+  }, [queryClient, handleCloseModal]);
 
   // Real-time synchronization using Broadcast (fast) and Postgres Changes (backup)
   useEffect(() => {
-    if (import.meta.env.DEV) {
-      console.log('[DEBUG:REALTIME] Iniciando monitorização em tempo real...');
-    }
+    logger.debug('[DEBUG:REALTIME] Iniciando monitorização em tempo real...');
 
     const channel = supabase
       .channel('calendar_updates')
       // 1. Ouvir via Broadcast (Enviado manualmente pelo servidor para rapidez total)
       .on('broadcast', { event: 'schedule_changed' }, (payload) => {
-        if (import.meta.env.DEV) {
-          console.log('[DEBUG:REALTIME] Mensagem Broadcast recebida:', payload);
-        }
+        logger.debug(payload, '[DEBUG:REALTIME] Mensagem Broadcast recebida:');
         fetchSchedules();
       })
       // 2. Ouvir via Postgres Changes (Caso a tabela tenha Realtime ativo no dashboard)
@@ -245,9 +348,7 @@ const CalendarPage: React.FC = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'schedules' },
         (payload) => {
-          if (import.meta.env.DEV) {
-            console.log('[DEBUG:REALTIME] Postgres Change detetada (schedules):', payload);
-          }
+          logger.debug(payload, '[DEBUG:REALTIME] Postgres Change detetada (schedules):');
           fetchSchedules();
         }
       )
@@ -255,22 +356,16 @@ const CalendarPage: React.FC = () => {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'schedule_technicians' },
         (payload) => {
-          if (import.meta.env.DEV) {
-            console.log('[DEBUG:REALTIME] Postgres Change detetada (technicians):', payload);
-          }
+          logger.debug(payload, '[DEBUG:REALTIME] Postgres Change detetada (technicians):');
           fetchSchedules();
         }
       )
       .subscribe((status, err) => {
-        if (import.meta.env.DEV) {
-          console.log(`[DEBUG:REALTIME] Status da subscrição: ${status}`, err || '');
-        }
+        logger.debug({ err }, `[DEBUG:REALTIME] Status da subscrição: ${status}`);
       });
 
     return () => {
-      if (import.meta.env.DEV) {
-        console.log('[DEBUG:REALTIME] A limpar subscrição...');
-      }
+      logger.debug('[DEBUG:REALTIME] A limpar subscrição...');
       supabase.removeChannel(channel);
     };
   }, [fetchSchedules]);
@@ -315,17 +410,17 @@ const CalendarPage: React.FC = () => {
       if (scheduleEvents.length === 0) return Promise.resolve();
 
       // 3. Calculate Min/Max for the parent schedule container
-      const times = scheduleEvents.flatMap(e => [e.start.getTime(), e.end.getTime()]);
-      const minTime = new Date(Math.min(...times));
-      const maxTime = new Date(Math.max(...times));
+      const times = scheduleEvents.flatMap(e => [e.start?.getTime() || 0, e.end?.getTime() || 0]);
+      const minTime = new Date(Math.min(...times.filter(t => t > 0)));
+      const maxTime = new Date(Math.max(...times.filter(t => t > 0)));
 
       // 4. Construct payload
       const baseEvent = scheduleEvents[0];
       if (!baseEvent) return Promise.resolve();
 
       const timeBlocks = scheduleEvents.map(e => ({
-        start: e.start.toISOString(),
-        end: e.end.toISOString()
+        start: e.start?.toISOString() || '',
+        end: e.end?.toISOString() || ''
       }));
 
       const { technicians, scheduleId: _sId, id: _id, ...baseEventRest } = baseEvent;
@@ -339,7 +434,7 @@ const CalendarPage: React.FC = () => {
         ...baseEventRest,
         startDate: minTime.toISOString(),
         endDate: maxTime.toISOString(),
-        technicianIds: baseEvent.technicians ? baseEvent.technicians.map((t: any) => t.id) : [],
+        technicianIds: baseEvent.technicians ? baseEvent.technicians.map(t => t.id) : [],
         timeBlocks
       };
 
@@ -350,7 +445,7 @@ const CalendarPage: React.FC = () => {
       await Promise.all(updatePromises);
       await contextAlert('Alterações guardadas com sucesso!', 'Sucesso');
     } catch (error) {
-      console.error("Erro ao guardar alterações:", error);
+      logger.error(error, "Erro ao guardar alterações:");
       await contextAlert('Ocorreu um erro ao guardar as alterações.');
     } finally {
       setDirtyEventIds(new Set());
@@ -366,15 +461,15 @@ const CalendarPage: React.FC = () => {
       confirmText: 'Descartar'
     })) {
       setDirtyEventIds(new Set());
-      fetchSchedules();
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
     }
-  }, [fetchSchedules, contextConfirm]);
+  }, [fetchSchedules, contextConfirm, queryClient]);
 
   const handleNavigate = useCallback((newDate: Date) => setDate(newDate), []);
   const handleView = useCallback((newView: any) => setView(newView), []);
 
   // Helper memoizado para gerar gradientes, evitando recálculos no render
-  const getTechnicianGradient = useCallback((technicians: any[]) => {
+  const getTechnicianGradient = useCallback((technicians: Technician[]) => {
     const stripeWidth = 20;
     const stops = technicians.map((t, idx) => {
       const c = t.color || '#3174ad';
@@ -445,7 +540,7 @@ const CalendarPage: React.FC = () => {
   }, [dirtyEventIds]);
 
   return (
-    <div className="container mt-4 calendar-container">
+    <div className="container-fluid mt-4 calendar-container">
       {dirtyEventIds.size > 0 && (
         <div className="floating-toolbar">
           <span>Tem {dirtyEventIds.size} alteração(ões) por guardar.</span>
@@ -453,27 +548,127 @@ const CalendarPage: React.FC = () => {
           <button className="btn btn-secondary btn-sm ms-2" onClick={handleCancelAll}>Cancelar</button>
         </div>
       )}
-      <DragAndDropCalendar
-        localizer={localizer}
-        events={events}
-        onEventDrop={handleEventDrop}
-        onEventResize={handleEventResize}
-        resizable
-        selectable
-        onSelectEvent={handleSelectEvent}
-        onSelectSlot={handleSelectSlot}
-        defaultView={Views.WORK_WEEK}
-        views={calendarViews}
-        culture="pt-PT"
-        messages={messages}
-        eventPropGetter={eventStyleGetter}
-        date={date}
-        view={view}
-        onNavigate={handleNavigate}
-        onView={handleView}
-        min={new Date(new Date().setHours(8, 0, 0, 0))}
-        max={new Date(new Date().setHours(20, 0, 0, 0))}
-      />
+      <div className="row">
+        <div className="col-md-3 backlog-sidebar">
+          <div className="card h-100 shadow-sm">
+            <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+              <h6 className="mb-0">Serviços Pendentes</h6>
+              <span className="badge bg-primary">{backlog.length}</span>
+            </div>
+            <div className="card-body p-2 overflow-auto" style={{ maxHeight: 'calc(100vh - 250px)' }}>
+              <div className="form-check form-switch mb-3">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="filterMyBacklog"
+                  checked={showOnlyMyBacklog}
+                  onChange={(e) => setShowOnlyMyBacklog(e.target.checked)}
+                />
+                <label className="form-check-label small" htmlFor="filterMyBacklog">
+                  Apenas os meus
+                </label>
+              </div>
+              <div className="btn-group btn-group-sm w-100 mb-2" role="group">
+                <button
+                  type="button"
+                  className={`btn ${backlogSortMode === 'date' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                  onClick={() => setBacklogSortMode('date')}
+                >
+                  Por Data
+                </button>
+                <button
+                  type="button"
+                  className={`btn ${backlogSortMode === 'priority' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                  onClick={() => setBacklogSortMode('priority')}
+                >
+                  Por Prioridade
+                </button>
+              </div>
+
+              {filteredBacklog
+                .map(item => (
+                  <div
+                    key={item.id}
+                    className="card mb-2 backlog-item shadow-none border"
+                    onClick={() => handleBacklogClick(item)}
+                    draggable
+                    onDragStart={() => handleDragStart(item)}
+                    style={{
+                      cursor: 'grab',
+                      borderLeft: `5px solid ${(item.priority || SchedulePriority.MEDIUM) === SchedulePriority.HIGH ? '#dc3545' :
+                        (item.priority || SchedulePriority.MEDIUM) === SchedulePriority.LOW ? '#6c757d' :
+                          '#ffc107'
+                        }`
+                    }}
+                  >
+                    <div className="card-body p-2">
+                      <div className="small fw-bold text-truncate" title={item.clientName}>{item.clientName}</div>
+                      <div className="d-flex justify-content-between align-items-center gap-2">
+                        <div className="small text-muted text-truncate" title={item.equipmentInfo}>
+                          {item.equipmentInfo}
+                        </div>
+                        <div className="d-flex align-items-center gap-1 flex-shrink-0">
+                          <span className="badge bg-light text-dark border p-1" style={{ fontSize: '0.6rem', lineHeight: 1 }}>
+                            {SERVICE_TYPE_LABELS[item.serviceType || '']?.substring(0, 3) || item.serviceType?.substring(0, 3)}
+                          </span>
+                          {item.priority && (
+                            <span
+                              className="badge p-1"
+                              style={{
+                                fontSize: '0.6rem',
+                                lineHeight: 1,
+                                backgroundColor: item.priority === SchedulePriority.HIGH ? '#dc3545' : item.priority === SchedulePriority.MEDIUM ? '#ffc107' : '#6c757d',
+                                color: item.priority === SchedulePriority.MEDIUM ? '#000' : '#fff'
+                              }}
+                              title={SCHEDULE_PRIORITY_LABELS[item.priority]}
+                            >
+                              {item.priority[0].toUpperCase()}
+                            </span>
+                          )}
+                          <div className="d-flex ms-1">
+                            {item.technicians?.map(t => (
+                              <div
+                                key={t.id}
+                                className="rounded-circle ms-n1"
+                                style={{ width: '10px', height: '10px', backgroundColor: t.color, border: '1px solid white' }}
+                                title={t.name}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+        <div className="col-md-9">
+          <DragAndDropCalendar
+            localizer={localizer}
+            events={events}
+            onEventDrop={handleEventDrop}
+            onEventResize={handleEventResize}
+            resizable
+            selectable
+            onSelectEvent={handleSelectEvent}
+            onSelectSlot={handleSelectSlot}
+            onDropFromOutside={onDropFromOutside}
+            dragFromOutsideItem={dragFromOutsideItem}
+            defaultView={Views.WORK_WEEK}
+            views={calendarViews}
+            culture="pt-PT"
+            messages={messages}
+            eventPropGetter={eventStyleGetter}
+            date={date}
+            view={view}
+            onNavigate={handleNavigate}
+            onView={handleView}
+            min={new Date(new Date().setHours(8, 0, 0, 0))}
+            max={new Date(new Date().setHours(20, 0, 0, 0))}
+          />
+        </div>
+      </div>
       {isModalOpen && (
         <ScheduleDetailModal
           isOpen={isModalOpen}

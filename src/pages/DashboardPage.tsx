@@ -1,27 +1,15 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import StatCard from '../components/StatCard';
 import { Link } from 'react-router-dom';
+import { useConfirm } from '../contexts/ConfirmContext';
 import { TicketStatus } from '../constants/enums';
+import { getBillingStats, getBillingTasks } from '../services/billingService';
+import { BillingStatus, BillingTask, ScheduleEvent, Ticket, DashboardStats, Technician } from '../types';
+import { DashboardStatsSchema, TicketSchema, ScheduleEventSchema } from '../schemas';
+import logger from '../utils/logger';
 
-interface DashboardStats {
-  tickets: {
-    open: number;
-    scheduled: number;
-    closed: number;
-  };
-  weekly: {
-    total: number;
-    completed: number;
-    withReport: number;
-  };
-  overdue: number;
-  pendingReports: {
-    total: number;
-    completed: number;
-    overdue: number;
-  };
-}
+// DashboardStats now imported from types.ts
 
 interface TicketDetail {
   id: number;
@@ -86,6 +74,28 @@ const ReportDistributionBar: React.FC<{
   );
 };
 
+const BillingDistributionBar: React.FC<{
+  pendingCompletion: number;
+  reportIssued: number;
+  readyForBilling: number;
+  billed: number;
+  total: number;
+}> = ({ pendingCompletion, reportIssued, readyForBilling, billed, total }) => {
+  const getW = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+
+  return (
+    <div className="visualizer-container">
+      <div className="visual-title">Distribuição de Faturação</div>
+      <div className="dist-bar-container">
+        <div className="dist-bar-segment" style={{ width: `${getW(pendingCompletion)}%`, backgroundColor: '#0dcaf0' }} data-label={`Pendentes: ${pendingCompletion}`} />
+        <div className="dist-bar-segment" style={{ width: `${getW(reportIssued)}%`, backgroundColor: '#6c757d' }} data-label={`Por Validar: ${reportIssued}`} />
+        <div className="dist-bar-segment" style={{ width: `${getW(readyForBilling)}%`, backgroundColor: '#ffc107' }} data-label={`Prontos: ${readyForBilling}`} />
+        <div className="dist-bar-segment" style={{ width: `${getW(billed)}%`, backgroundColor: '#198754' }} data-label={`Faturados: ${billed}`} />
+      </div>
+    </div>
+  );
+};
+
 const PerformanceGauge: React.FC<{ percentage: number; label: string }> = ({ percentage, label }) => {
   // Converte porcentagem (0-100) para rotação (-90 a 90 graus)
   // 0% = -90deg (Esquerda), 50% = 0deg (Topo), 100% = 90deg (Direita)
@@ -125,9 +135,11 @@ const DashboardPage: React.FC = () => {
   const [weeklySchedules, setWeeklySchedules] = useState<ScheduleDetail[]>([]);
   const [pendingReports, setPendingReports] = useState<ScheduleDetail[]>([]);
   const [recentTickets, setRecentTickets] = useState<TicketDetail[]>([]);
+  const [billingStats, setBillingStats] = useState<{ total: number; pending_completion: number; report_issued: number; ready_for_billing: number; billed: number } | null>(null);
+  const [billingTasks, setBillingTasks] = useState<BillingTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [activeSection, setActiveSection] = useState<'tickets' | 'schedules' | 'reports' | null>(null);
+  const { alert } = useConfirm();
+  const [activeSection, setActiveSection] = useState<'tickets' | 'schedules' | 'reports' | 'billing' | null>(null);
 
   // Navegação
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
@@ -165,44 +177,106 @@ const DashboardPage: React.FC = () => {
           endDate: dateRange.end.toISOString()
         };
 
-        const [statsRes, schedulesRes, reportsRes, ticketsRes] = await Promise.all([
+        const [statsRes, schedulesRes, reportsRes, ticketsRes, billingRes, billingTasksRes] = await Promise.all([
           apiClient.get('/api/dashboard/stats', { params }),
           apiClient.get('/api/dashboard/weekly-schedules', { params }),
           apiClient.get('/api/dashboard/pending-reports', { params }),
-          apiClient.get('/api/tickets') // Fetching all/recent tickets. Assuming endpoint exists.
+          apiClient.get('/api/tickets'), // Fetching all/recent tickets. Assuming endpoint exists.
+          getBillingStats(params),
+          getBillingTasks()
         ]);
-        setStats(statsRes.data);
+        const statsValidated = DashboardStatsSchema.safeParse(statsRes.data);
+        if (statsValidated.success) {
+          setStats(statsValidated.data);
+        } else {
+          logger.error(statsValidated.error.format(), '[SCHEMA_ERROR] Dashboard stats validation failed:');
+          setStats(statsRes.data);
+        }
+
+        setBillingStats(billingRes);
+        setBillingTasks(billingTasksRes);
 
         // Map and sort tickets (Recent 10)
-        const ticketsData = Array.isArray(ticketsRes.data) ? ticketsRes.data : [];
-        const sortedTickets = ticketsData.sort((a: any, b: any) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()).slice(0, 10).map((t: any) => ({
-          id: t.id,
-          subject: t.subject || 'Sem Assunto',
-          clientName: t.clients?.name || 'Cliente Desconhecido',
-          status: t.status,
-          priority: t.priority,
-          date: t.created_at
-        }));
+        const ticketsDataArray = ticketsRes.data.data ? ticketsRes.data.data : ticketsRes.data;
+        const ticketsRaw = Array.isArray(ticketsDataArray) ? ticketsDataArray : [];
+        const validatedTickets = ticketsRaw.map((t: unknown) => {
+          const res = TicketSchema.safeParse(t);
+          if (!res.success) {
+            logger.error(res.error.format(), '[SCHEMA_ERROR] Dashboard ticket validation failed:');
+            return t as Ticket;
+          }
+          return res.data;
+        });
+
+        const sortedTickets = validatedTickets
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 10)
+          .map(t => ({
+            id: t.id,
+            subject: t.title || 'Sem Assunto',
+            clientName: t.clientName || 'Cliente Desconhecido',
+            status: t.status,
+            priority: (t as any).priority || 'medium',
+            date: t.createdAt
+          }));
         setRecentTickets(sortedTickets);
 
         // Ordenar agendamentos: mais antigo para o mais recente (ascendente)
-        const sortedSchedules = (schedulesRes.data as ScheduleDetail[]).sort((a, b) => {
+        const rawSchedules = Array.isArray(schedulesRes.data) ? schedulesRes.data : [];
+        const validatedSchedulesRaw = rawSchedules.map((s: unknown) => {
+          const res = ScheduleEventSchema.safeParse(s);
+          if (!res.success) {
+            logger.error(res.error.format(), '[SCHEMA_ERROR] Dashboard schedule validation failed:');
+            return s as any;
+          }
+          return res.data;
+        });
+
+        const sortedSchedules = validatedSchedulesRaw.sort((a, b) => {
           const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
           const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
           return dateA - dateB;
-        });
+        }).map(s => ({
+          id: Number(s.id),
+          title: s.title || 'Sem Título',
+          startDate: s.startDate,
+          endDate: s.endDate,
+          isCompleted: s.isCompleted,
+          hasReport: s.hasReport,
+          clientName: s.clientName || 'Desconhecido',
+          technicians: (s.technicians || []).map((t: any) => typeof t === 'string' ? t : (t?.name || 'Tecnico'))
+        }));
         setWeeklySchedules(sortedSchedules);
 
         // Ordenar relatórios: mais antigo para o mais recente (ascendente)
-        const sortedReports = (reportsRes.data as ScheduleDetail[]).sort((a, b) => {
+        const rawReports = Array.isArray(reportsRes.data) ? reportsRes.data : [];
+        const validatedReportsRaw = rawReports.map((s: unknown) => {
+          const res = ScheduleEventSchema.safeParse(s);
+          if (!res.success) {
+            logger.error(res.error.format(), '[SCHEMA_ERROR] Dashboard report-schedule validation failed:');
+            return s as any;
+          }
+          return res.data;
+        });
+
+        const sortedReports = validatedReportsRaw.sort((a, b) => {
           const dateA = a.endDate ? new Date(a.endDate).getTime() : 0;
           const dateB = b.endDate ? new Date(b.endDate).getTime() : 0;
           return dateA - dateB;
-        });
+        }).map(s => ({
+          id: Number(s.id),
+          title: s.title || 'Sem Título',
+          startDate: s.startDate,
+          endDate: s.endDate,
+          isCompleted: s.isCompleted,
+          hasReport: s.hasReport,
+          clientName: s.clientName || 'Desconhecido',
+          technicians: (s.technicians || []).map((t: any) => typeof t === 'string' ? t : (t?.name || 'Tecnico'))
+        }));
         setPendingReports(sortedReports);
-      } catch (err) {
-        console.error("Erro ao carregar dados do dashboard:", err);
-        setError("Não foi possível carregar os dados do dashboard.");
+      } catch (err: unknown) {
+        logger.error(err, "Erro ao carregar dados do dashboard:");
+        alert("Não foi possível carregar os dados do dashboard.");
       } finally {
         setLoading(false);
       }
@@ -251,22 +325,45 @@ const DashboardPage: React.FC = () => {
   }, [weeklySchedules]);
 
   if (loading) {
-    return <div className="container mt-4">A carregar...</div>;
-  }
-
-  if (error) {
-    return <div className="container mt-4 alert alert-danger">{error}</div>;
+    return (
+      <div className="container py-5">
+        <div className="d-flex justify-content-between align-items-center mb-5">
+          <div>
+            <div className="skeleton skeleton-title" style={{ width: '250px' }}></div>
+            <div className="skeleton skeleton-text" style={{ width: '350px' }}></div>
+          </div>
+          <div className="skeleton rounded-4" style={{ width: '300px', height: '50px' }}></div>
+        </div>
+        <div className="row g-4 mb-5">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="col-12 col-md-6 col-xl-4">
+              <div className="card border-0 shadow-sm p-4" style={{ height: '220px' }}>
+                <div className="d-flex justify-content-between mb-4">
+                  <div className="skeleton skeleton-circle" style={{ width: '60px' }}></div>
+                  <div style={{ textAlign: 'right', width: '60%' }}>
+                    <div className="skeleton skeleton-title ms-auto"></div>
+                    <div className="skeleton skeleton-text ms-auto"></div>
+                  </div>
+                </div>
+                <div className="skeleton skeleton-text"></div>
+                <div className="skeleton skeleton-text" style={{ width: '80%' }}></div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="container py-5">
+    <div className="container-fluid py-5">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
         <div>
           <h1 className="display-4 fw-bold mb-0">Dashboard</h1>
           <p className="text-muted mb-0">Controlo de operações e métricas de serviço.</p>
         </div>
 
-        <div className="d-flex align-items-center gap-2 bg-white p-2 rounded-4 shadow-sm border border-light">
+        <div className="d-flex align-items-center gap-2 glass-panel p-2 rounded-4 shadow-sm border-0">
           <div className="btn-group me-3">
             <button
               className={`btn btn-sm ${viewMode === 'week' ? 'btn-primary' : 'btn-outline-secondary border-0'}`}
@@ -372,6 +469,42 @@ const DashboardPage: React.FC = () => {
                 }
               />
             </div>
+            <div className="col-12 col-md-6 col-xl-4">
+              <StatCard
+                title="Faturação"
+                value={billingStats ? billingStats.total : 0}
+                linkTo="#"
+                onClick={() => setActiveSection('billing')}
+                icon="bi bi-currency-euro"
+                color="info"
+                details={[
+                  { label: 'Pendentes Finalização', value: billingStats?.pending_completion || 0, colorClass: 'bg-info' },
+                  { label: 'Por Validar', value: billingStats?.report_issued || 0, colorClass: 'bg-secondary' },
+                  { label: 'Prontos', value: billingStats?.ready_for_billing || 0, colorClass: 'bg-warning' },
+                  { label: 'Faturados', value: billingStats?.billed || 0, colorClass: 'bg-success' }
+                ]}
+                extra={
+                  <>
+                    <BillingDistributionBar
+                      pendingCompletion={billingStats?.pending_completion || 0}
+                      reportIssued={billingStats?.report_issued || 0}
+                      readyForBilling={billingStats?.ready_for_billing || 0}
+                      billed={billingStats?.billed || 0}
+                      total={(billingStats?.pending_completion || 0) + (billingStats?.report_issued || 0) + (billingStats?.ready_for_billing || 0) + (billingStats?.billed || 0)}
+                    />
+                    <div className="mb-4"></div>
+                    <PerformanceGauge
+                      percentage={
+                        billingStats && (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed) > 0
+                          ? (billingStats.billed / (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed)) * 100
+                          : 0
+                      }
+                      label="EFICIÊNCIA DE FATURAÇÃO"
+                    />
+                  </>
+                }
+              />
+            </div>
           </>
         )}
       </div>
@@ -402,8 +535,8 @@ const DashboardPage: React.FC = () => {
                           </Link>
                         </td>
                         <td>
-                          <span className={`badge bg-${t.status === TicketStatus.CLOSED ? 'success' : t.status === TicketStatus.OPEN ? 'danger' : 'warning'}`}>
-                            {t.status === TicketStatus.CLOSED ? 'Fechado' : t.status === TicketStatus.OPEN ? 'Aberto' : 'Agendado'}
+                          <span className={`badge bg-${t.status === TicketStatus.CLOSED ? 'success' : t.status === TicketStatus.OPEN ? 'danger' : t.status === TicketStatus.ACKNOWLEDGED ? 'warning' : 'info'}`}>
+                            {t.status === TicketStatus.CLOSED ? 'Fechado' : t.status === TicketStatus.OPEN ? 'Aberto' : t.status === TicketStatus.ACKNOWLEDGED ? 'Em Análise' : 'Agendado'}
                           </span>
                         </td>
                         <td>{t.subject}</td>
@@ -431,7 +564,7 @@ const DashboardPage: React.FC = () => {
                       <th>Estado</th>
                       <th>Data</th>
                       <th>Cliente</th>
-                      <th>Técnico(s)</th>
+                      <th>Tecnico(s)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -464,7 +597,15 @@ const DashboardPage: React.FC = () => {
                           </div>
                         </td>
                         <td>{s.clientName}</td>
-                        <td>{s.technicians.join(', ')}</td>
+                        <td>
+                          <div className="d-flex flex-wrap gap-1">
+                            {s.technicians.map((name, idx) => (
+                              <span key={idx} className="badge bg-light text-dark border shadow-sm" style={{ fontSize: '0.75rem' }}>
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -486,7 +627,7 @@ const DashboardPage: React.FC = () => {
                       <th>Estado</th>
                       <th>Data</th>
                       <th>Cliente</th>
-                      <th>Técnico(s)</th>
+                      <th>Tecnico(s)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -519,9 +660,78 @@ const DashboardPage: React.FC = () => {
                           </div>
                         </td>
                         <td>{s.clientName}</td>
-                        <td>{s.technicians.join(', ')}</td>
+                        <td>
+                          <div className="d-flex flex-wrap gap-1">
+                            {s.technicians.map((name, idx) => (
+                              <span key={idx} className="badge bg-light text-dark border shadow-sm" style={{ fontSize: '0.75rem' }}>
+                                {name}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'billing' && (
+          <div className="col-12">
+            <div className="card border-0 shadow-sm p-4 h-100">
+              <h3 className="h5 fw-bold mb-4">Tarefas de Faturação ({billingTasks.length})</h3>
+              <div className="table-responsive">
+                <table className="table table-hover align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th style={{ width: '100px' }}>Nº Rel.</th>
+                      <th style={{ width: '110px' }}>Data</th>
+                      <th>Cliente</th>
+                      <th style={{ width: '150px' }}>Estado</th>
+                      <th style={{ width: '350px' }}>Notas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {billingTasks.length === 0 ? (
+                      <tr><td colSpan={5} className="text-center py-4 text-muted">Nenhuma tarefa encontrada.</td></tr>
+                    ) : (
+                      billingTasks.map(task => (
+                        <tr key={task.id}>
+                          <td>
+                            <Link to={`/report/print/${task.report_id}`} target="_blank" className="text-decoration-none fw-bold">
+                              {(task as any).reports?.report_number || `#${task.report_id}`}
+                            </Link>
+                          </td>
+                          <td>
+                            <div className="small text-muted">
+                              {new Date((task as any).reports?.serviceDate || task.created_at).toLocaleDateString('pt-PT')}
+                            </div>
+                          </td>
+                          <td>
+                            {(() => {
+                              const r = Array.isArray((task as any).reports) ? (task as any).reports[0] : (task as any).reports;
+                              if (!r) return (task as any).clientName || (task as any).client_name || 'Cliente';
+                              const client = r?.clients;
+                              const c = Array.isArray(client) ? client[0] : client;
+                              return c?.name || r?.clientName || (r as any)?.client_name || (task as any).clientName || 'Cliente';
+                            })()}
+                          </td>
+                          <td>
+                            {task.status === BillingStatus.PENDING_COMPLETION && <span className="badge bg-info text-dark">Pendente Finalização</span>}
+                            {task.status === BillingStatus.REPORT_ISSUED && <span className="badge bg-secondary">Relatório Emitido</span>}
+                            {task.status === BillingStatus.READY_FOR_BILLING && <span className="badge bg-warning text-dark">Pronto para Faturação</span>}
+                            {task.status === BillingStatus.BILLED && <span className="badge bg-success">Faturado</span>}
+                          </td>
+                          <td>
+                            <span className="text-truncate d-inline-block" style={{ maxWidth: '350px' }} title={task.billing_notes}>
+                              {task.billing_notes || '-'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>

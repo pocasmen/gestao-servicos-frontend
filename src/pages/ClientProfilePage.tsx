@@ -3,6 +3,8 @@ import apiClient from '../apiClient';
 import { AuthContext } from '../contexts/AuthContext';
 import SignaturePad from '../components/SignaturePad';
 import { UserRole } from '../constants/enums';
+import { useConfirm } from '../contexts/ConfirmContext';
+import logger from '../utils/logger';
 
 // Define interface locally to avoid dependency on TechniciansPage (which is admin-facing)
 interface UserProfile {
@@ -27,16 +29,15 @@ const ClientProfilePage: React.FC = () => {
     const [telegramchatid, setTelegramchatid] = useState('');
     const [phone, setPhone] = useState('');
     const [signature, setSignature] = useState('');
-    const [errorMessage, setErrorMessage] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
     const [botUsername, setBotUsername] = useState('');
+    const { alert } = useConfirm();
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncStatus, setSyncStatus] = useState('');
 
     useEffect(() => {
         apiClient.get('/api/telegram/bot-info').then(res => {
             setBotUsername(res.data.username);
-        }).catch(err => console.error("Erro ao obter info do bot:", err));
+        }).catch(err => logger.error(err, "Erro ao obter info do bot:"));
     }, []);
 
     const fetchUserProfile = () => {
@@ -51,8 +52,8 @@ const ClientProfilePage: React.FC = () => {
                 setSignature(currentUser.signature || '');
             }
         }).catch(err => {
-            console.error("Erro ao carregar perfil:", err);
-            setErrorMessage("Erro ao carregar os dados do perfil.");
+            logger.error(err, "Erro ao carregar perfil:");
+            alert("Erro ao carregar os dados do perfil.");
         });
     };
 
@@ -66,15 +67,7 @@ const ClientProfilePage: React.FC = () => {
         setIsSyncing(true);
         setSyncStatus('A verificar atualizações...');
 
-        // Verify if client has permission to call this endpoint. 
-        // Logic in backend must allow clients to sync their own telegram updates, 
-        // or we need a specific endpoint. 
-        // The endpoint /api/admin/sync-telegram-updates checks for 'admin', 'technician', 'office_staff', 'super_admin'.
-        // We might need to update that endpoint or create a new one!
-        // CHECK: Previous step only updated PUT /api/technicians/:id.
-        // I need to check /api/admin/sync-telegram-updates permissions or create a new one.
-        // Assuming I might need to fix it. I will try to call it.
-        apiClient.post('/api/admin/sync-telegram-updates')
+        apiClient.post('/api/telegram/sync-updates')
             .then((res) => {
                 if (res.data.success) {
                     fetchUserProfile();
@@ -83,14 +76,15 @@ const ClientProfilePage: React.FC = () => {
                     setSyncStatus('Erro na sincronização.');
                 }
             })
-            .catch(() => setSyncStatus('Erro ao contactar o servidor.'))
+            .catch(() => {
+                setSyncStatus('');
+                alert('Erro ao contactar o servidor.');
+            })
             .finally(() => setIsSyncing(false));
     };
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
-        setErrorMessage('');
-        setSuccessMessage('');
 
         if (!user) return;
 
@@ -104,27 +98,23 @@ const ClientProfilePage: React.FC = () => {
 
         apiClient.put(`/api/technicians/${user.id}`, updatedData)
             .then(() => {
-                setSuccessMessage('Perfil atualizado com sucesso!');
-                setTimeout(() => setSuccessMessage(''), 3000);
+                alert('Perfil atualizado com sucesso!');
             })
             .catch((err: any) => {
-                console.error("Erro ao atualizar o perfil:", err);
-                setErrorMessage(err.response?.data?.error || 'Ocorreu um erro ao atualizar.');
+                logger.error(err, "Erro ao atualizar o perfil:");
+                alert(err.response?.data?.error || 'Ocorreu um erro ao atualizar.');
             });
     };
 
-    if (!user) return <div className="container mt-4">A carregar perfil...</div>;
+    if (!user) return <div className="container-fluid mt-4">A carregar perfil...</div>;
 
     return (
-        <div className="container mt-4" style={{ maxWidth: '800px' }}>
+        <div className="container-fluid mt-4">
             <div className="card shadow-sm">
                 <div className="card-header bg-primary text-white">
                     <h4 className="mb-0">O Meu Perfil</h4>
                 </div>
                 <div className="card-body">
-                    {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
-                    {successMessage && <div className="alert alert-success">{successMessage}</div>}
-
                     <form onSubmit={handleSave}>
                         <div className="row">
                             <div className="col-md-6 mb-3">
@@ -172,7 +162,7 @@ const ClientProfilePage: React.FC = () => {
                                         placeholder="Pendente de associação..."
                                         value={telegramchatid}
                                         onChange={e => setTelegramchatid(e.target.value)}
-                                        readOnly // Usually read-only as it comes from sync, but can be manual if needed. Keeping editable for consistency with Tech, but usually sync is better.
+                                        readOnly
                                     />
                                 </div>
                                 <div className="d-flex gap-2">

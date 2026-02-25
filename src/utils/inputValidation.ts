@@ -14,6 +14,7 @@ export interface ValidationOptions {
     pattern?: RegExp;
     blockScripts?: boolean; // Checks for <script>, javascript:, etc.
     type?: 'text' | 'email' | 'phone' | 'numeric' | 'alphanumeric';
+    disableHeuristics?: boolean; // Skip typo checks and other dangerous corrections for technical fields
 }
 
 export interface ValidationResult {
@@ -134,6 +135,18 @@ export const analyzeInput = (
             errors.push('O valor deve ser numérico.');
             confidence -= 0.5;
         }
+    }
+
+    // -- 3. Heuristic Checks --
+    if (options.disableHeuristics) {
+        return {
+            isValid: errors.length === 0,
+            sanitizedValue: sanitized,
+            errors,
+            warnings,
+            confidenceScore: Math.max(0, confidence),
+            suggestion: undefined
+        };
     }
 
     // Suspicious repetition (e.g., "aaaaaaaaaa")

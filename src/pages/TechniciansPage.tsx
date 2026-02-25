@@ -3,6 +3,8 @@ import apiClient from '../apiClient';
 import UserDetailModal from '../components/TechnicianDetailModal';
 import { AuthContext } from '../contexts/AuthContext';
 import { UserRole } from '../constants/enums';
+import { useConfirm } from '../contexts/ConfirmContext';
+import logger from '../utils/logger';
 
 // Updated interface to match the new backend response
 export interface AppUser {
@@ -27,16 +29,12 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
   const [lastName, setLastName] = useState('');
   const [color, setColor] = useState('#3174ad');
   const [role, setRole] = useState<UserRole>(UserRole.TECHNICIAN);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { alert } = useConfirm();
 
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (isSubmitting) return;
-
-    setError('');
-    setSuccess('');
 
     const invitationData: any = {
       email,
@@ -49,7 +47,7 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
     setIsSubmitting(true);
     apiClient.post('/admin/invite-user', invitationData)
       .then((response) => {
-        setSuccess(response.data.message || `Convite enviado para ${email}.`);
+        alert(response.data.message || `Convite enviado para ${email}.`, 'Sucesso');
         // Reset form
         setEmail('');
         setFirstName('');
@@ -60,8 +58,8 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
       })
       .catch((err: any) => {
         const errorMessage = err.response?.data?.error || "Erro ao enviar convite.";
-        console.error("Erro ao convidar utilizador:", err);
-        setError(errorMessage);
+        logger.error(err, "Erro ao convidar utilizador:");
+        alert(errorMessage);
       })
       .finally(() => {
         setIsSubmitting(false);
@@ -72,8 +70,6 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
     <div className="mb-4">
       <h2>Convidar Novo Utilizador</h2>
       <form onSubmit={handleSubmit} className="p-3 border rounded">
-        {error && <div className="alert alert-danger">{error}</div>}
-        {success && <div className="alert alert-success">{success}</div>}
         <div className="row">
           <div className="col-md-6 mb-3">
             <label className="form-label">Email</label>
@@ -156,7 +152,7 @@ const TechniciansPage: React.FC = () => {
       setUsers(response.data);
     })
       .catch((error: any) => {
-        console.error("Erro ao carregar utilizadores:", error);
+        logger.error(error, "Erro ao carregar utilizadores:");
       });
   };
 
@@ -179,7 +175,7 @@ const TechniciansPage: React.FC = () => {
   };
 
   return (
-    <div className="container mt-4">
+    <div className="container-fluid mt-4">
       <InviteTechnicianForm onUserInvited={handleUserChange} currentUserRole={user?.user_metadata?.role as UserRole} />
       <hr />
       <UserList users={users} onSelectUser={handleSelectUser} />

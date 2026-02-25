@@ -9,29 +9,11 @@ import './ClientTicketDetailPage.css'; // Para estilos personalizados
 import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
 import { UserRole, TicketStatus } from '../constants/enums';
+import { DetailedTicketSchema, AttachmentSchema } from '../schemas';
+import logger from '../utils/logger';
 
-// New Attachment Interface
-interface Attachment {
-  id: string;
-  ticket_id: number;
-  file_name: string;
-  mime_type: string;
-  storage_path: string;
-  uploaded_by_user_id: string;
-  created_at: string;
-  url: string; // Public URL from Supabase Storage
-}
-
-interface DetailedTicket extends Ticket {
-  clientName: string;
-  equipmentInfo: string; // Use equipmentInfo instead of separate brand/model
-  userFirstName: string;
-  userLastName: string;
-  attachments: Attachment[]; // New field
-  responses?: Array<{ id: number; ticket_id: number; user_id?: string; technician_id?: string; authorName?: string; message: string; created_at: string; role?: string }>;
-  assigned_to_user_id?: string;
-  assigned_to_user_name?: string;
-}
+// Local interfaces removed, using definitions from schemas/types
+import { Attachment, DetailedTicket, TicketResponse } from '../types';
 
 interface PresenceMessage {
   text: string;
@@ -40,11 +22,10 @@ interface PresenceMessage {
 }
 
 const ClientTicketDetailPage: React.FC = () => {
-  console.log('[DEBUG:RENDER] ClientTicketDetailPage rendering');
+  logger.debug('[DEBUG:RENDER] ClientTicketDetailPage rendering');
   const { id } = useParams<{ id: string }>();
   const [ticket, setTicket] = useState<DetailedTicket | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [replyContent, setReplyContent] = useState('');
   const [isReplying, setIsReplying] = useState(false);
   const [newMsgIndex, setNewMsgIndex] = useState<number | null>(null);
@@ -54,6 +35,7 @@ const ClientTicketDetailPage: React.FC = () => {
   const [userPresence, setUserPresence] = useState<Record<string, number>>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [equipmentHistory, setEquipmentHistory] = useState<any[]>([]);
   const chatBodyRef = React.useRef<HTMLDivElement | null>(null);
   const { user } = useContext(AuthContext);
   const [userNameCache, setUserNameCache] = useState<Record<string, string>>({});
@@ -68,7 +50,7 @@ const ClientTicketDetailPage: React.FC = () => {
     if (presenceQueue.length === 0 || isPopupActiveRef.current) return;
 
     const nextMsg = presenceQueue[0];
-    console.log('[DEBUG:PRESENCE] Showing notification:', nextMsg);
+    logger.debug(nextMsg, '[DEBUG:PRESENCE] Showing notification:');
     setCurrentPresenceMsg(nextMsg);
     setShowPresencePopup(true);
     isPopupActiveRef.current = true;
@@ -98,16 +80,24 @@ const ClientTicketDetailPage: React.FC = () => {
       if (!isSilent) setLoading(true);
       if (isFromRealtime) setIsRealtimeUpdate(true);
 
-      console.log(`[DEBUG:FETCH] Fetching client ticket details (silent: ${isSilent}, realtime: ${isFromRealtime})`);
+      logger.debug({ isSilent, isFromRealtime }, `[DEBUG:FETCH] Fetching client ticket details`);
       const [ticketRes, attachmentsRes] = await Promise.all([
         apiClient.get(`/api/my-tickets/${id}`),
         apiClient.get(`/api/tickets/${id}/attachments`)
       ]);
-      console.log('[DEBUG:FETCH] Data received:', { ticket: ticketRes.data, attachments: attachmentsRes.data });
-      setTicket({ ...ticketRes.data, attachments: attachmentsRes.data || [] });
-    } catch (err) {
-      console.error("Erro ao carregar detalhes do ticket:", err);
-      if (!isSilent) setError("Não foi possível carregar os detalhes do ticket.");
+
+      const combined = { ...ticketRes.data, attachments: attachmentsRes.data || [] };
+      const result = DetailedTicketSchema.safeParse(combined);
+
+      if (!result.success) {
+        logger.error(result.error.format(), '[SCHEMA_ERROR] Detailed ticket validation failed:');
+        setTicket(combined as DetailedTicket);
+      } else {
+        setTicket(result.data as DetailedTicket);
+      }
+    } catch (err: unknown) {
+      logger.error(err, "Erro ao carregar detalhes do ticket:");
+      if (!isSilent) alert("Não foi possível carregar os detalhes do ticket.");
     } finally {
       if (!isSilent) setLoading(false);
     }
@@ -138,17 +128,47 @@ const ClientTicketDetailPage: React.FC = () => {
     const markAsRead = async () => {
       if (!id || !ticket) return;
 
-      const hasUnreadFromOthers = ticket.responses?.some(r => r.id && (r as any).isNew && r.user_id !== user?.id);
+      const hasUnreadFromOthers = ticket.responses?.some((r: TicketResponse) => r.id && r.isNew && r.user_id !== user?.id);
       if (!hasUnreadFromOthers) return;
 
       try {
         await apiClient.put(`/api/my-tickets/${id}/mark-as-read`);
       } catch (error) {
-        console.error('Failed to mark messages as read:', error);
+        logger.error(error, 'Failed to mark messages as read:');
       }
     };
     markAsRead();
   }, [id, ticket, user?.id]);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!ticket?.equipmentId) return;
+      try {
+        const [schedulesRes, ticketsRes] = await Promise.all([
+          apiClient.get('/api/my-schedules?page=1&limit=50'),
+          apiClient.get('/api/my-tickets?page=1&limit=50')
+        ]);
+
+        const schedulesData = schedulesRes.data.data || schedulesRes.data;
+        const ticketsData = ticketsRes.data.data || ticketsRes.data;
+
+        const scheds = (Array.isArray(schedulesData) ? schedulesData : [])
+          .filter((s: any) => s.equipmentId === ticket.equipmentId && s.isCompleted);
+        const tks = (Array.isArray(ticketsData) ? ticketsData : [])
+          .filter((t: any) => t.equipmentId === ticket.equipmentId && t.status === TicketStatus.CLOSED && t.id !== ticket.id);
+
+        const combined = [
+          ...scheds.map(s => ({ ...s, historyType: 'service', date: s.startDate })),
+          ...tks.map(t => ({ ...t, historyType: 'ticket', date: t.createdAt }))
+        ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+
+        setEquipmentHistory(combined);
+      } catch (err) {
+        logger.error(err, "Erro ao carregar histórico do equipamento:");
+      }
+    };
+    fetchHistory();
+  }, [ticket?.equipmentId, ticket?.id]);
 
   useEffect(() => {
     if (!id || !user?.id) return;
@@ -173,7 +193,7 @@ const ClientTicketDetailPage: React.FC = () => {
 
     presenceChannel.on('broadcast', { event: 'presence' }, payload => {
       const p: any = payload?.payload;
-      console.log('[DEBUG:PRESENCE] Broadcast received (client):', p);
+      logger.debug(p, '[DEBUG:PRESENCE] Broadcast received (client):');
       if (p?.userId && typeof p?.ts === 'number') {
         setUserPresence(prev => {
           const lastTs = prev[p.userId] || 0;
@@ -204,7 +224,7 @@ const ClientTicketDetailPage: React.FC = () => {
   useEffect(() => {
     if (!id) return;
 
-    console.log('[DEBUG:REALTIME] A iniciar subscrição para o ticket:', id);
+    logger.debug({ ticketId: id }, '[DEBUG:REALTIME] A iniciar subscrição para o ticket');
 
     const channel = supabase
       .channel(`ticket_room_${id}`) // Nome único para o canal
@@ -216,7 +236,7 @@ const ClientTicketDetailPage: React.FC = () => {
           table: 'ticket_responses', // Tabela de mensagens
         },
         (payload) => {
-          console.log('[DEBUG:REALTIME] Evento recebido na tabela responses:', payload);
+          logger.debug(payload, '[DEBUG:REALTIME] Evento recebido na tabela responses:');
 
           // Filtramos aqui manualmente para garantir que funciona mesmo que os tipos (int/string) sejam diferentes
           // @ts-ignore
@@ -224,7 +244,7 @@ const ClientTicketDetailPage: React.FC = () => {
 
           // Apenas atualiza se o evento for deste ticket
           if (String(ticketIdChanged) === String(id)) {
-            console.log('[DEBUG:REALTIME] Atualização relevante detetada (responses)! A recarregar...');
+            logger.debug('[DEBUG:REALTIME] Atualização relevante detetada (responses)! A recarregar...');
             setIsRealtimeUpdate(true);
             fetchTicketDetails(true, true);
           }
@@ -239,11 +259,11 @@ const ClientTicketDetailPage: React.FC = () => {
           table: 'ticket_attachments',
         },
         (payload) => {
-          console.log('[DEBUG:REALTIME] Evento recebido na tabela attachments:', payload);
+          logger.debug(payload, '[DEBUG:REALTIME] Evento recebido na tabela attachments:');
           // @ts-ignore
           const ticketIdChanged = payload.new?.ticket_id || payload.old?.ticket_id;
           if (String(ticketIdChanged) === String(id)) {
-            console.log('[DEBUG:REALTIME] Atualização relevante detetada (attachments)! A recarregar...');
+            logger.debug('[DEBUG:REALTIME] Atualização relevante detetada (attachments)! A recarregar...');
             fetchTicketDetails(true, true);
           }
         }
@@ -253,25 +273,25 @@ const ClientTicketDetailPage: React.FC = () => {
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'tickets', filter: `id=eq.${id}` },
         (payload) => {
-          console.log('[DEBUG:REALTIME] Ticket status alterado');
+          logger.debug('[DEBUG:REALTIME] Ticket status alterado');
           fetchTicketDetails(true, true);
         }
       )
       .subscribe((status, err) => {
         // ISTO É O MAIS IMPORTANTE PARA O DEBUG
-        console.log(`[DEBUG:REALTIME] Status da conexão: ${status}`, err ? err : '');
+        logger.debug({ err }, `[DEBUG:REALTIME] Status da conexão: ${status}`);
 
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Conectado ao Realtime com sucesso.');
+          logger.info('✅ Conectado ao Realtime com sucesso.');
         } else if (status === 'CHANNEL_ERROR') {
-          console.error('❌ Erro ao conectar ao Realtime. Verifique a consola do browser e configurações do Supabase.');
+          logger.error('❌ Erro ao conectar ao Realtime. Verifique a consola do browser e configurações do Supabase.');
         } else if (status === 'TIMED_OUT') {
-          console.error('⚠️ A conexão expirou. A internet pode estar instável.');
+          logger.error('⚠️ A conexão expirou. A internet pode estar instável.');
         }
       });
 
     return () => {
-      console.log('[DEBUG:REALTIME] A limpar canal...');
+      logger.debug('[DEBUG:REALTIME] A limpar canal...');
       supabase.removeChannel(channel);
     };
   }, [id, fetchTicketDetails]);
@@ -291,7 +311,7 @@ const ClientTicketDetailPage: React.FC = () => {
       setReplyContent('');
       await fetchTicketDetails(); // Re-fetch the entire ticket to show updated faultDescription
     } catch (err) {
-      console.error("Erro ao enviar resposta:", err);
+      logger.error(err, "Erro ao enviar resposta:");
       await alert("Não foi possível enviar a sua resposta.");
     } finally {
       setIsReplying(false);
@@ -300,9 +320,9 @@ const ClientTicketDetailPage: React.FC = () => {
 
   const messages = React.useMemo(() => {
     const text = ticket?.faultDescription || '';
-    const lines = text.split('\n').filter(l => l.trim().length > 0 && !l.startsWith('[Título]'));
+    const lines = text.split('\n').filter((l: string) => l.trim().length > 0 && !l.startsWith('[Título]'));
     const clientName = `${ticket?.userFirstName || ''} ${ticket?.userLastName || ''}`.trim() || 'Cliente';
-    const clientMsgs = lines.map((l, idx) => {
+    const clientMsgs = lines.map((l: string, idx: number) => {
       const isClient = l.includes('Resposta do cliente') || (!l.includes('Resposta do gestor') && idx === 0);
       const m = l.match(/em\s(\d{2}\/\d{2}\/\d{4})\s(\d{2}:\d{2})(?::\d{2})?/);
       let dateMs = NaN;
@@ -316,7 +336,7 @@ const ClientTicketDetailPage: React.FC = () => {
             dateMs = parsedDate.getTime();
           }
         } catch (e) {
-          console.error("Error parsing date from line:", l, e);
+          logger.error(e, `Error parsing date from line: ${l}`);
         }
       } else if (idx === 0 && ticket?.createdAt) {
         dateMs = new Date(ticket.createdAt).getTime();
@@ -331,20 +351,20 @@ const ClientTicketDetailPage: React.FC = () => {
       return { isClient, authorName, avatarText, content, dateMs, displayTs, role: UserRole.CLIENT, authorId: ticket?.created_by_user_id };
     });
 
-    const techMsgs = (ticket?.responses || []).map(r => {
+    const techMsgs = (ticket?.responses || []).map((r: TicketResponse) => {
       let dateMs = new Date(r.created_at).getTime();
       if (!Number.isFinite(dateMs)) {
         dateMs = 0;
       }
       const authorName = r.authorName || 'Técnico';
-      const avatarText = authorName.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2);
-      const isUnread = !!(r as any).isNew;
+      const avatarText = authorName.split(' ').map((s: string) => s[0]).join('').toUpperCase().slice(0, 2);
+      const isUnread = !!r.isNew;
       const isClient = r.role === UserRole.CLIENT || r.role === UserRole.PENDING_CLIENT;
       return { isClient, authorName, avatarText, content: r.message, dateMs, displayTs: format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }), isUnread, role: r.role || UserRole.ADMIN, authorId: r.user_id || r.technician_id };
     });
 
     const result = [...clientMsgs, ...techMsgs].sort((a, b) => (a.dateMs || 0) - (b.dateMs || 0));
-    console.log(`[DEBUG:MESSAGES] Recalculated messages list (client). Total: ${result.length}`);
+    logger.debug(`[DEBUG:MESSAGES] Recalculated messages list (client). Total: ${result.length}`);
     return result;
   }, [ticket?.id, ticket?.faultDescription, ticket?.responses, ticket?.createdAt, ticket?.userFirstName, ticket?.userLastName, ticket?.created_by_user_id]);
 
@@ -394,7 +414,7 @@ const ClientTicketDetailPage: React.FC = () => {
       if (chatBodyRef.current) {
         chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
         previousMessageCountRef.current = messages.length;
-        console.log('[DEBUG:SCROLL] Initial scroll to bottom executed (client)');
+        logger.debug('[DEBUG:SCROLL] Initial scroll to bottom executed (client)');
       }
     }, 100);
 
@@ -411,7 +431,7 @@ const ClientTicketDetailPage: React.FC = () => {
     if (!isRealtimeUpdate) return;
 
     const previousCount = previousMessageCountRef.current;
-    console.log('[DEBUG:SCROLL] Realtime update detected (client)', {
+    logger.debug({
       currentCount: messages.length,
       previousCount: previousCount
     });
@@ -422,14 +442,14 @@ const ClientTicketDetailPage: React.FC = () => {
       const timer = setTimeout(() => {
         if (chatBodyRef.current) {
           chatBodyRef.current.scrollTop = chatBodyRef.current.scrollHeight;
-          console.log('[DEBUG:SCROLL] Scrolled to bottom after realtime update (client)');
+          logger.debug('[DEBUG:SCROLL] Scrolled to bottom after realtime update (client)');
         }
       }, 150);
 
       // Reset flag depois
       const resetTimer = setTimeout(() => {
         setIsRealtimeUpdate(false);
-        console.log('[DEBUG:SCROLL] Reset isRealtimeUpdate flag (client)');
+        logger.debug('[DEBUG:SCROLL] Reset isRealtimeUpdate flag (client)');
       }, 200);
 
       return () => {
@@ -481,7 +501,7 @@ const ClientTicketDetailPage: React.FC = () => {
       const el = chatBodyRef.current?.querySelector('.thread-new') as HTMLElement | null;
       if (el) {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        console.log('[DEBUG:SCROLL] Scrolled to new message marker (client)');
+        logger.debug('[DEBUG:SCROLL] Scrolled to new message marker (client)');
       }
     }, 100);
 
@@ -489,15 +509,11 @@ const ClientTicketDetailPage: React.FC = () => {
   }, [newMsgIndex]);
 
   if (loading) {
-    return <div className="container mt-4">A carregar...</div>;
-  }
-
-  if (error) {
-    return <div className="container mt-4 alert alert-danger">{error}</div>;
+    return <div className="container-fluid mt-4">A carregar...</div>;
   }
 
   if (!ticket) {
-    return <div className="container mt-4">Ticket não encontrado.</div>;
+    return <div className="container-fluid mt-4">Ticket não encontrado.</div>;
   }
 
   const isTicketClosed = ticket.status === TicketStatus.CLOSED;
@@ -547,7 +563,7 @@ const ClientTicketDetailPage: React.FC = () => {
             <div className="card-body">
               {ticket.attachments && ticket.attachments.length > 0 ? (
                 <ul className="list-group list-group-flush">
-                  {ticket.attachments.map(att => (
+                  {ticket.attachments.map((att: Attachment) => (
                     <li key={att.id} className="list-group-item d-flex justify-content-between align-items-center">
                       <a href={att.url} target="_blank" rel="noopener noreferrer" className="text-decoration-none">
                         <i className="bi bi-file-earmark me-2"></i> {att.file_name}
@@ -565,6 +581,41 @@ const ClientTicketDetailPage: React.FC = () => {
                   {isUploading ? 'A carregar...' : 'Carregar Anexo'}
                 </button>
               </div>
+            </div>
+          </div>
+
+          {/* Histórico do Equipamento */}
+          <div className="card mb-4 border-info shadow-sm">
+            <div className="card-header bg-info text-white">
+              <i className="bi bi-clock-history me-2"></i> Histórico do Equipamento
+            </div>
+            <div className="card-body">
+              {equipmentHistory.length > 0 ? (
+                <div className="list-group list-group-flush small">
+                  {equipmentHistory.map((item, idx) => (
+                    <div key={idx} className="list-group-item px-0 py-2 border-0 border-bottom">
+                      <div className="d-flex justify-content-between align-items-start">
+                        <div>
+                          <span className={`badge ${item.historyType === 'service' ? 'bg-success' : 'bg-secondary'} me-2`} style={{ fontSize: '0.65rem' }}>
+                            {item.historyType === 'service' ? 'Serviço' : 'Ticket'}
+                          </span>
+                          <span className="fw-bold">{format(new Date(item.date), 'dd/MM/yyyy', { locale: pt })}</span>
+                        </div>
+                      </div>
+                      <div className="text-truncate mt-1" style={{ maxWidth: '100%' }} title={item.title}>
+                        {item.title}
+                      </div>
+                    </div>
+                  ))}
+                  <div className="mt-3 text-center">
+                    <Link to="/portal/history" state={{ equipmentId: ticket.equipmentId }} className="btn btn-sm btn-outline-info w-100">
+                      Ver Histórico Completo
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-muted small mb-0">Sem intervenções anteriores registadas.</p>
+              )}
             </div>
           </div>
         </div>
@@ -612,11 +663,7 @@ const ClientTicketDetailPage: React.FC = () => {
                       <div className="thread-avatar">
                         {m.avatarText}
                         {m.authorId && (
-                          <span className={`status-indicator ${isUserOnline(m.authorId) ? 'online' : 'offline'}`} title={isUserOnline(m.authorId) ? 'Online' : 'Offline'}>
-                            <span className={`status-badge badge bg-${isUserOnline(m.authorId) ? 'success' : 'secondary'}`}>
-                              {isUserOnline(m.authorId) ? 'online' : 'offline'}
-                            </span>
-                          </span>
+                          <span className={`status-indicator ${isUserOnline(m.authorId) ? 'online' : 'offline'}`} title={isUserOnline(m.authorId) ? 'Online' : 'Offline'}></span>
                         )}
                       </div>
                       <div className="thread-meta">

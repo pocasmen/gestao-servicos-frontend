@@ -3,18 +3,19 @@ import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase'; // Importar o cliente Supabase
 import { AuthContext } from '../contexts/AuthContext';
 import { UserRole } from '../constants/enums';
+import { useConfirm } from '../contexts/ConfirmContext';
+import logger from '../utils/logger';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { setSession } = useContext(AuthContext); // Usar o setter do contexto
+  const { alert } = useConfirm();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
@@ -46,13 +47,13 @@ const LoginPage: React.FC = () => {
       }
 
     } catch (err: any) {
-      console.error(err);
+      logger.error(err);
       // Mapear erros comuns do Supabase para mensagens mais amigáveis
+      let msg = err.message || 'Ocorreu um erro ao fazer login.';
       if (err.message.includes('Invalid login credentials')) {
-        setError('Email ou password inválidos.');
-      } else {
-        setError(err.message || 'Ocorreu um erro ao fazer login.');
+        msg = 'Email ou password inválidos.';
       }
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -90,7 +91,6 @@ const LoginPage: React.FC = () => {
                     autoComplete="current-password"
                   />
                 </div>
-                {error && <div className="alert alert-danger">{error}</div>}
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                   {loading ? 'A entrar...' : 'Entrar'}
                 </button>

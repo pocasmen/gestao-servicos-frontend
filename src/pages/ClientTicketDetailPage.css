@@ -86,7 +86,7 @@
 }
 
 .chat-bubble:hover {
-  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
 }
 
 .chat-new {
@@ -94,14 +94,22 @@
 }
 
 .chat-unread {
-  box-shadow: 0 0 0 2px rgba(11,94,215,0.15);
+  box-shadow: 0 0 0 2px rgba(11, 94, 215, 0.15);
   border-color: #0b5ed7;
 }
 
 @keyframes chatNewFade {
-  0% { box-shadow: 0 0 0 rgba(11,94,215,0); }
-  50% { box-shadow: 0 0 12px rgba(11,94,215,0.25); }
-  100% { box-shadow: 0 0 0 rgba(11,94,215,0); }
+  0% {
+    box-shadow: 0 0 0 rgba(11, 94, 215, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 12px rgba(11, 94, 215, 0.25);
+  }
+
+  100% {
+    box-shadow: 0 0 0 rgba(11, 94, 215, 0);
+  }
 }
 
 /* Thread layout styles */
@@ -135,57 +143,47 @@
 .thread-header {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 .thread-avatar {
-  width: 32px;
-  height: 32px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: #ffffff;
   background-color: #0b5ed7;
-  position: relative; /* Adicionado para posicionamento absoluto do status-indicator */
-  bottom: 15px;
-  left: 10px
+  position: relative;
+  flex-shrink: 0;
 }
 
-.thread-avatar .status-indicator {
+.status-indicator {
   position: absolute;
-  bottom: -25px;
-  left: -35px;
-  transform: translate(25%, 25%); /* Ajusta a posição para fora do avatar */
-  font-size: 0.63em; /* Tamanho do ícone (reduzido em 10%) */
-  border: 1px solid #ffffff; /* Borda para destacar */
+  bottom: 0;
+  right: 0;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
-  padding: 2px;
-  background-color: #ffffff; /* Fundo branco para o ícone */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  border: 2px solid #ffffff;
+  z-index: 2;
 }
 
-.thread-avatar .status-indicator i {
-  font-size: 0.7em; /* Garante que o ícone seja pequeno */
+.status-indicator.online {
+  background-color: #28a745;
 }
 
-.thread-avatar .status-indicator.online i {
-  color: #28a745; /* Verde para online */
-}
-
-.thread-avatar .status-indicator.offline i {
-  color: #dc3545; /* Vermelho para offline */
+.status-indicator.offline {
+  background-color: #dc3545;
 }
 
 .thread-meta {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  margin-left: 20px;
 }
 
 .thread-author {
@@ -207,7 +205,7 @@
 }
 
 .thread-unread {
-  box-shadow: 0 0 0 2px rgba(11,94,215,0.15);
+  box-shadow: 0 0 0 2px rgba(11, 94, 215, 0.15);
   border-color: #0b5ed7;
 }
 
@@ -215,6 +213,7 @@
   .thread-item {
     padding: 10px;
   }
+
   .thread-avatar {
     width: 28px;
     height: 28px;

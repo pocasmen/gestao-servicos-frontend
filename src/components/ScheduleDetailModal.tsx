@@ -1,13 +1,23 @@
-import React, { useState, useEffect, useRef } from 'react';
-import DatePicker, { registerLocale } from 'react-datepicker';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { pt } from 'date-fns/locale';
+import { addHours } from 'date-fns';
 import 'react-datepicker/dist/react-datepicker.css';
+import { registerLocale } from 'react-datepicker';
 import apiClient, { searchPartByReference } from '../apiClient';
-import { ScheduleEvent, Client, Equipment, Technician, PartItem, TimeBlock } from '../types';
-import { StockType, UserRole, ServiceClassification } from '../constants/enums';
-import { SERVICE_TYPES_LIST, SERVICE_CLASSIFICATIONS_LIST } from '../constants';
-import { Copy, Clipboard, Trash2 } from 'lucide-react';
+import { ScheduleEvent, Client, Equipment, Technician, PartItem } from '../types';
+import logger from '../utils/logger';
+import { StockType, UserRole, ServiceClassification, ScheduleStatus, SchedulePriority } from '../constants/enums';
+import { Trash2 } from 'lucide-react';
 import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
+
+// Sub-components
+import ScheduleFormHeader from './Schedule/ScheduleFormHeader';
+import ScheduleTimeBlocks from './Schedule/ScheduleTimeBlocks';
+import ScheduleClientEquipment from './Schedule/ScheduleClientEquipment';
+import ScheduleTechnicians from './Schedule/ScheduleTechnicians';
+import ScheduleParts from './Schedule/ScheduleParts';
+import ScheduleInternalNotes from './Schedule/ScheduleInternalNotes';
+
 registerLocale('pt', pt);
 
 interface ScheduleDetailModalProps {
@@ -29,6 +39,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const [parts, setParts] = useState<PartItem[]>([]);
   const [includesTravel, setIncludesTravel] = useState(false);
   const [classification, setClassification] = useState<ServiceClassification>(ServiceClassification.GERAL);
+  const [sendToBacklog, setSendToBacklog] = useState(false);
+  const [priority, setPriority] = useState<SchedulePriority>(SchedulePriority.MEDIUM);
   const internalNotesRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -60,8 +72,13 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   useEffect(() => {
     if (event?.timeBlocks && event.timeBlocks.length > 0) {
       setTimeBlocks(event.timeBlocks.map(tb => ({ start: new Date(tb.start), end: new Date(tb.end) })));
+    } else if (event?.start && event?.end) {
+      setTimeBlocks([{ start: new Date(event.start), end: new Date(event.end) }]);
     } else {
-      setTimeBlocks([{ start: event?.start || new Date(), end: event?.end || new Date() }]);
+      // If it's a backlog item being edited, but not yet dragged to a slot, 
+      // we might want to default to today or keep it empty if we support that in UI.
+      // For now, let's keep one block so the UI doesn't break.
+      setTimeBlocks([{ start: new Date(), end: addHours(new Date(), 1) }]);
     }
 
     setClientId(event?.clientId !== undefined ? String(event.clientId) : '');
@@ -73,6 +90,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     setServiceType(event?.serviceType || (isTicketScheduling ? 'remota' : ''));
     setIncludesTravel(event?.includes_travel || false);
     setClassification(event?.classification || ServiceClassification.GERAL);
+    setPriority(event?.priority || SchedulePriority.MEDIUM);
+    setSendToBacklog(event?.acknowledgementState === ScheduleStatus.PENDING_SCHEDULING && !event?.start);
     if (isTicketScheduling) {
       setParts([]);
     } else {
@@ -88,15 +107,15 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   useEffect(() => {
     if (clientId) {
       setIsLoadingEquipments(true);
-      console.log(`[DEBUG] Fetching equipments for client ${clientId}`);
+      logger.debug({ clientId }, `[DEBUG] Fetching equipments for client`);
       apiClient.get(`/api/clients/${clientId}/equipments`)
         .then(res => {
           if (import.meta.env.DEV) {
-            console.log(`[DEBUG] Equipments fetched:`, res.data);
+            logger.debug(res.data, `[DEBUG] Equipments fetched:`);
           }
           setEquipments(res.data);
         })
-        .catch(err => console.error("Error fetching equipments:", err))
+        .catch(err => logger.error(err, "Error fetching equipments:"))
         .finally(() => setIsLoadingEquipments(false));
     } else {
       setEquipments([]);
@@ -237,17 +256,17 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const handleReferenceBlur = async (index: number) => {
     const reference = parts[index].reference;
     if (import.meta.env.DEV) {
-      console.log('[DEBUG] handleReferenceBlur called for index:', index, 'reference:', reference);
+      logger.debug({ index, reference }, '[DEBUG] handleReferenceBlur called');
     }
 
     if (typeof reference === 'string' && reference.trim() !== '') {
       try {
         if (import.meta.env.DEV) {
-          console.log('[DEBUG] Searching for part with reference:', reference.trim());
+          logger.debug({ reference: reference.trim() }, '[DEBUG] Searching for part with reference');
         }
         const part = await searchPartByReference(reference.trim());
         if (import.meta.env.DEV) {
-          console.log('[DEBUG] Search result:', part);
+          logger.debug(part, '[DEBUG] Search result:');
         }
 
         const newParts = [...parts];
@@ -260,19 +279,19 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           newParts[index].stock_quantity_contract = part.stock_quantity_contract;
           newParts[index].reserved_quantity_contract = part.reserved_quantity_contract;
           if (import.meta.env.DEV) {
-            console.log('[DEBUG] Part found, updating designation to:', part.designation);
+            logger.debug({ designation: part.designation }, '[DEBUG] Part found, updating designation to');
           }
         } else {
           newParts[index].id = undefined;
           newParts[index].designation = '';
           newParts[index].isDesignationLocked = false;
           if (import.meta.env.DEV) {
-            console.log('[DEBUG] Part not found, clearing designation');
+            logger.debug('[DEBUG] Part not found, clearing designation');
           }
         }
         setParts(newParts);
       } catch (error) {
-        console.error('[ERROR] Error searching for part:', error);
+        logger.error(error, '[ERROR] Error searching for part:');
       }
     }
   };
@@ -302,7 +321,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       navigator.clipboard.writeText(partsString)
         .then(async () => await alert('Lista de peças copiada!'))
         .catch(async (err) => {
-          console.warn('Clipboard API failed, using internal memory only.', err);
+          logger.warn(err, 'Clipboard API failed, using internal memory only.');
           await alert('Lista de peças guardada na memória interna!');
         });
     } else {
@@ -318,7 +337,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       try {
         partsString = await navigator.clipboard.readText();
       } catch (err) {
-        console.warn('Could not read from clipboard API:', err);
+        logger.warn(err, 'Could not read from clipboard API:');
       }
     }
 
@@ -353,7 +372,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
         await alert('Conteúdo inválido.');
       }
     } catch (err) {
-      console.error('Erro ao colar:', err);
+      logger.error(err, 'Erro ao colar:');
       await alert('Erro ao processar as peças. Certifique-se que copiou uma lista válida.');
     }
   };
@@ -393,7 +412,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     const sTime = new Date(Math.min(...timeBlocks.map(b => b.start.getTime())));
     const eTime = new Date(Math.max(...timeBlocks.map(b => b.end.getTime())));
 
-    if (isNaN(sTime.getTime()) || isNaN(eTime.getTime())) {
+    if (!sendToBacklog && (isNaN(sTime.getTime()) || isNaN(eTime.getTime()))) {
       await alert('Por favor, insira datas e horas válidas para o início e fim do agendamento.');
       return;
     }
@@ -433,8 +452,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
     const scheduleData = {
       ...eventRest,
-      startDate: sTime.toISOString(),
-      endDate: eTime.toISOString(),
+      startDate: sendToBacklog ? undefined : sTime.toISOString(),
+      endDate: sendToBacklog ? undefined : eTime.toISOString(),
       clientId: Number(clientId),
       equipmentId: Number(equipmentId),
       technicianIds,
@@ -443,8 +462,10 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       internalNotes,
       serviceType,
       includesTravel,
-      classification,
-      timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
+      classification: sendToBacklog ? (ScheduleStatus.PENDING_SCHEDULING as any) : classification,
+      acknowledgementState: sendToBacklog ? ScheduleStatus.PENDING_SCHEDULING : (event?.acknowledgementState === ScheduleStatus.PENDING_SCHEDULING && !isCreating ? ScheduleStatus.PENDING : (event?.acknowledgementState || ScheduleStatus.PENDING)),
+      timeBlocks: sendToBacklog ? [] : timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
+      priority: sendToBacklog ? priority : undefined,
       parts: parts
         .filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '')
         .map(p => ({
@@ -458,7 +479,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     };
 
     if (import.meta.env.DEV) {
-      console.log('[DEBUG_SCHEDULE_MODAL] handleSave - sending:', scheduleData);
+      logger.debug(scheduleData, '[DEBUG_SCHEDULE_MODAL] handleSave - sending:');
     }
 
     // Determine correct ID for PUT
@@ -471,12 +492,12 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
         : await apiClient.put(`/api/schedules/${scheduleId}`, scheduleData);
 
       if (import.meta.env.DEV) {
-        console.log('[DEBUG_SCHEDULE_MODAL] handleSave - response:', response.data);
+        logger.debug(response.data, '[DEBUG_SCHEDULE_MODAL] handleSave - response:');
       }
       onScheduleUpdated(response.data);
       onClose();
     } catch (error) {
-      console.error("Erro ao guardar agendamento:", error);
+      logger.error(error, "Erro ao guardar agendamento:");
       await alert('Ocorreu um erro ao guardar o agendamento.');
     } finally {
       setIsSubmitting(false);
@@ -523,6 +544,20 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       eventRestForComplete = rest;
     }
 
+    // Preparar as peças para envio, filtrando vazias
+    const partsPayload = parts
+      .filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '')
+      .map(p => ({
+        id: p.id,
+        reference: p.reference,
+        designation: p.designation,
+        quantity: p.quantity,
+        stockType: p.stockType || StockType.GENERAL,
+        isApplied: p.isApplied === false ? false : true,
+        // Incluir isDesignationLocked para o frontend (ReportModal), o backend irá ignorar
+        isDesignationLocked: p.isDesignationLocked
+      }));
+
     const scheduleData = {
       ...eventRestForComplete,
       startDate: sTime.toISOString(),
@@ -536,11 +571,12 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       serviceType,
       includesTravel,
       classification,
-      timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() }))
+      timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
+      parts: partsPayload // Incluir as peças na requisição de conclusão
     };
 
     if (import.meta.env.DEV) {
-      console.log('[DEBUG_SCHEDULE_MODAL] handleComplete - sending:', scheduleData);
+      logger.debug(scheduleData, '[DEBUG_SCHEDULE_MODAL] handleComplete - sending:');
     }
 
     const scheduleId = event?.scheduleId !== undefined ? event.scheduleId : (event?.id && typeof event.id === 'number' ? event.id : undefined);
@@ -549,12 +585,42 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     try {
       const response = await apiClient.post(`/api/schedules/${scheduleId}/complete`, scheduleData);
       if (import.meta.env.DEV) {
-        console.log('[DEBUG_SCHEDULE_MODAL] handleComplete - response:', response.data);
+        logger.debug(response.data, '[DEBUG_SCHEDULE_MODAL] handleComplete - response:');
       }
+
+      // Atualizar o calendário com o serviço fechado
       onScheduleUpdated(response.data);
       onClose();
+
+      // Perguntar se pretende criar um relatório
+      const createReport = await confirm({
+        title: 'Serviço Fechado com Sucesso',
+        message: 'O serviço foi fechado com sucesso. Pretende criar um relatório agora?',
+        variant: 'primary',
+        confirmText: 'Criar Relatório',
+        cancelText: 'Mais Tarde'
+      });
+
+      if (createReport) {
+        // Abrir automaticamente o modal de criação de relatório
+        // Combinar response.data com timeBlocks do event original
+        const scheduleForReport = {
+          ...response.data,
+          timeBlocks: timeBlocks.map(b => ({
+            start: b.start.toISOString(),
+            end: b.end.toISOString()
+          })),
+          // Preservar outros dados importantes do event original
+          clientName: event.clientName,
+          equipmentInfo: event.equipmentInfo,
+          technicians: event.technicians,
+          parts: partsPayload, // Passar as peças explicitamente para o relatório
+          internalNotes: internalNotes // Passar as notas internas explicitamente
+        };
+        onManageReport(scheduleForReport);
+      }
     } catch (error) {
-      console.error("Erro ao concluir o serviço:", error);
+      logger.error(error, "Erro ao concluir o serviço:");
       await alert('Ocorreu um erro ao concluir o serviço.');
     } finally {
       setIsSubmitting(false);
@@ -582,7 +648,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           onClose();
         })
         .catch((error: any) => {
-          console.error("Erro ao eliminar agendamento:", error);
+          logger.error(error, "Erro ao eliminar agendamento:");
         })
         .finally(() => {
           setIsSubmitting(false);
@@ -607,297 +673,69 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
               <button type="button" className="btn-close" onClick={onClose}></button>
             </div>
             <div className="modal-body">
-              <div className="row">
-                <div className="col-md-6">
-                  <div className="form-group">
-                    <label className="text-secondary fw-bold">Tipo de Serviço</label>
-                    <select className="form-control" value={serviceType} onChange={e => setServiceType(e.target.value)} disabled={isPastOrCompleted}>
-                      <option value="">Selecione um tipo...</option>
-                      {SERVICE_TYPES_LIST.map(type => (
-                        <option key={type.id} value={type.id}>{type.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="col-md-6">
-                  <div className="form-group">
-                    <label className="text-secondary fw-bold">Classificação</label>
-                    <select className="form-control" value={classification} onChange={e => setClassification(e.target.value as ServiceClassification)} disabled={isPastOrCompleted}>
-                      {SERVICE_CLASSIFICATIONS_LIST.map(item => (
-                        <option key={item.id} value={item.id}>{item.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-              {/* Checkbox de Deslocação - Oculto para serviços remotos */}
-              {serviceType && serviceType !== 'remota' && (
-                <div className="form-group">
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id="includesTravel"
-                      checked={includesTravel}
-                      onChange={(e) => setIncludesTravel(e.target.checked)}
-                      disabled={isPastOrCompleted}
-                    />
-                    <label className="form-check-label" htmlFor="includesTravel">
-                      Inclui deslocação às instalações do cliente
-                    </label>
-                  </div>
-                </div>
-              )}
-              <div className="form-group mb-3">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <label className="text-secondary fw-bold">Horários do Serviço</label>
-                  {!isPastOrCompleted && (
-                    <button type="button" className="btn btn-sm btn-outline-primary" onClick={handleAddBlock}>
-                      + Adicionar Horário
-                    </button>
-                  )}
-                </div>
+              <ScheduleFormHeader
+                serviceType={serviceType}
+                setServiceType={setServiceType}
+                classification={classification}
+                setClassification={setClassification}
+                isCreating={isCreating}
+                sendToBacklog={sendToBacklog}
+                setSendToBacklog={setSendToBacklog}
+                priority={priority}
+                setPriority={setPriority}
+                includesTravel={includesTravel}
+                setIncludesTravel={setIncludesTravel}
+                isPastOrCompleted={isPastOrCompleted}
+              />
 
-                {timeBlocks.map((block, index) => (
-                  <div key={index} className="row mb-3 align-items-end border-bottom pb-3">
-                    <div className="col-md-5">
-                      <div className="form-group mb-0">
-                        <label className="small text-muted">Início ({index + 1})</label>
-                        <DatePicker
-                          selected={block.start}
-                          onChange={(date: Date | null) => handleBlockChange(index, 'start', date)}
-                          showTimeSelect
-                          dateFormat="dd/MM/yyyy HH:mm"
-                          timeFormat="HH:mm"
-                          timeIntervals={15}
-                          locale="pt"
-                          className="form-control"
-                          disabled={isPastOrCompleted}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="col-md-5">
-                      <div className="form-group mb-0">
-                        <label className="small text-muted">Fim ({index + 1})</label>
-                        <DatePicker
-                          selected={block.end}
-                          onChange={(date: Date | null) => handleBlockChange(index, 'end', date)}
-                          showTimeSelect
-                          dateFormat="dd/MM/yyyy HH:mm"
-                          timeFormat="HH:mm"
-                          timeIntervals={15}
-                          locale="pt"
-                          className="form-control"
-                          disabled={isPastOrCompleted}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="col-md-2">
-                      {!isPastOrCompleted && timeBlocks.length > 1 && (
-                        <button type="button" className="btn btn-outline-danger btn-sm w-100" onClick={() => handleRemoveBlock(index)}>
-                          <Trash2 size={16} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="form-group">
-                <label className="text-secondary fw-bold">Cliente</label>
-                <input
-                  className="form-control"
-                  list="clientOptions"
-                  value={clientSearch}
-                  onChange={e => setClientSearch(e.target.value)}
-                  placeholder="Pesquisar cliente..."
-                  required
-                  disabled={isPastOrCompleted}
-                />
-                <datalist id="clientOptions">
-                  {clients.map(c => <option key={c.id} value={c.name} />)}
-                </datalist>
-              </div>
-              <div className="form-group">
-                <label className="text-secondary fw-bold">Equipamento</label>
-                <select className="form-control" value={equipmentId} onChange={e => setEquipmentId(e.target.value)} required disabled={isPastOrCompleted || !clientId || isLoadingEquipments}>
-                  <option value="">
-                    {isLoadingEquipments ? 'A carregar equipamentos...' : 'Selecione um equipamento...'}
-                  </option>
-                  {equipments.map(eq => (
-                    <option key={eq.id} value={String(eq.id)}>
-                      {`${eq.brand || ''} ${eq.model || ''}${eq.serialNumber ? ` (${eq.serialNumber})` : ''}`.trim()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="text-secondary fw-bold">Técnico(s)</label>
-                <div className="technician-checkbox-group p-2 border rounded">
-                  <div className="row">
-                    {technicians.length === 0 ? (
-                      <div className="col-12"><small className="text-muted">Nenhum técnico/admin disponível.</small></div>
-                    ) : (
-                      technicians.map(t => (
-                        <div className="col-4" key={t.id}>
-                          <div className="form-check">
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                              id={`tech-${t.id}`}
-                              value={t.id}
-                              checked={technicianIds.includes(String(t.id))}
-                              onChange={() => handleTechnicianChange(String(t.id))}
-                              disabled={isPastOrCompleted}
-                            />
-                            <label className="form-check-label" htmlFor={`tech-${t.id}`}>
-                              {t.name}
-                            </label>
-                          </div>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
+              <ScheduleTimeBlocks
+                timeBlocks={timeBlocks}
+                handleBlockChange={handleBlockChange}
+                handleAddBlock={handleAddBlock}
+                handleRemoveBlock={handleRemoveBlock}
+                isPastOrCompleted={isPastOrCompleted}
+                sendToBacklog={sendToBacklog}
+              />
 
-              {/* Secção de Peças (oculta para agendamento de ticket recém-criado) */}
-              {!isTicketScheduling && (
-                <div className="form-group mt-3">
-                  <div className="d-flex justify-content-between align-items-center mb-2">
-                    <label className="mb-0 text-secondary fw-bold">Peças a Utilizar</label>
-                  </div>
-                  <div className="table-responsive">
-                    <table className="table table-bordered">
-                      <thead className="table-light">
-                        <tr className="align-middle">
-                          <th style={{ width: '75px' }} className="small">Qt</th>
-                          <th style={{ width: '160px' }} className="small">Referência</th>
-                          <th className="small">Designação</th>
-                          <th style={{ width: '80px' }} className="text-center small">Aplicada</th>
-                          <th style={{ width: '120px' }} className="small">Origem</th>
-                          <th style={{ width: '50px' }}></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {parts.map((part, index) => (
-                          <tr key={index}>
-                            <td>
-                              <input
-                                type="number"
-                                className="form-control form-control-sm"
-                                placeholder="Qtd"
-                                value={part.quantity}
-                                onChange={e => handlePartChange(index, 'quantity', parseInt(e.target.value) || 0)}
-                                disabled={isPastOrCompleted}
-                                min="1"
-                                required
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="text"
-                                className="form-control form-control-sm"
-                                placeholder="Referência"
-                                value={part.reference}
-                                onChange={e => handlePartChange(index, 'reference', e.target.value)}
-                                onBlur={() => handleReferenceBlur(index)}
-                                disabled={isPastOrCompleted}
-                              />
-                            </td>
-                            <td>
-                              <input
-                                type="text"
-                                className="form-control form-control-sm"
-                                placeholder="Designação"
-                                value={part.designation}
-                                onChange={e => handlePartChange(index, 'designation', e.target.value)}
-                                disabled={part.isDesignationLocked || isPastOrCompleted}
-                              />
-                            </td>
-                            <td className="text-center align-middle">
-                              <div className="d-flex justify-content-center">
-                                <input
-                                  type="checkbox"
-                                  className="form-check-input mt-0"
-                                  checked={part.isApplied !== false}
-                                  onChange={e => handlePartChange(index, 'isApplied', e.target.checked)}
-                                  disabled={isPastOrCompleted}
-                                />
-                              </div>
-                            </td>
-                            <td>
-                              <select
-                                className="form-select form-select-sm"
-                                value={part.stockType || StockType.GENERAL}
-                                onChange={e => handlePartChange(index, 'stockType', e.target.value)}
-                                disabled={isPastOrCompleted}
-                              >
-                                <option value={StockType.GENERAL}>Geral</option>
-                                <option value={StockType.CONTRACT}>Contrato</option>
-                                <option value={StockType.CLIENT}>Cliente</option>
-                                <option value={StockType.WARRANTY}>Garantia</option>
-                              </select>
-                            </td>
-                            <td className="text-center align-middle">
-                              <button
-                                type="button"
-                                className="btn btn-outline-danger btn-sm"
-                                onClick={() => handleRemovePart(index)}
-                                disabled={isPastOrCompleted}
-                                title="Remover Peça"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    {!isPastOrCompleted && (
-                      <div className="d-flex align-items-center gap-2 mt-2">
-                        <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddPart}>
-                          Adicionar Peça
-                        </button>
-                        <div className="btn-group">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
-                            onClick={handleCopyParts}
-                            title="Copiar Peças"
-                          >
-                            <Copy size={14} /> Copiar
-                          </button>
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
-                            onClick={handlePasteParts}
-                            title="Colar Peças"
-                          >
-                            <Clipboard size={14} /> Colar
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              <ScheduleClientEquipment
+                clientSearch={clientSearch}
+                setClientSearch={setClientSearch}
+                clients={clients}
+                equipmentId={equipmentId}
+                setEquipmentId={setEquipmentId}
+                equipments={equipments}
+                isLoadingEquipments={isLoadingEquipments}
+                clientId={clientId}
+                isPastOrCompleted={isPastOrCompleted}
+              />
 
-              {!isTicketScheduling && (
-                <div className="form-group">
-                  <label className="text-secondary fw-bold">Notas Internas</label>
-                  <textarea
-                    ref={internalNotesRef}
-                    className="form-control"
-                    value={internalNotes}
-                    onChange={e => setInternalNotes(e.target.value)}
-                    rows={1}
-                    style={{ overflow: 'hidden', resize: 'none' }}
-                    disabled={isPastOrCompleted}
-                  />
-                </div>
-              )}
+              <ScheduleTechnicians
+                technicians={technicians}
+                technicianIds={technicianIds}
+                handleTechnicianChange={handleTechnicianChange}
+                isPastOrCompleted={isPastOrCompleted}
+              />
+
+              <ScheduleParts
+                parts={parts}
+                handlePartChange={handlePartChange}
+                handleReferenceBlur={handleReferenceBlur}
+                handleRemovePart={handleRemovePart}
+                handleAddPart={handleAddPart}
+                handleCopyParts={handleCopyParts}
+                handlePasteParts={handlePasteParts}
+                isPastOrCompleted={isPastOrCompleted}
+                isTicketScheduling={isTicketScheduling}
+              />
+
+              <ScheduleInternalNotes
+                internalNotes={internalNotes}
+                setInternalNotes={setInternalNotes}
+                isPastOrCompleted={isPastOrCompleted}
+                isTicketScheduling={isTicketScheduling}
+                internalNotesRef={internalNotesRef}
+                isOpen={isOpen}
+              />
             </div>
             <div className="modal-footer d-flex justify-content-between">
               <div>

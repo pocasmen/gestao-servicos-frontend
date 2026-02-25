@@ -2,47 +2,33 @@ import React, { useState, useEffect, useContext, useRef } from 'react';
 import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 import apiClient from '../apiClient';
 import { AuthContext } from '../contexts/AuthContext';
-import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician } from '../types';
+import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician, BillingStatus } from '../types';
+import logger from '../utils/logger';
 import { StockType, UserRole, ServiceClassification } from '../constants/enums';
-import SignaturePad from './SignaturePad';
-import { Copy, Clipboard, Trash2, Printer } from 'lucide-react';
+import DeleteReportModal from './DeleteReportModal';
+import { Printer, Trash2 } from 'lucide-react';
 
+// Sub-components
+import ReportServiceInfo from './Report/ReportServiceInfo';
+import ReportTimeInfo from './Report/ReportTimeInfo';
+import ReportClientEquipment from './Report/ReportClientEquipment';
+import ReportTechnicians from './Report/ReportTechnicians';
+import ReportPartsTable from './Report/ReportPartsTable';
+import ReportDescriptions from './Report/ReportDescriptions';
+import ReportSignaturesSection from './Report/ReportSignaturesSection';
+import ReportPhotos from './ReportPhotos';
+
+
+// Utils
+import { calculateHours } from '../utils/dateCalculations';
 
 interface ReportModalProps {
   isOpen: boolean;
   onClose: () => void;
-  schedule: ScheduleEvent | null; // Agendamento base para o relatório
-  reportToEdit: Report | null; // Relatório existente para editar
-  onReportSaved: () => void; // Callback unificado
+  schedule: ScheduleEvent | null;
+  reportToEdit: Report | null;
+  onReportSaved: () => void;
 }
-
-import { SERVICE_TYPES_LIST, SERVICE_CLASSIFICATIONS_LIST } from '../constants';
-
-// Função para calcular horas trabalhadas com desconto de almoço e arredondamento para cima
-const calculateHours = (start: Date, end: Date): number => {
-  let diffMs = end.getTime() - start.getTime(); // Diferença em milissegundos
-  let diffHours = diffMs / (1000 * 60 * 60); // Diferença em horas
-
-  // Verificar se o intervalo de almoço (13h-14h) está dentro do período do serviço
-  const lunchStart = new Date(start);
-  lunchStart.setHours(13, 0, 0, 0);
-  const lunchEnd = new Date(start);
-  lunchEnd.setHours(14, 0, 0, 0);
-
-  // Se o serviço começa antes ou durante o almoço e termina depois ou durante o almoço
-  if (start < lunchEnd && end > lunchStart) {
-    // Calcular a sobreposição do almoço
-    const overlapStart = Math.max(start.getTime(), lunchStart.getTime());
-    const overlapEnd = Math.min(end.getTime(), lunchEnd.getTime());
-    if (overlapEnd > overlapStart) {
-      const overlapHours = (overlapEnd - overlapStart) / (1000 * 60 * 60);
-      diffHours -= overlapHours; // Subtrai apenas a sobreposição
-    }
-  }
-
-  // Arredondar para cima para o número inteiro mais próximo
-  return Math.max(0, Math.ceil(diffHours)); // Garantir que não é negativo
-};
 
 const ReportModal: React.FC<ReportModalProps> = ({
   isOpen,
@@ -56,20 +42,24 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [serviceDate, setServiceDate] = useState('');
   const [hours, setHours] = useState<number | string>('');
   const [parts, setParts] = useState<PartItem[]>([{ quantity: 1, reference: '', designation: '', isDesignationLocked: false }]);
-  const [damage, setDamage] = useState(''); // Novo campo
+  const [damage, setDamage] = useState('');
   const [description, setDescription] = useState('');
-  const [serviceTypes, setServiceTypes] = useState<string[]>([]); // Alterado para array
-  const [internalNotes, setInternalNotes] = useState(''); // Novo campo interno
+  const [serviceTypes, setServiceTypes] = useState<string[]>([]);
+  const [internalNotes, setInternalNotes] = useState('');
   const [signature, setSignature] = useState<string | undefined>(undefined);
   const [technicianSignatures, setTechnicianSignatures] = useState<Record<string, string>>({});
-  const [technicianSignature, setTechnicianSignature] = useState<string | undefined>(undefined); // Legacy, keep for now but unused in new logic?
+  const [technicianSignature, setTechnicianSignature] = useState<string | undefined>(undefined);
   const [includesTravel, setIncludesTravel] = useState(false);
   const [classification, setClassification] = useState<ServiceClassification>(ServiceClassification.GERAL);
+  const [isBillingPending, setIsBillingPending] = useState(false);
+
   const damageRef = useRef<HTMLTextAreaElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const internalNotesRef = useRef<HTMLTextAreaElement>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { confirm, alert } = useConfirm();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     [damageRef, descriptionRef, internalNotesRef].forEach(ref => {
@@ -81,7 +71,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
   }, [damage, description, internalNotes, isOpen]);
 
   const { user: authUser } = useContext(AuthContext);
-
+  const isAdmin = authUser?.user_metadata?.role === UserRole.ADMIN || authUser?.user_metadata?.role === UserRole.SUPER_ADMIN;
 
   const [allClients, setAllClients] = useState<Client[]>([]);
   const [clientEquipments, setClientEquipments] = useState<Equipment[]>([]);
@@ -91,28 +81,26 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const isEditing = reportToEdit !== null;
 
   useEffect(() => {
-    apiClient.get('/api/clients').then(res => setAllClients(res.data));
-    apiClient.get('/api/technicians').then(res => setAllTechnicians((res.data || []).filter((t: any) => t.role !== UserRole.OFFICE_STAFF)));
+    apiClient.get('/api/clients').then(res => setAllClients(res.data))
+      .catch(() => alert("Erro ao carregar lista de clientes."));
+    apiClient.get('/api/technicians').then(res => setAllTechnicians((res.data || []).filter((t: any) => t.role !== UserRole.OFFICE_STAFF)))
+      .catch(() => alert("Erro ao carregar lista de técnicos."));
   }, []);
 
   useEffect(() => {
     if (isEditing && reportToEdit) {
-      // Modo de Edição: preencher com dados do relatório
       setClientId(reportToEdit.clientId);
       setEquipmentId(reportToEdit.equipmentId);
-      setTechnicianIds(reportToEdit.technicians?.map(t => t.id) || []); // Pre-fill from report
+      setTechnicianIds(reportToEdit.technicians?.map(t => t.id) || []);
       setServiceDate(new Date(reportToEdit.serviceDate).toISOString().slice(0, 16));
       setHours(reportToEdit.hours);
       setDescription(reportToEdit.description);
-      setDamage(reportToEdit.damage || ''); // Carregar damage
-      setServiceTypes(reportToEdit.serviceType || []); // Carregar array
-      setInternalNotes(reportToEdit.internalNotes || ''); // Carregar notas internas
-      const loadedParts = reportToEdit.parts && reportToEdit.parts.length > 0 ? reportToEdit.parts : [];
-      // Ensure we have an empty line at the end only if the last one is not already empty
-      setParts(loadedParts);
+      setDamage(reportToEdit.damage || '');
+      setServiceTypes(reportToEdit.serviceType || []);
+      setInternalNotes(reportToEdit.internalNotes || '');
+      setParts(reportToEdit.parts && reportToEdit.parts.length > 0 ? reportToEdit.parts : []);
       setSignature(reportToEdit.signature);
 
-      // Populate signatures map from report technicians
       const sigs: Record<string, string> = {};
       if (reportToEdit.technicians) {
         reportToEdit.technicians.forEach(t => {
@@ -121,7 +109,6 @@ const ReportModal: React.FC<ReportModalProps> = ({
       }
       setTechnicianSignatures(sigs);
 
-      // Auto-sign for current user if not already signed
       if (authUser && reportToEdit.technicians?.some(t => t.id === authUser.id) && !sigs[authUser.id]) {
         apiClient.get('/api/technicians').then(res => {
           const profile = res.data.find((p: any) => p.id === authUser.id);
@@ -134,66 +121,63 @@ const ReportModal: React.FC<ReportModalProps> = ({
       setTechnicianSignature(reportToEdit.technician_signature);
       setIncludesTravel(reportToEdit.includes_travel || false);
       setClassification(reportToEdit.classification || ServiceClassification.GERAL);
-
+      setIsBillingPending(reportToEdit.billing_status === BillingStatus.PENDING_COMPLETION);
 
     } else if (!isEditing && schedule) {
-      // Modo de Criação: preencher com dados do agendamento
       setClientId(schedule.clientId);
       setEquipmentId(schedule.equipmentId);
-      setTechnicianIds(schedule.technicians?.map(t => t.id) || []); // Pre-fill from schedule
-      setServiceDate(new Date(schedule.start!).toISOString().slice(0, 16));
+      setTechnicianIds(schedule.technicians?.map(t => t.id) || []);
 
+      let serviceStartDate: Date;
       let totalCalculatedHours = 0;
+
       if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
+        serviceStartDate = new Date(schedule.timeBlocks[0].start);
         schedule.timeBlocks.forEach(block => {
           totalCalculatedHours += calculateHours(new Date(block.start), new Date(block.end));
         });
+      } else if (schedule.start && schedule.end) {
+        serviceStartDate = new Date(schedule.start);
+        totalCalculatedHours = calculateHours(new Date(schedule.start), new Date(schedule.end));
       } else {
-        totalCalculatedHours = calculateHours(new Date(schedule.start!), new Date(schedule.end!));
+        serviceStartDate = new Date();
+        totalCalculatedHours = 1;
       }
+
+      if (isNaN(serviceStartDate.getTime())) {
+        serviceStartDate = new Date();
+      }
+
+      setServiceDate(serviceStartDate.toISOString().slice(0, 16));
       setHours(totalCalculatedHours);
-
-      const scheduledParts = (schedule.parts || []).map(p => ({
-        ...p,
-        isDesignationLocked: !!p.designation
-      }));
-
-      setParts(scheduledParts);
-
+      setParts((schedule.parts || []).map(p => ({ ...p, isDesignationLocked: !!p.designation })));
       setDescription('');
-      setDamage(''); // Inicializar vazio
-
-      // Passar o tipo de serviço do agendamento para o relatório (se existir)
-      if (schedule.serviceType) {
-        setServiceTypes([schedule.serviceType]);
-      } else {
-        setServiceTypes([]);
-      }
-
-      // Passar as notas internas do agendamento para o relatório
+      setDamage('');
+      setServiceTypes(schedule.serviceType ? [schedule.serviceType] : []);
       setInternalNotes(schedule.internalNotes || '');
       setIncludesTravel(schedule.includes_travel || false);
       setClassification(schedule.classification || ServiceClassification.GERAL);
+      setIsBillingPending(false);
       setSignature(undefined);
 
-      // Buscar assinatura do técnico logado para inclusão automática
-      if (authUser) {
-        apiClient.get('/api/technicians').then(res => {
-          const profile = res.data.find((p: any) => p.id === authUser.id);
-          if (profile && profile.signature) {
-            setTechnicianSignature(profile.signature);
-            // Default: if I am the creator, I am likely in the list (or should be).
-            // But strict logic: only if I am IN technicianIds. 
-            // In create mode, technicianIds are pre-filled from schedule.
-            const isMeInList = (schedule?.technicians?.map(t => t.id) || []).includes(authUser.id);
-            if (isMeInList || !schedule) { // If no schedule, maybe empty list?
-              setTechnicianSignatures(prev => ({ ...prev, [authUser.id]: profile.signature }));
-            }
+      apiClient.get('/api/technicians').then(res => {
+        const sigs: Record<string, string> = {};
+        const techList = res.data || [];
+        const initialTechIds = schedule.technicians?.map(t => t.id) || [];
+        techList.forEach((p: any) => {
+          if (initialTechIds.includes(p.id) && p.signature) {
+            sigs[p.id] = p.signature;
           }
         });
-      }
+        setTechnicianSignatures(sigs);
+        if (authUser) {
+          const myProfile = techList.find((p: any) => p.id === authUser.id);
+          if (myProfile && myProfile.signature) {
+            setTechnicianSignature(myProfile.signature);
+          }
+        }
+      });
     }
-
   }, [schedule, reportToEdit, isEditing]);
 
   useEffect(() => {
@@ -209,13 +193,10 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const handlePartChange = (index: number, field: keyof PartItem, value: any) => {
     const newParts = [...parts];
     newParts[index] = { ...newParts[index], [field]: value };
-
     if (field === 'reference') {
       newParts[index].isDesignationLocked = false;
     }
-
     setParts(newParts);
-
     if (index === parts.length - 1 && (newParts[index].reference || newParts[index].designation)) {
       setParts([...newParts, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }]);
     }
@@ -243,117 +224,19 @@ const ReportModal: React.FC<ReportModalProps> = ({
           const newParts = [...parts];
           newParts[index] = { ...newParts[index], designation: '', isDesignationLocked: false };
           setParts(newParts);
-        } else {
-          console.error("Erro ao verificar referência:", error);
         }
       }
     }
-  };
-
-  const handleCopyParts = async () => {
-    const validParts = parts.filter(p => (p.reference && p.reference.trim() !== '') || (p.designation && p.designation.trim() !== ''));
-    if (validParts.length === 0) {
-      await alert('Não há peças para copiar.');
-      return;
-    }
-    const partsToCopy = validParts.map(({ quantity, reference, designation }) => ({
-      quantity,
-      reference,
-      designation
-    }));
-    const partsString = JSON.stringify(partsToCopy);
-
-    // Guardar no localStorage
-    localStorage.setItem('app_parts_clipboard', partsString);
-
-    // Tentar guadar no sistema
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(partsString)
-        .then(async () => await alert('Lista de peças copiada!'))
-        .catch(async (err) => {
-          console.warn('Clipboard API failed:', err);
-          await alert('Pronto! Lista guardada na memória interna.');
-        });
-    } else {
-      await alert('Pronto! Lista guardada na memória interna.');
-    }
-  };
-
-  const handlePasteParts = async () => {
-    let partsString = localStorage.getItem('app_parts_clipboard');
-
-    if (!partsString && navigator.clipboard && navigator.clipboard.readText) {
-      try {
-        partsString = await navigator.clipboard.readText();
-      } catch (err) {
-        console.warn('Could not read clipboard API:', err);
-      }
-    }
-
-    if (!partsString) {
-      await alert('Nenhuma peça encontrada para colar.');
-      return;
-    }
-
-    try {
-      const pastedData = JSON.parse(partsString);
-      if (Array.isArray(pastedData)) {
-        const newPartsFromPaste = pastedData
-          .filter(p => p.reference || p.designation)
-          .map(p => ({
-            quantity: Number(p.quantity) || 1,
-            reference: p.reference || '',
-            designation: p.designation || '',
-            isDesignationLocked: !!p.reference
-          }));
-
-        if (newPartsFromPaste.length === 0) {
-          await alert('Nenhuma peça válida encontrada.');
-          return;
-        }
-
-        setParts(prev => {
-          const filteredPrev = prev.filter(p => p.reference.trim() !== '' || p.designation.trim() !== '');
-          return [...filteredPrev, ...newPartsFromPaste, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }];
-        });
-        await alert(`${newPartsFromPaste.length} peças coladas!`);
-      } else {
-        await alert('Conteúdo inválido.');
-      }
-    } catch (err) {
-      console.error('Erro ao colar:', err);
-      await alert('Erro ao processar as peças.');
-    }
-  };
-
-  const handleRemovePart = (index: number) => {
-    if (parts.length === 1) {
-      setParts([{ quantity: 1, reference: '', designation: '', isDesignationLocked: false }]);
-    } else {
-      setParts(parts.filter((_, i) => i !== index));
-    }
-  };
-
-  const handleServiceTypeChange = (type: string) => {
-    setServiceTypes(prev =>
-      prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
-    );
   };
 
   const handleTechnicianChange = (technicianId: string) => {
     setTechnicianIds(prevIds => {
       const exists = prevIds.includes(technicianId);
-      const newIds = exists
-        ? prevIds.filter(id => id !== technicianId)
-        : [...prevIds, technicianId];
-
-      // If adding myself, add my signature
-      if (!exists && authUser && technicianId === authUser.id) {
-        // Need to fetch my signature if not available? 
-        // We can try to find it in allTechnicians if it has it
-        const me = allTechnicians.find(t => t.id === authUser.id);
-        if (me && (me as any).signature) {
-          setTechnicianSignatures(prev => ({ ...prev, [authUser.id]: (me as any).signature }));
+      const newIds = exists ? prevIds.filter(id => id !== technicianId) : [...prevIds, technicianId];
+      if (!exists) {
+        const tech = allTechnicians.find(t => t.id === technicianId);
+        if (tech && (tech as any).signature) {
+          setTechnicianSignatures(prev => ({ ...prev, [technicianId]: (tech as any).signature }));
         }
       }
       return newIds;
@@ -364,46 +247,37 @@ const ReportModal: React.FC<ReportModalProps> = ({
     e.preventDefault();
     if (isSubmitting) return;
 
-    if (!clientId) {
-      await alert('É obrigatório selecionar um cliente.');
-      return;
-    }
-    if (!equipmentId) {
-      await alert('É obrigatório selecionar um equipamento.');
-      return;
-    }
-    if (technicianIds.length === 0) {
-      await alert('É obrigatório selecionar pelo menos um técnico.');
-      return;
-    }
-    if (serviceTypes.length === 0) {
-      await alert('É obrigatório selecionar pelo menos um tipo de serviço.');
-      return;
-    }
+    if (!clientId) return alert('É obrigatório selecionar um cliente.');
+    if (!equipmentId) return alert('É obrigatório selecionar um equipamento.');
+    if (technicianIds.length === 0) return alert('É obrigatório selecionar pelo menos um técnico.');
+    if (serviceTypes.length === 0) return alert('É obrigatório selecionar pelo menos um tipo de serviço.');
 
     const partsToSubmit = parts.filter(p => p.reference || p.designation);
-
-
-    for (const part of partsToSubmit) {
+    const finalPartsToSubmit = [...partsToSubmit];
+    for (let i = 0; i < finalPartsToSubmit.length; i++) {
+      const part = finalPartsToSubmit[i];
       if (part.reference && part.designation && !part.isDesignationLocked) {
         try {
-          await apiClient.post('/api/inventory', { reference: part.reference, designation: part.designation });
+          const response = await apiClient.post('/api/inventory', { reference: part.reference, designation: part.designation });
+          if (response.data && response.data.id) {
+            finalPartsToSubmit[i] = { ...finalPartsToSubmit[i], id: response.data.id, isDesignationLocked: true };
+          }
         } catch (error) {
-          console.error("Erro ao criar nova peça:", error);
+          logger.error(error, "Erro ao criar nova peça:");
         }
       }
     }
 
     // Verificação de stock negativo (Aviso)
-    const negativeStockParts = partsToSubmit.filter(p => {
+    const negativeStockParts = finalPartsToSubmit.filter(p => {
       if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
-
       const type = p.stockType || StockType.GENERAL;
+      const currentQtyInReport = isEditing ? (reportToEdit?.parts?.find(op => op.id === p.id)?.quantity || 0) : 0;
       if (type === StockType.GENERAL) {
-        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0);
+        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0) + currentQtyInReport;
         return available < p.quantity;
       } else {
-        const available = (p.stock_quantity_contract || 0) - (p.reserved_quantity_contract || 0);
+        const available = (p.stock_quantity_contract || 0) - (p.reserved_quantity_contract || 0) + currentQtyInReport;
         return available < p.quantity;
       }
     });
@@ -423,48 +297,37 @@ const ReportModal: React.FC<ReportModalProps> = ({
     const reportData = {
       clientId: Number(clientId),
       equipmentId: Number(equipmentId),
-      scheduleId: isEditing
-        ? reportToEdit.scheduleId
-        : (schedule?.scheduleId || (typeof schedule?.id === 'number' ? schedule.id : undefined)),
+      scheduleId: isEditing ? reportToEdit.scheduleId : (schedule?.scheduleId || (typeof schedule?.id === 'number' ? schedule.id : undefined)),
       technicianIds: technicianIds,
       serviceDate,
       hours: Number(hours),
       description,
-      damage, // Incluir o novo campo
-      serviceType: serviceTypes, // Enviar o array
-      internalNotes, // Enviar notas internas
-      signature, // Enviar assinatura
-      technician_signature: technicianSignature, // Enviar assinatura do técnico (Legacy)
-      technicianSignatures, // Access new map
-      includesTravel, // Enviar informação de deslocação
+      damage,
+      serviceType: serviceTypes,
+      internalNotes,
+      signature,
+      technician_signature: technicianSignature,
+      technicianSignatures,
+      includesTravel,
       classification,
-      parts: partsToSubmit.map(p => ({
-        ...p,
-        isApplied: p.isApplied === false ? false : true
-      }))
+      parts: finalPartsToSubmit.map(p => ({ ...p, isApplied: p.isApplied === false ? false : true })),
+      isBillingPending: isBillingPending,
+      markAsReadyForBilling: !isBillingPending
     };
 
-
-    const saveRequest = isEditing
-      ? apiClient.put(`/api/reports/${reportToEdit.id}`, reportData)
-      : apiClient.post('/api/reports', reportData);
-
+    const saveRequest = isEditing ? apiClient.put(`/api/reports/${reportToEdit.id}`, reportData) : apiClient.post('/api/reports', reportData);
     setIsSubmitting(true);
+    saveRequest.then(() => { onReportSaved(); onClose(); })
+      .catch(async (err: any) => { alert(err.response?.data?.error || "Erro ao guardar relatório."); })
+      .finally(() => setIsSubmitting(false));
+  };
 
-    saveRequest
-      .then(() => {
-        onReportSaved();
-        onClose();
-      })
-      .catch(async (err: any) => {
-        console.error("Erro ao guardar relatório:", err);
-        console.error("Detalhes do erro:", err.response || err.message);
-        const errorMessage = err.response?.data?.error || "Erro ao guardar relatório.";
-        await alert(errorMessage);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+  const handleDelete = () => setShowDeleteConfirm(true);
+  const confirmDelete = (restoreParts: boolean) => {
+    if (!reportToEdit) return;
+    apiClient.delete(`/api/reports/${reportToEdit.id}?restoreParts=${restoreParts}`).then(() => {
+      setShowDeleteConfirm(false); onReportSaved(); onClose();
+    }).catch(() => alert("Erro ao eliminar relatório."));
   };
 
   return (
@@ -477,314 +340,61 @@ const ReportModal: React.FC<ReportModalProps> = ({
               <button type="button" className="btn-close" onClick={onClose}></button>
             </div>
             <div className="modal-body">
-              {/* ... form fields ... */}
-              <div className="form-group">
-                <label className="text-secondary fw-bold">Cliente</label>
-                <select className="form-control" value={clientId} onChange={e => setClientId(Number(e.target.value))} required>
-                  <option value="">Selecione um cliente...</option>
-                  {allClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="text-secondary fw-bold">Equipamento</label>
-                <select className="form-control" value={equipmentId} onChange={e => setEquipmentId(Number(e.target.value))} required disabled={!clientId}>
-                  <option value="">Selecione um equipamento...</option>
-                  {clientEquipments.map(eq => (
-                    <option key={eq.id} value={eq.id}>
-                      {`${eq.brand || ''} ${eq.model || ''}${eq.serialNumber ? ` (${eq.serialNumber})` : ''}`.trim()}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="text-secondary fw-bold">Técnico(s) Responsável(eis)</label>
-                <div className="technician-checkbox-group p-2 border rounded">
-                  <div className="row">
-                    {allTechnicians.map(t => (
-                      <div className="col-4" key={t.id}>
-                        <div className="form-check">
-                          <input
-                            className="form-check-input"
-                            type="checkbox"
-                            id={`report-tech-${t.id}`}
-                            value={t.id}
-                            checked={technicianIds.includes(t.id)}
-                            onChange={() => handleTechnicianChange(t.id)}
-                          />
-                          <label className="form-check-label" htmlFor={`report-tech-${t.id}`}>
-                            {t.name}
-                          </label>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="form-group mb-3">
-                <label className="text-secondary fw-bold">Tipo de Serviço</label>
-                <div className="d-flex flex-wrap">
-                  {SERVICE_TYPES_LIST.map(type => (
-                    <div key={type.id} className="form-check form-check-inline">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id={`service-type-${type.id}`}
-                        checked={serviceTypes.includes(type.id)}
-                        onChange={() => handleServiceTypeChange(type.id)}
-                      />
-                      <label className="form-check-label" htmlFor={`service-type-${type.id}`}>{type.label}</label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="form-group mb-3">
-                <label className="text-secondary fw-bold">Classificação do Serviço</label>
-                <select
-                  className="form-control"
-                  value={classification}
-                  onChange={e => setClassification(e.target.value as ServiceClassification)}
-                >
-                  {SERVICE_CLASSIFICATIONS_LIST.map(item => (
-                    <option key={item.id} value={item.id}>{item.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Checkbox de Deslocação - Oculto se apenas remota estiver selecionado ou nenhum */}
-              {serviceTypes.length > 0 && !serviceTypes.every(t => t === 'remota') && (
-                <div className="form-group mb-3">
-                  <div className="form-check">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id="reportIncludesTravel"
-                      checked={includesTravel}
-                      onChange={(e) => setIncludesTravel(e.target.checked)}
-                    />
-                    <label className="form-check-label" htmlFor="reportIncludesTravel">
-                      Inclui deslocação às instalações do cliente
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {schedule?.timeBlocks && schedule.timeBlocks.length > 0 && (
-                <div className="form-group">
-                  <label className="text-secondary fw-bold mb-1">Horários do Serviço (Agendamento)</label>
-                  <div className="p-2 border rounded bg-light">
-                    <ul className="mb-0 ps-3 small text-muted">
-                      {schedule.timeBlocks.map((tb, idx) => (
-                        <li key={idx}>
-                          {new Date(tb.start).toLocaleDateString('pt-PT')} das {new Date(tb.start).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} às {new Date(tb.end).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              <div className="form-group">
-                <label className="text-secondary fw-bold">Horas Trabalhadas</label>
-                <input type="number" className="form-control" value={hours} onChange={e => setHours(Number(e.target.value))} required min="0" step="1" />
-              </div>
-
-              <div className="form-group">
-                <label className="text-secondary fw-bold">Descrição da Avaria</label>
-                <textarea
-                  ref={damageRef}
-                  className="form-control"
-                  style={{ overflow: 'hidden', resize: 'none' }}
-                  value={damage}
-                  onChange={e => setDamage(e.target.value)}
-                  rows={1}
-                ></textarea>
-              </div>
-
-              <div className="form-group">
-                <label className="text-secondary fw-bold">Descrição da Intervenção</label>
-                <textarea
-                  ref={descriptionRef}
-                  className="form-control"
-                  style={{ overflow: 'hidden', resize: 'none' }}
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  rows={1}
-                  required
-                ></textarea>
-              </div>
-
-              <div className="form-group p-2 bg-light border rounded">
-                <label className="text-secondary fw-bold">Notas Internas (Não visível ao cliente)</label>
-                <textarea
-                  ref={internalNotesRef}
-                  className="form-control"
-                  style={{ overflow: 'hidden', resize: 'none' }}
-                  value={internalNotes}
-                  onChange={e => setInternalNotes(e.target.value)}
-                  rows={1}
-                  placeholder="Notas para a equipa técnica..."
-                ></textarea>
-              </div>
-
-              <div className="form-group mt-3">
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <label className="mb-0 text-secondary fw-bold">Peças Utilizadas</label>
-                </div>
-                <table className="table table-bordered">
-                  <thead className="table-light">
-                    <tr className="align-middle">
-                      <th style={{ width: '75px' }} className="small">Qt</th>
-                      <th style={{ width: '160px' }} className="small">Referência</th>
-                      <th className="small">Designação</th>
-                      <th style={{ width: '80px' }} className="text-center small">Aplicada</th>
-                      <th style={{ width: '120px' }} className="small">Origem</th>
-                      <th style={{ width: '50px' }}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {parts.map((part, index) => (
-                      <tr key={index}>
-                        <td>
-                          <input
-                            type="number"
-                            className="form-control form-control-sm"
-                            value={part.quantity}
-                            onChange={e => handlePartChange(index, 'quantity', Number(e.target.value))}
-                            min="1"
-                            required
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            value={part.reference}
-                            onChange={e => handlePartChange(index, 'reference', e.target.value)}
-                            onBlur={() => handleReferenceBlur(index)}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="text"
-                            className="form-control form-control-sm"
-                            value={part.designation}
-                            onChange={e => handlePartChange(index, 'designation', e.target.value)}
-                            disabled={part.isDesignationLocked}
-                          />
-                        </td>
-                        <td className="text-center align-middle">
-                          <div className="d-flex justify-content-center">
-                            <input
-                              type="checkbox"
-                              className="form-check-input mt-0"
-                              checked={part.isApplied !== false}
-                              onChange={e => handlePartChange(index, 'isApplied', e.target.checked)}
-                            />
-                          </div>
-                        </td>
-                        <td>
-                          <select
-                            className="form-select form-select-sm"
-                            value={part.stockType || StockType.GENERAL}
-                            onChange={e => handlePartChange(index, 'stockType', e.target.value)}
-                          >
-                            <option value={StockType.GENERAL}>Geral</option>
-                            <option value={StockType.CONTRACT}>Contrato</option>
-                            <option value={StockType.CLIENT}>Cliente</option>
-                            <option value={StockType.WARRANTY}>Garantia</option>
-                          </select>
-                        </td>
-                        <td className="text-center align-middle">
-                          <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => handleRemovePart(index)}
-                            title="Remover Peça"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                <div className="d-flex align-items-center gap-2 mt-2">
-                  <button
-                    type="button"
-                    className="btn btn-secondary btn-sm"
-                    onClick={() => setParts([...parts, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }])}
-                  >
-                    Adicionar Peça
-                  </button>
-                  <div className="btn-group">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
-                      onClick={handleCopyParts}
-                      title="Copiar Peças"
-                    >
-                      <Copy size={14} /> Copiar
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-info d-flex align-items-center gap-1"
-                      onClick={handlePasteParts}
-                      title="Colar Peças"
-                    >
-                      <Clipboard size={14} /> Colar
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-
-
-              <div className="form-group mt-4">
-                <SignaturePad
-                  onConfirm={(dataUrl) => setSignature(dataUrl)}
-                  onClear={() => setSignature(undefined)}
-                  initialSignature={signature}
-                />
-
-                {signature && (
-                  <div className="alert alert-success mt-2 py-1 px-2 d-flex align-items-center" style={{ fontSize: '0.85rem' }}>
-                    <i className="bi bi-check-circle-fill me-2"></i>
-                    Assinatura capturada com sucesso!
-                  </div>
-                )}
-              </div>
-
-
-
+              <ReportServiceInfo
+                serviceTypes={serviceTypes} setServiceTypes={setServiceTypes}
+                classification={classification} setClassification={setClassification}
+                includesTravel={includesTravel} setIncludesTravel={setIncludesTravel}
+              />
+              <ReportTimeInfo schedule={schedule} hours={hours} setHours={(val) => setHours(val)} />
+              <ReportClientEquipment
+                clientId={clientId} setClientId={(val) => setClientId(val)} allClients={allClients}
+                equipmentId={equipmentId} setEquipmentId={(val) => setEquipmentId(val)} clientEquipments={clientEquipments}
+              />
+              <ReportTechnicians
+                allTechnicians={allTechnicians} technicianIds={technicianIds}
+                handleTechnicianChange={handleTechnicianChange}
+              />
+              <ReportPartsTable
+                parts={parts} setParts={setParts}
+                handlePartChange={handlePartChange} handleReferenceBlur={handleReferenceBlur}
+              />
+              <ReportDescriptions
+                damage={damage} setDamage={setDamage} damageRef={damageRef}
+                description={description} setDescription={setDescription} descriptionRef={descriptionRef}
+                internalNotes={internalNotes} setInternalNotes={setInternalNotes} internalNotesRef={internalNotesRef}
+              />
+              <ReportPhotos reportId={reportToEdit?.id ?? null} />
+              <ReportSignaturesSection signature={signature} setSignature={setSignature} />
             </div>
-            <div className="modal-footer">
-              {isEditing && reportToEdit && (
-                <button
-                  type="button"
-                  className="btn btn-outline-primary me-auto"
-                  onClick={() => window.open(`/report/print/${reportToEdit.id}`, '_blank')}
-                >
-                  <Printer size={18} className="me-2" />Ver Relatório
+            <div className="modal-footer d-flex justify-content-between">
+              <div className="form-check form-switch ms-2">
+                <input className="form-check-input" type="checkbox" id="billingPendingCheck" checked={isBillingPending} onChange={(e) => setIsBillingPending(e.target.checked)} />
+                <label className="form-check-label text-warning fw-bold" htmlFor="billingPendingCheck">Ainda não pronto para faturação</label>
+              </div>
+              <div className="d-flex">
+                {isEditing && reportToEdit && (
+                  <button type="button" className="btn btn-outline-primary me-2" onClick={() => window.open(`/report/print/${reportToEdit.id}`, '_blank')}>
+                    <Printer size={18} className="me-2" />Relatório
+                  </button>
+                )}
+                {isEditing && reportToEdit && isAdmin && (
+                  <button type="button" className="btn btn-outline-danger me-2" onClick={handleDelete} title="Eliminar Relatório"><Trash2 size={18} /></button>
+                )}
+                <button type="button" className="btn btn-secondary me-2" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                  {isSubmitting ? <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...</> : (isEditing ? 'Guardar Alterações' : 'Criar Relatório')}
                 </button>
-              )}
-              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
-              <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Guardando...
-                  </>
-                ) : (isEditing ? 'Guardar Alterações' : 'Criar Relatório')}
-              </button>
+              </div>
             </div>
           </form>
         </div>
       </div>
+      {showDeleteConfirm && reportToEdit && (
+        <DeleteReportModal report={reportToEdit} onClose={() => setShowDeleteConfirm(false)} onConfirm={confirmDelete} />
+      )}
     </div>
   );
 };
 
 export default ReportModal;
+

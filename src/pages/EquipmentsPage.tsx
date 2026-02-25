@@ -1,40 +1,54 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
 import { Link } from 'react-router-dom';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { SmartInput } from '../components/SmartInput';
 
-// Interfaces
-interface Equipment {
-  id: number;
-  brand: string;
-  model: string;
-  serialNumber: string;
-  clientName: string;
-  clientId?: number; // Needed for editing
-}
-interface Client {
-  id: number;
-  name: string;
-}
+import { Equipment, Client } from '../types';
+import { EquipmentSchema, ClientSchema } from '../schemas';
+import logger from '../utils/logger';
+import { Pencil, Trash2, History, Plus, X, Check } from 'lucide-react';
 
 // Formulário de Criação (com estilo Bootstrap Card)
 const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipmentAdded }) => {
+  const queryClient = useQueryClient();
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [clientName, setClientName] = useState('');
-  const [clients, setClients] = useState<Client[]>([]);
   const { alert } = useConfirm();
 
-  useEffect(() => {
-    apiClient.get('/api/clients').then(response => setClients(response.data))
-      .catch((error: any) => {
-        console.error("Erro ao carregar clientes:", error);
-      });
-  }, []);
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/clients');
+      const validated = (response.data || []).map((item: any) => ClientSchema.parse(item));
+      return validated as Client[];
+    }
+  });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const createMutation = useMutation({
+    mutationFn: (newEquipment: any) => apiClient.post('/api/equipments', newEquipment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipments'] });
+      setBrand('');
+      setModel('');
+      setSerialNumber('');
+      setClientName('');
+      alert('Equipamento criado com sucesso!', 'Sucesso');
+      onEquipmentAdded();
+    },
+    onError: (error: any) => {
+      logger.error(error, "Erro ao adicionar equipamento:");
+      let errorMsg = "Erro ao adicionar equipamento.";
+      if (error?.response?.data?.error) errorMsg = error.response.data.error;
+      alert(errorMsg);
+    },
+    onSettled: () => setIsSubmitting(false)
+  });
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -47,23 +61,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
     }
 
     setIsSubmitting(true);
-    apiClient.post('/api/equipments', { brand, model, serialNumber, clientId: selectedClient.id })
-      .then(async () => {
-        setBrand('');
-        setModel('');
-        setSerialNumber('');
-        setClientName('');
-        await alert('Equipamento criado com sucesso!', 'Sucesso');
-        onEquipmentAdded();
-      })
-      .catch(async (error: any) => {
-        console.error("Erro ao adicionar equipamento:", error);
-        const errorMsg = error.response?.data?.error || "Erro ao adicionar equipamento.";
-        await alert(errorMsg);
-      })
-      .finally(() => {
-        setIsSubmitting(false);
-      });
+    createMutation.mutate({ brand, model, serialNumber, clientId: selectedClient.id });
   };
 
   return (
@@ -115,20 +113,17 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
                 value={serialNumber}
                 onChange={setSerialNumber}
                 required
-                options={{ minLength: 3 }}
+                options={{ minLength: 3, disableHeuristics: true }}
                 placeholder="SN-123"
               />
             </div>
           </div>
           <div className="row mt-2">
             <div className="col-md-12 text-end">
-              <button type="submit" className="btn btn-success" disabled={isSubmitting}>
+              <button type="submit" className="btn btn-success" disabled={isSubmitting} title="Adicionar Equipamento">
                 {isSubmitting ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    A adicionar...
-                  </>
-                ) : 'Adicionar Equipamento'}
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                ) : <Check size={20} />}
               </button>
             </div>
           </div>
@@ -149,18 +144,17 @@ const EditEquipmentModal: React.FC<{
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [clientId, setClientId] = useState<number | string>('');
-  const [clients, setClients] = useState<Client[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (isOpen) {
-      // Fetch clients specifically for the modal if needed, or rely on parent passing them? 
-      // For simplicity, let's fetch here or we could lift state up. 
-      // Since the form also fetches, maybe better to fetch once in parent. 
-      // But to keep logic isolated similar to EquipmentForm, fetching here.
-      apiClient.get('/api/clients').then(response => setClients(response.data));
-    }
-  }, [isOpen]);
+  const { data: clients = [] } = useQuery({
+    queryKey: ['clients'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/clients');
+      const validated = (response.data || []).map((item: any) => ClientSchema.parse(item));
+      return validated as Client[];
+    },
+    enabled: isOpen
+  });
 
   useEffect(() => {
     if (equipment) {
@@ -225,27 +219,41 @@ const EditEquipmentModal: React.FC<{
                 </select>
               </div>
               <div className="mb-3">
-                <label className="form-label">Marca</label>
-                <input type="text" className="form-control" value={brand} onChange={e => setBrand(e.target.value)} required />
+                <SmartInput
+                  label="Marca"
+                  value={brand}
+                  onChange={setBrand}
+                  required
+                  options={{ minLength: 2 }}
+                />
               </div>
               <div className="mb-3">
-                <label className="form-label">Modelo</label>
-                <input type="text" className="form-control" value={model} onChange={e => setModel(e.target.value)} required />
+                <SmartInput
+                  label="Modelo"
+                  value={model}
+                  onChange={setModel}
+                  required
+                  options={{ minLength: 2 }}
+                />
               </div>
               <div className="mb-3">
-                <label className="form-label">Nº de Série</label>
-                <input type="text" className="form-control" value={serialNumber} onChange={e => setSerialNumber(e.target.value)} required />
+                <SmartInput
+                  label="Nº de Série"
+                  value={serialNumber}
+                  onChange={setSerialNumber}
+                  required
+                  options={{ minLength: 3, disableHeuristics: true }}
+                />
               </div>
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>Cancelar</button>
-              <button type="submit" className="btn btn-primary" disabled={isSaving}>
+              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving} title="Cancelar">
+                <X size={20} />
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={isSaving} title="Guardar Alterações">
                 {isSaving ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    A guardar...
-                  </>
-                ) : 'Guardar'}
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                ) : <Check size={20} />}
               </button>
             </div>
           </form>
@@ -291,13 +299,13 @@ const EquipmentList: React.FC<{
                     <td>{equipment.serialNumber}</td>
                     <td className="text-end">
                       <Link to={`/equipments/${equipment.id}/history`} className="btn btn-sm btn-outline-info me-2" title="Ver Histórico">
-                        Histórico
+                        <History size={18} />
                       </Link>
-                      <button className="btn btn-sm btn-outline-warning me-2" onClick={() => onEdit(equipment)} title="Editar">
-                        Editar
+                      <button className="btn btn-sm btn-outline-warning me-2" onClick={() => onEdit(equipment)} title="Editar Equipamento">
+                        <Pencil size={18} />
                       </button>
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => onDelete(equipment)} title="Apagar">
-                        Apagar
+                      <button className="btn btn-sm btn-outline-danger" onClick={() => onDelete(equipment)} title="Apagar Equipamento">
+                        <Trash2 size={18} />
                       </button>
                     </td>
                   </tr>
@@ -313,31 +321,57 @@ const EquipmentList: React.FC<{
 
 // Página Principal
 const EquipmentsPage: React.FC = () => {
-  const [equipments, setEquipments] = useState<Equipment[]>([]);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const { confirm, alert } = useConfirm();
+
+  // Queries
+  const { data: equipments = [], isLoading, isError, error } = useQuery({
+    queryKey: ['equipments', searchQuery],
+    queryFn: async () => {
+      const params = searchQuery ? { search: searchQuery } : {};
+      const response = await apiClient.get('/api/equipments', { params });
+      const raw = response.data || [];
+      return raw.map((item: unknown) => {
+        const result = EquipmentSchema.safeParse(item);
+        if (!result.success) {
+          logger.error(result.error.format(), '[SCHEMA_ERROR] Equipment validation failed:');
+          return item as Equipment;
+        }
+        return result.data as Equipment;
+      }) as Equipment[];
+    }
+  });
+
+  // Mutations
+  const updateMutation = useMutation({
+    mutationFn: (updatedEquipment: Equipment) => apiClient.put(`/api/equipments/${updatedEquipment.id}`, updatedEquipment),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipments'] });
+      handleCloseEditModal();
+    },
+    onError: (error: any) => {
+      logger.error(error, "Erro ao atualizar equipamento:");
+      let errorMsg = "Erro ao atualizar equipamento.";
+      if (error?.response?.data?.error) errorMsg = error.response.data.error;
+      alert(errorMsg);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (eqId: number) => apiClient.delete(`/api/equipments/${eqId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['equipments'] });
+    },
+    onError: (error: any) => {
+      logger.error(error, "Erro ao apagar equipamento:");
+      alert("Erro ao apagar equipamento. Verifique se existem registos associados.");
+    }
+  });
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
-
-  const fetchEquipments = (query: string = '') => {
-    const params = query ? { search: query } : {};
-    apiClient.get('/api/equipments', { params }).then(response => {
-      setEquipments(response.data);
-    })
-      .catch((error: any) => {
-        console.error("Erro ao carregar equipamentos:", error);
-      });
-  };
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchEquipments(searchQuery);
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
 
   // --- Handlers Edit ---
   const handleOpenEditModal = (eq: Equipment) => {
@@ -350,19 +384,8 @@ const EquipmentsPage: React.FC = () => {
     setIsEditModalOpen(false);
   };
 
-  const handleSaveEdit = (updatedEquipment: any) => {
-    return apiClient.put(`/api/equipments/${updatedEquipment.id}`, updatedEquipment)
-      .then(() => {
-        fetchEquipments(searchQuery);
-        handleCloseEditModal();
-      })
-      .catch(async (error: any) => {
-        console.error("Erro ao atualizar equipamento:", error);
-        const errorMsg = error.response?.data?.error || "Erro ao atualizar equipamento.";
-        await alert(errorMsg);
-        // Propagate error
-        throw error;
-      });
+  const handleSaveEdit = async (updatedEquipment: Equipment) => {
+    await updateMutation.mutateAsync(updatedEquipment);
   };
 
   // --- Handlers Delete ---
@@ -373,41 +396,59 @@ const EquipmentsPage: React.FC = () => {
       variant: 'danger',
       confirmText: 'Apagar'
     })) {
-      apiClient.delete(`/api/equipments/${eq.id}`)
-        .then(() => {
-          fetchEquipments(searchQuery);
-        })
-        .catch(async (error: any) => {
-          console.error("Erro ao apagar equipamento:", error);
-          await alert("Erro ao apagar equipamento. Verifique se existem registos associados.");
-        });
+      deleteMutation.mutate(eq.id);
     }
   };
 
+  const [showNewEquipmentForm, setShowNewEquipmentForm] = useState(false);
 
   return (
-    <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+    <div className="container-fluid mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <h1>Gestão de Equipamentos</h1>
+        <button
+          className={`btn ${showNewEquipmentForm ? 'btn-secondary' : 'btn-success'}`}
+          onClick={() => setShowNewEquipmentForm(!showNewEquipmentForm)}
+          title={showNewEquipmentForm ? 'Cancelar' : 'Novo Equipamento'}
+        >
+          {showNewEquipmentForm ? <X size={20} /> : <Plus size={20} />}
+        </button>
       </div>
 
-      <EquipmentForm onEquipmentAdded={() => fetchEquipments(searchQuery)} />
+      {showNewEquipmentForm && (
+        <EquipmentForm onEquipmentAdded={() => {
+          queryClient.invalidateQueries({ queryKey: ['equipments'] });
+          setShowNewEquipmentForm(false);
+        }} />
+      )}
 
       <div className="mb-4">
         <input
           type="text"
           className="form-control form-control-lg"
-          placeholder="🔍 Pesquisar por marca, modelo ou nº série..."
+          placeholder="🔍 Pesquisar por proprietário, marca, modelo ou nº série..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
-      <EquipmentList
-        equipments={equipments}
-        onEdit={handleOpenEditModal}
-        onDelete={handleDelete}
-      />
+      {isLoading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
+          </div>
+        </div>
+      ) : isError ? (
+        <div className="alert alert-danger">
+          Erro ao carregar equipamentos: {(error as any)?.message || 'Erro desconhecido'}
+        </div>
+      ) : (
+        <EquipmentList
+          equipments={equipments}
+          onEdit={handleOpenEditModal}
+          onDelete={handleDelete}
+        />
+      )}
 
       <EditEquipmentModal
         isOpen={isEditModalOpen}

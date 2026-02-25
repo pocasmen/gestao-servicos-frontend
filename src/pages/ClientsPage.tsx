@@ -1,18 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { SmartInput } from '../components/SmartInput';
 import { UserRole } from '../constants/enums';
 
-// Interface para Cliente
-interface Client {
-  id: number;
-  name: string;
-  address: string;
-  city: string;
-  postCode: string;
-  nif: string;
-}
+import { Client } from '../types';
+import { ClientSchema } from '../schemas';
+import logger from '../utils/logger';
+import { Pencil, Trash2, UserPlus, Plus, X, Check, Send } from 'lucide-react';
 
 // Componente do Formulário (Criação)
 
@@ -41,9 +37,14 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
         await alert('Cliente criado com sucesso!', 'Sucesso');
         onClientAdded();
       })
-      .catch(async (error: any) => {
-        console.error("Erro ao criar cliente:", error);
-        await alert("Erro ao criar cliente.");
+      .catch(async (error: unknown) => {
+        logger.error(error, "Erro ao criar cliente:");
+        let errorMsg = "Erro ao criar cliente.";
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as { response: { data: { error: string } } };
+          errorMsg = axiosError.response?.data?.error || errorMsg;
+        }
+        await alert(errorMsg);
       })
       .finally(() => {
         setIsSubmitting(false);
@@ -72,7 +73,7 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
                 label="NIF"
                 value={nif}
                 onChange={setNif}
-                options={{ type: 'numeric', minLength: 9, maxLength: 9 }}
+                options={{ type: 'numeric', minLength: 9, maxLength: 9, disableHeuristics: true }}
                 placeholder="123456789"
               />
             </div>
@@ -106,13 +107,10 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
               />
             </div>
             <div className="col-md-12 mb-2 d-flex justify-content-end">
-              <button type="submit" className="btn btn-success" disabled={isSubmitting}>
+              <button type="submit" className="btn btn-success" disabled={isSubmitting} title="Criar Cliente">
                 {isSubmitting ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    A criar...
-                  </>
-                ) : 'Criar Cliente'}
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                ) : <Check size={20} />}
               </button>
             </div>
 
@@ -170,13 +168,13 @@ const ClientList: React.FC<{
                     <td>{client.nif}</td>
                     <td className="text-end">
                       <button className="btn btn-sm btn-outline-primary me-2" onClick={() => onInvite(client)} title="Convidar Utilizador">
-                        <i className="bi bi-person-plus-fill"></i> Convidar
+                        <UserPlus size={18} />
                       </button>
                       <button className="btn btn-sm btn-outline-warning me-2" onClick={() => onEdit(client)} title="Editar Cliente">
-                        Editar
+                        <Pencil size={18} />
                       </button>
                       <button className="btn btn-sm btn-outline-danger" onClick={() => onDelete(client)} title="Apagar Cliente">
-                        Apagar
+                        <Trash2 size={18} />
                       </button>
                     </td>
                   </tr>
@@ -239,37 +237,57 @@ const EditClientModal: React.FC<{
             </div>
             <div className="modal-body">
               <div className="mb-3">
-                <label className="form-label">Nome</label>
-                <input type="text" className="form-control" value={name} onChange={e => setName(e.target.value)} required />
+                <SmartInput
+                  label="Nome"
+                  value={name}
+                  onChange={setName}
+                  required
+                  options={{ minLength: 3, blockScripts: true }}
+                />
               </div>
               <div className="mb-3">
-                <label className="form-label">Morada</label>
-                <input type="text" className="form-control" value={address} onChange={e => setAddress(e.target.value)} />
+                <SmartInput
+                  label="Morada"
+                  value={address}
+                  onChange={setAddress}
+                  options={{ blockScripts: true }}
+                />
               </div>
               <div className="row">
                 <div className="col-md-8 mb-3">
-                  <label className="form-label">Localidade</label>
-                  <input type="text" className="form-control" value={city} onChange={e => setCity(e.target.value)} />
+                  <SmartInput
+                    label="Localidade"
+                    value={city}
+                    onChange={setCity}
+                    options={{ blockScripts: true }}
+                  />
                 </div>
                 <div className="col-md-4 mb-3">
-                  <label className="form-label">Cód. Postal</label>
-                  <input type="text" className="form-control" value={postCode} onChange={e => setPostCode(e.target.value)} />
+                  <SmartInput
+                    label="Cód. Postal"
+                    value={postCode}
+                    onChange={setPostCode}
+                    options={{ maxLength: 8 }}
+                  />
                 </div>
               </div>
               <div className="mb-3">
-                <label className="form-label">NIF</label>
-                <input type="text" className="form-control" value={nif} onChange={e => setNif(e.target.value)} />
+                <SmartInput
+                  label="NIF"
+                  value={nif}
+                  onChange={setNif}
+                  options={{ type: 'numeric', minLength: 9, maxLength: 9, disableHeuristics: true }}
+                />
               </div>
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving}>Cancelar</button>
-              <button type="submit" className="btn btn-primary" disabled={isSaving}>
+              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving} title="Cancelar">
+                <X size={20} />
+              </button>
+              <button type="submit" className="btn btn-primary" disabled={isSaving} title="Guardar Alterações">
                 {isSaving ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    A guardar...
-                  </>
-                ) : 'Guardar'}
+                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                ) : <Check size={20} />}
               </button>
             </div>
           </form>
@@ -281,9 +299,68 @@ const EditClientModal: React.FC<{
 
 // Componente da Página Principal
 const ClientsPage: React.FC = () => {
-  const [clients, setClients] = useState<Client[]>([]);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const { confirm, alert } = useConfirm();
+
+  // Queries
+  const { data: clients = [], isLoading, isError, error } = useQuery({
+    queryKey: ['clients', searchQuery],
+    queryFn: async () => {
+      const params = searchQuery ? { search: searchQuery } : {};
+      const response = await apiClient.get('/api/clients', { params });
+      const raw = response.data || [];
+      return raw.map((item: unknown) => {
+        const result = ClientSchema.safeParse(item);
+        if (!result.success) {
+          logger.error(result.error.format(), '[SCHEMA_ERROR] Client validation failed:');
+          return item as Client;
+        }
+        return result.data as Client;
+      }) as Client[];
+    }
+  });
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: (newClient: any) => apiClient.post('/api/clients', newClient),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      setShowNewClientForm(false);
+      alert('Cliente criado com sucesso!', 'Sucesso');
+    },
+    onError: (error: any) => {
+      logger.error(error, "Erro ao criar cliente:");
+      let errorMsg = "Erro ao criar cliente.";
+      if (error?.response?.data?.error) errorMsg = error.response.data.error;
+      alert(errorMsg);
+    }
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (updatedClient: Client) => apiClient.put(`/api/clients/${updatedClient.id}`, updatedClient),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+      handleCloseEditModal();
+    },
+    onError: (error: any) => {
+      logger.error(error, "Erro ao atualizar cliente:");
+      let errorMsg = "Erro ao atualizar cliente.";
+      if (error?.response?.data?.error) errorMsg = error.response.data.error;
+      alert(errorMsg);
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (clientId: number) => apiClient.delete(`/api/clients/${clientId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['clients'] });
+    },
+    onError: (error: any) => {
+      logger.error(error, "Erro ao apagar cliente:");
+      alert("Erro ao apagar cliente. Verifique se existem registos associados.");
+    }
+  });
 
   // Invite Modal State
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -294,24 +371,6 @@ const ClientsPage: React.FC = () => {
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedClientForEdit, setSelectedClientForEdit] = useState<Client | null>(null);
-
-  const fetchClients = (query: string = '') => {
-    const params = query ? { search: query } : {};
-    apiClient.get('/api/clients', { params }).then(response => {
-      setClients(response.data);
-    })
-      .catch((error: any) => {
-        console.error("Erro ao carregar clientes:", error);
-      });
-  };
-
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchClients(searchQuery);
-    }, 300);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchQuery]);
 
   // --- Handlers Invite ---
   const handleOpenInviteModal = (client: Client) => {
@@ -339,8 +398,12 @@ const ClientsPage: React.FC = () => {
         await alert(`Convite enviado com sucesso para ${inviteEmail}!`, 'Sucesso');
         handleCloseInviteModal();
       })
-      .catch(async (error: any) => {
-        const errorMessage = error.response?.data?.error || "Erro ao enviar convite.";
+      .catch(async (error: unknown) => {
+        let errorMessage = "Erro ao enviar convite.";
+        if (error && typeof error === 'object' && 'response' in error) {
+          const axiosError = error as { response: { data: { error: string } } };
+          errorMessage = axiosError.response?.data?.error || errorMessage;
+        }
         await alert(errorMessage);
       })
       .finally(() => {
@@ -359,19 +422,8 @@ const ClientsPage: React.FC = () => {
     setIsEditModalOpen(false);
   };
 
-  const handleSaveEdit = (updatedClient: Client) => {
-    return apiClient.put(`/api/clients/${updatedClient.id}`, updatedClient)
-      .then(() => {
-        // Atualizar lista localmente ou refetch
-        fetchClients(searchQuery);
-        handleCloseEditModal();
-      })
-      .catch(async (error: any) => {
-        console.error("Erro ao atualizar cliente:", error);
-        await alert("Erro ao atualizar cliente.");
-        // Rethrow or return rejected promise so modal knows it failed
-        throw error;
-      });
+  const handleSaveEdit = async (updatedClient: Client) => {
+    await updateMutation.mutateAsync(updatedClient);
   };
 
   // --- Handlers Delete ---
@@ -382,24 +434,31 @@ const ClientsPage: React.FC = () => {
       variant: 'danger',
       confirmText: 'Apagar'
     })) {
-      apiClient.delete(`/api/clients/${client.id}`)
-        .then(() => {
-          fetchClients(searchQuery);
-        })
-        .catch(async (error: any) => {
-          console.error("Erro ao apagar cliente:", error);
-          await alert("Erro ao apagar cliente. Verifique se existem registos associados.");
-        });
+      deleteMutation.mutate(client.id);
     }
   };
 
+  const [showNewClientForm, setShowNewClientForm] = useState(false);
+
   return (
-    <div className="container mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-4">
+    <div className="container-fluid mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <h1>Gestão de Clientes</h1>
+        <button
+          className={`btn ${showNewClientForm ? 'btn-secondary' : 'btn-success'}`}
+          onClick={() => setShowNewClientForm(!showNewClientForm)}
+          title={showNewClientForm ? 'Cancelar' : 'Novo Cliente'}
+        >
+          {showNewClientForm ? <X size={20} /> : <Plus size={20} />}
+        </button>
       </div>
 
-      <ClientForm onClientAdded={() => fetchClients(searchQuery)} />
+      {showNewClientForm && (
+        <ClientForm onClientAdded={() => {
+          queryClient.invalidateQueries({ queryKey: ['clients'] });
+          setShowNewClientForm(false);
+        }} />
+      )}
 
       <div className="mb-4">
         <input
@@ -411,12 +470,24 @@ const ClientsPage: React.FC = () => {
         />
       </div>
 
-      <ClientList
-        clients={clients}
-        onInvite={handleOpenInviteModal}
-        onEdit={handleOpenEditModal}
-        onDelete={handleDelete}
-      />
+      {isLoading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
+          </div>
+        </div>
+      ) : isError ? (
+        <div className="alert alert-danger">
+          Erro ao carregar clientes: {(error as any)?.message || 'Erro desconhecido'}
+        </div>
+      ) : (
+        <ClientList
+          clients={clients}
+          onInvite={handleOpenInviteModal}
+          onEdit={handleOpenEditModal}
+          onDelete={handleDelete}
+        />
+      )}
 
       {/* Invite Modal */}
       {isInviteModalOpen && selectedClientForInvite && (
@@ -441,14 +512,13 @@ const ClientsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-secondary" onClick={handleCloseInviteModal} disabled={isInviting}>Cancelar</button>
-                  <button type="submit" className="btn btn-primary" disabled={isInviting}>
+                  <button type="button" className="btn btn-secondary" onClick={handleCloseInviteModal} disabled={isInviting} title="Cancelar">
+                    <X size={20} />
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={isInviting} title="Enviar Convite">
                     {isInviting ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Enviando...
-                      </>
-                    ) : 'Enviar Convite'}
+                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    ) : <Send size={20} />}
                   </button>
                 </div>
               </form>
