@@ -7,6 +7,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 import { UserRole } from '../constants/enums';
+import AboutModal from './AboutModal';
 
 const isInternalUser = (user: SupabaseUser | null) => {
   const role = user?.user_metadata?.role;
@@ -28,6 +29,7 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showAbout, setShowAbout] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -225,6 +227,11 @@ const Header: React.FC = () => {
                       Perfil
                     </NavLink>
                   </li>
+                  <li>
+                    <button onClick={() => { setShowAbout(true); closeMenu(); }} className="dropdown-item">
+                      Acerca
+                    </button>
+                  </li>
                   <li><hr className="dropdown-divider" /></li>
                   <li>
                     <button onClick={() => { handleLogout(); closeMenu(); }} className="dropdown-item text-danger d-flex align-items-center gap-2">
@@ -239,7 +246,9 @@ const Header: React.FC = () => {
           </div>
         </div>
       </div>
+      <AboutModal show={showAbout} onClose={() => setShowAbout(false)} />
     </nav>
+
   );
 };
 

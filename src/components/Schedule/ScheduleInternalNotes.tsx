@@ -27,16 +27,20 @@ const ScheduleInternalNotes: React.FC<ScheduleInternalNotesProps> = ({
     if (isTicketScheduling) return null;
 
     return (
-        <div className="form-group mt-3">
-            <label className="text-secondary fw-bold">Notas Internas</label>
+        <div className="form-group mb-2 p-2 border rounded bg-light border-warning border-opacity-50 mt-2">
+            <label className="form-label fw-bold mb-1 d-flex align-items-center text-dark small">
+                <i className="bi bi-card-text me-2 text-warning"></i>
+                Notas Internas <span className="ms-2 badge bg-warning text-dark small" style={{ fontSize: '0.65rem' }}>Privado</span>
+            </label>
             <textarea
                 ref={internalNotesRef}
-                className="form-control"
+                className="form-control form-control-sm"
                 value={internalNotes}
                 onChange={e => setInternalNotes(e.target.value)}
                 rows={1}
                 style={{ overflow: 'hidden', resize: 'none' }}
                 disabled={isPastOrCompleted}
+                placeholder="Notas para a equipa técnica..."
             />
         </div>
     );

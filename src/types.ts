@@ -358,6 +358,7 @@ export interface Report {
   timeBlocks?: TimeBlock[];
   clients?: { name: string };
   billing_status?: BillingStatus;
+  client_signer_name?: string;
 }
 
 export interface InternalTask {

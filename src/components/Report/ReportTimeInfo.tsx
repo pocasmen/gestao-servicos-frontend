@@ -22,7 +22,7 @@ const ReportTimeInfo: React.FC<ReportTimeInfoProps> = ({
     handleRemoveBlock
 }) => {
     return (
-        <div className="row mb-3">
+        <div className="row mb-2">
             <div className="col-md-8">
                 <ScheduleTimeBlocks
                     timeBlocks={timeBlocks}
@@ -34,9 +34,12 @@ const ReportTimeInfo: React.FC<ReportTimeInfoProps> = ({
                 />
             </div>
             <div className="col-md-4">
-                <div className="form-group">
-                    <label className="text-secondary fw-bold">Horas Trabalhadas</label>
-                    <div className="input-group">
+                <div className="form-group p-2 border rounded bg-light h-100">
+                    <label className="form-label fw-bold mb-1 d-flex align-items-center small">
+                        <i className="bi bi-hourglass-split me-2 text-primary"></i>
+                        Horas Totais
+                    </label>
+                    <div className="input-group input-group-sm">
                         <input
                             type="number"
                             className="form-control"
@@ -46,9 +49,11 @@ const ReportTimeInfo: React.FC<ReportTimeInfoProps> = ({
                             min="0"
                             step="1"
                         />
-                        <span className="input-group-text">h</span>
+                        <span className="input-group-text bg-white">h</span>
                     </div>
-                    <small className="text-muted">Calculado auto. ou ajuste manual</small>
+                    <small className="text-muted mt-1 d-block italic" style={{ fontSize: '0.65rem' }}>
+                        Calculado auto. ou ajuste manual
+                    </small>
                 </div>
             </div>
         </div>

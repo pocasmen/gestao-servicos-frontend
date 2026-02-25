@@ -7,7 +7,7 @@ import apiClient, { searchPartByReference } from '../apiClient';
 import { ScheduleEvent, Client, Equipment, Technician, PartItem } from '../types';
 import logger from '../utils/logger';
 import { StockType, UserRole, ServiceClassification, ScheduleStatus, SchedulePriority } from '../constants/enums';
-import { Trash2 } from 'lucide-react';
+import { Trash2, X, Save } from 'lucide-react';
 import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 
 // Sub-components
@@ -737,35 +737,44 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                 isOpen={isOpen}
               />
             </div>
-            <div className="modal-footer d-flex justify-content-between">
+            <div className="modal-footer d-flex justify-content-between py-2">
               <div>
                 {!isCreating && (
-                  <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={isSubmitting}>
-                    <Trash2 size={18} className="me-2" />
+                  <button type="button" className="btn btn-sm btn-danger" onClick={handleDelete} disabled={isSubmitting}>
+                    <Trash2 size={16} className="me-2" />
                     {isSubmitting ? 'A eliminar...' : 'Eliminar'}
                   </button>
                 )}
               </div>
-              <div>
-                <button type="button" className="btn btn-secondary me-2" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+              <div className="d-flex gap-1 flex-wrap justify-content-end">
+                <button type="button" className="btn btn-sm btn-secondary" onClick={onClose} disabled={isSubmitting}>
+                  <X size={16} className="me-1" /> Cancelar
+                </button>
                 {!isPastOrCompleted && (
-                  <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+                  <button type="submit" className="btn btn-sm btn-primary" disabled={isSubmitting}>
                     {isSubmitting ? (
                       <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
                         {isCreating ? 'A criar...' : 'A guardar...'}
                       </>
-                    ) : (isCreating ? 'Criar' : 'Guardar')}
+                    ) : (
+                      <>
+                        <Save size={16} className="me-1" />
+                        {isCreating ? 'Criar' : 'Guardar'}
+                      </>
+                    )}
                   </button>
                 )}
                 {canComplete && (
-                  <button type="button" className="btn btn-success ms-2" onClick={handleComplete} disabled={isSubmitting}>
-                    {isSubmitting ? 'A concluir...' : 'Concluir Serviço'}
+                  <button type="button" className="btn btn-sm btn-success" onClick={handleComplete} disabled={isSubmitting}>
+                    <i className="bi bi-check-circle me-1"></i>
+                    {isSubmitting ? 'A concluir...' : 'Concluir'}
                   </button>
                 )}
                 {isCompleted && (
-                  <button type="button" className="btn btn-info ms-2" onClick={() => onManageReport(event!)} disabled={isSubmitting}>
-                    {event?.hasReport ? 'Ver / Editar Relatório' : 'Criar Relatório'}
+                  <button type="button" className="btn btn-sm btn-info" onClick={() => onManageReport(event!)} disabled={isSubmitting}>
+                    <i className="bi bi-file-earmark-text me-1"></i>
+                    {event?.hasReport ? 'Relatório' : 'Relatório'}
                   </button>
                 )}
               </div>

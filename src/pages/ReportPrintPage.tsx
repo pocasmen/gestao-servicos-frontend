@@ -32,6 +32,7 @@ interface DetailedReport {
     timeBlocks?: { id: number; start: string; end: string }[];
     includes_travel?: boolean;
     classification?: ServiceClassification;
+    client_signer_name?: string;
 }
 
 const calculateHours = (start: Date, end: Date): number => {
@@ -388,7 +389,7 @@ const ReportPrintPage: React.FC = () => {
                                                     <div className="signature-placeholder"></div>
                                                 )}
                                             </div>
-                                            {/*<div className="signature-name">{tech.name}</div>*/}
+                                            <div className="signature-name">{tech.name}</div>
                                         </div>
                                     ))
                                 ) : (
@@ -400,7 +401,7 @@ const ReportPrintPage: React.FC = () => {
                                                 <div className="signature-placeholder"></div>
                                             )}
                                         </div>
-                                        {/*<div className="signature-name">{report.technicianName}</div>*/}
+                                        <div className="signature-name">{report.technicianName}</div>
                                     </div>
                                 )}
                             </div>
@@ -416,7 +417,7 @@ const ReportPrintPage: React.FC = () => {
                                             <div className="signature-placeholder" style={{ opacity: 0 }}></div>
                                         )}
                                     </div>
-                                    {/*<div className="signature-name">{report.clientName}</div>*/}
+                                    <div className="signature-name">{report.client_signer_name || report.clientName}</div>
                                 </div>
                             </div>
                         </div>

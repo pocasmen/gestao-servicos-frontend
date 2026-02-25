@@ -6,6 +6,17 @@ import { Ticket } from '../types';
 import { TicketStatus } from '../constants/enums';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { TicketSchema } from '../schemas';
+import {
+  CalendarPlus,
+  Calendar,
+  Eye,
+  FileText,
+  Trash2,
+  Search,
+  Plus,
+  X,
+  Check
+} from 'lucide-react';
 
 import logger from '../utils/logger';
 
@@ -82,10 +93,10 @@ const TicketsPage: React.FC = () => {
   const renderPagination = () => {
     if (pagination.totalPages <= 1) return null;
     return (
-      <div className="d-flex justify-content-between align-items-center mt-3 mb-5">
-        <div>Mostrando {tickets.length} de {pagination.total} tickets</div>
+      <div className="d-flex justify-content-between align-items-center p-3 border-top">
+        <div className="text-muted small">Mostrando {tickets.length} de {pagination.total} tickets</div>
         <nav>
-          <ul className="pagination mb-0">
+          <ul className="pagination pagination-sm mb-0">
             <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
               <button className="page-link" onClick={() => setPage(pagination.page - 1)}>Anterior</button>
             </li>
@@ -104,107 +115,123 @@ const TicketsPage: React.FC = () => {
   };
 
   const renderTicketsTable = () => (
-    <>
-      <table className="table table-hover">
-        <thead>
-          <tr>
-            <th>Estado</th>
-            <th>Utilizador</th>
-            <th>Data</th>
-            <th>Cliente</th>
-            <th>Equipamento</th>
-            <th>Descrição</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {tickets.map(ticket => (
-            <tr key={ticket.id}>
-              <td>
-                <span className={`badge bg-${ticket.status === TicketStatus.OPEN ? 'danger' : ticket.status === TicketStatus.ACKNOWLEDGED ? 'warning' : ticket.status === TicketStatus.SCHEDULED ? 'info' : 'success'}`}>
-                  {ticket.status === TicketStatus.OPEN ? 'Aberto' : ticket.status === TicketStatus.ACKNOWLEDGED ? 'Em Análise' : ticket.status === TicketStatus.SCHEDULED ? 'Agendado' : 'Fechado'}
-                </span>
-              </td>
-              <td>{ticket.userFirstName ? `${ticket.userFirstName} ${ticket.userLastName}` : `Ticket #${ticket.id}`}</td>
-              <td>{new Date(ticket.createdAt).toLocaleString('pt-PT')}</td>
-              <td>{ticket.clientName}</td>
-              <td>{ticket.equipmentInfo}</td>
-              <td style={{ maxWidth: '300px', whiteSpace: 'pre-wrap' }}>{ticket.faultDescription}</td>
-              <td className="d-flex flex-wrap">
-                {(activeTab === TicketStatus.OPEN || activeTab === TicketStatus.ACKNOWLEDGED) && (
-                  <button
-                    className="btn btn-primary btn-sm me-2 mb-1"
-                    onClick={() => handleScheduleTicket(ticket)}
-                  >
-                    Agendar
-                  </button>
-                )}
-                {activeTab === TicketStatus.SCHEDULED && (
-                  ticket.scheduleId ? (
-                    <button
-                      className="btn btn-secondary btn-sm me-2 mb-1"
-                      onClick={() => handleEditSchedule(ticket)}
-                    >
-                      Editar Agend.
-                    </button>
-                  ) : (
-                    <button
-                      className="btn btn-primary btn-sm me-2 mb-1"
-                      onClick={() => handleScheduleTicket(ticket)}
-                    >
-                      Agendar
-                    </button>
-                  )
-                )}
-                {activeTab === TicketStatus.SCHEDULED && (
-                  <button
-                    className="btn btn-outline-info btn-sm me-2 mb-1"
-                    onClick={() => navigate(`/tickets/${ticket.id}`)}
-                  >
-                    Detalhes
-                  </button>
-                )}
-                {activeTab === TicketStatus.CLOSED && (
-                  <button
-                    className="btn btn-info btn-sm me-2 mb-1"
-                    onClick={() => handleCreateReportFromTicket(ticket)}
-                  >
-                    Relatório
-                  </button>
-                )}
-                {activeTab !== TicketStatus.CLOSED && activeTab !== TicketStatus.DELETED && (
-                  <button
-                    className="btn btn-danger btn-sm mb-1"
-                    onClick={() => handleDeleteTicket(ticket.id)}
-                  >
-                    Eliminar
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="card">
+      <div className="card-header bg-light">
+        <div className="d-flex justify-content-between align-items-center">
+          <span className="fw-bold">Lista de Tickets</span>
+          <span className="badge bg-secondary">{pagination.total} Total</span>
+        </div>
+      </div>
+      <div className="card-body p-0">
+        <div className="table-responsive">
+          <table className="table table-hover mb-0">
+            <thead className="table-light">
+              <tr>
+                <th>Data/Hora</th>
+                <th>Cliente</th>
+                <th>Utilizador</th>
+                <th>Equipamento</th>
+                <th className="text-end">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tickets.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-4 text-muted">Não existem tickets neste estado.</td>
+                </tr>
+              ) : (
+                tickets.map(ticket => (
+                  <tr key={ticket.id}>
+                    <td>{new Date(ticket.createdAt).toLocaleString('pt-PT')}</td>
+                    <td>{ticket.clientName}</td>
+                    <td>{ticket.userFirstName ? `${ticket.userFirstName} ${ticket.userLastName}` : `Ticket #${ticket.id}`}</td>
+                    <td>{ticket.equipmentInfo}</td>
+                    <td className="text-end">
+                      {(activeTab === TicketStatus.OPEN || activeTab === TicketStatus.ACKNOWLEDGED) && (
+                        <button
+                          className="btn btn-sm btn-outline-primary me-2"
+                          onClick={() => handleScheduleTicket(ticket)}
+                          title="Agendar"
+                        >
+                          <CalendarPlus size={18} />
+                        </button>
+                      )}
+                      {activeTab === TicketStatus.SCHEDULED && (
+                        ticket.scheduleId ? (
+                          <button
+                            className="btn btn-sm btn-outline-secondary me-2"
+                            onClick={() => handleEditSchedule(ticket)}
+                            title="Editar Agendamento"
+                          >
+                            <Calendar size={18} />
+                          </button>
+                        ) : (
+                          <button
+                            className="btn btn-sm btn-outline-primary me-2"
+                            onClick={() => handleScheduleTicket(ticket)}
+                            title="Agendar"
+                          >
+                            <CalendarPlus size={18} />
+                          </button>
+                        )
+                      )}
+                      {(activeTab === TicketStatus.SCHEDULED || activeTab === TicketStatus.OPEN || activeTab === TicketStatus.ACKNOWLEDGED || activeTab === TicketStatus.CLOSED) && (
+                        <button
+                          className="btn btn-sm btn-outline-info me-2"
+                          onClick={() => navigate(`/tickets/${ticket.id}`)}
+                          title="Ver Detalhes"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      )}
+                      {activeTab === TicketStatus.CLOSED && (
+                        <button
+                          className="btn btn-sm btn-outline-success me-2"
+                          onClick={() => handleCreateReportFromTicket(ticket)}
+                          title="Gerar Relatório"
+                        >
+                          <FileText size={18} />
+                        </button>
+                      )}
+                      {activeTab !== TicketStatus.CLOSED && activeTab !== TicketStatus.DELETED && (
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDeleteTicket(ticket.id)}
+                          title="Eliminar Ticket"
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
       {renderPagination()}
-    </>
+    </div>
   );
 
   return (
     <div className="container-fluid mt-4">
-      <h2>Gestão de Tickets</h2>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h1>Gestão de Tickets</h1>
+      </div>
 
       <ul className="nav nav-tabs mb-3">
         <li className="nav-item">
-          <button className={`nav-link ${activeTab === TicketStatus.OPEN ? 'active' : ''}`} onClick={() => setActiveTab(TicketStatus.OPEN)}>Abertos</button>
+          <button className={`nav-link ${activeTab === TicketStatus.OPEN ? 'active' : ''}`} onClick={() => { setActiveTab(TicketStatus.OPEN); setPage(1); }}>Abertos</button>
         </li>
         <li className="nav-item">
-          <button className={`nav-link ${activeTab === TicketStatus.SCHEDULED ? 'active' : ''}`} onClick={() => setActiveTab(TicketStatus.SCHEDULED)}>Agendados</button>
+          <button className={`nav-link ${activeTab === TicketStatus.SCHEDULED ? 'active' : ''}`} onClick={() => { setActiveTab(TicketStatus.SCHEDULED); setPage(1); }}>Agendados</button>
         </li>
         <li className="nav-item">
-          <button className={`nav-link ${activeTab === TicketStatus.CLOSED ? 'active' : ''}`} onClick={() => setActiveTab(TicketStatus.CLOSED)}>Fechados</button>
+          <button className={`nav-link ${activeTab === TicketStatus.CLOSED ? 'active' : ''}`} onClick={() => { setActiveTab(TicketStatus.CLOSED); setPage(1); }}>Fechados</button>
         </li>
         <li className="nav-item">
-          <button className={`nav-link ${activeTab === TicketStatus.DELETED ? 'active' : ''}`} onClick={() => setActiveTab(TicketStatus.DELETED)}>Eliminados</button>
+          <button className={`nav-link ${activeTab === TicketStatus.DELETED ? 'active' : ''}`} onClick={() => { setActiveTab(TicketStatus.DELETED); setPage(1); }}>Eliminados</button>
         </li>
       </ul>
 
@@ -218,10 +245,8 @@ const TicketsPage: React.FC = () => {
         <div className="alert alert-danger">
           Erro ao carregar tickets: {(error as any)?.message || 'Erro desconhecido'}
         </div>
-      ) : tickets.length > 0 ? (
-        renderTicketsTable()
       ) : (
-        <p>Não existem tickets neste estado.</p>
+        renderTicketsTable()
       )}
     </div>
   );

@@ -1,10 +1,11 @@
 import React, { useContext, useState } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Ticket, Calendar, History, User, LogOut, ArrowLeft, LayoutDashboard, Cpu } from 'lucide-react';
+import { Ticket, Calendar, History, User, LogOut, ArrowLeft, LayoutDashboard, Cpu, Info } from 'lucide-react';
 import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
 import { ActiveClientContext } from '../contexts/ActiveClientContext';
 import apiClient from '../apiClient';
+import AboutModal from './AboutModal';
 
 const ClientPortalHeader: React.FC = () => {
   const { user } = useContext(AuthContext);
@@ -13,6 +14,7 @@ const ClientPortalHeader: React.FC = () => {
   const location = useLocation();
   const [expanded, setExpanded] = useState(false);
   const [hasMultipleCompanies, setHasMultipleCompanies] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
 
   React.useEffect(() => {
     const checkCompanies = async () => {
@@ -120,6 +122,11 @@ const ClientPortalHeader: React.FC = () => {
                     <User size={16} /> Perfil
                   </NavLink>
                 </li>
+                <li>
+                  <button onClick={() => { setShowAbout(true); closeMenu(); }} className="dropdown-item d-flex align-items-center gap-2 border-0 bg-transparent w-100 text-start">
+                    <Info size={16} /> Acerca
+                  </button>
+                </li>
                 <li><hr className="dropdown-divider" /></li>
                 <li>
                   <button onClick={() => { handleLogout(); closeMenu(); }} className="dropdown-item text-danger d-flex align-items-center gap-2 border-0 bg-transparent w-100 text-start">
@@ -131,6 +138,7 @@ const ClientPortalHeader: React.FC = () => {
           </ul>
         </div>
       </div>
+      <AboutModal show={showAbout} onClose={() => setShowAbout(false)} />
     </nav>
   );
 };

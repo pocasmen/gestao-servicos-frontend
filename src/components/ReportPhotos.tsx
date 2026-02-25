@@ -104,29 +104,30 @@ const ReportPhotos: React.FC<ReportPhotosProps> = ({ reportId, onPhotosChange })
     }
 
     return (
-        <div className="mt-4">
-            <h6 className="mb-3 d-flex align-items-center">
-                <ImageIcon size={18} className="me-2" /> Fotos de Evidência
+        <div className="form-group mb-2 p-2 border rounded bg-light">
+            <h6 className="form-label fw-bold mb-1 d-flex align-items-center small">
+                <i className="bi bi-camera-fill me-2 text-primary"></i>
+                Fotos de Evidência
             </h6>
 
-            <div className="row g-2 mb-3">
+            <div className="row g-2 mb-0">
                 {attachments.map((att) => (
                     <div key={att.id} className="col-4 col-md-3">
-                        <div className="card h-100 position-relative group">
+                        <div className="card h-100 position-relative group shadow-sm border-0">
                             <img
                                 src={att.url}
-                                className="card-img-top object-fit-cover"
+                                className="card-img-top object-fit-cover rounded"
                                 alt={att.file_name}
-                                style={{ height: '100px', cursor: 'pointer' }}
+                                style={{ height: '60px', cursor: 'pointer' }}
                                 onClick={() => window.open(att.url, '_blank')}
                             />
                             <button
                                 type="button"
-                                className="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 p-1"
-                                style={{ opacity: 0.8 }}
+                                className="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 p-1 rounded-circle"
+                                style={{ opacity: 0.9, width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                                 onClick={() => handleDelete(att.id)}
                             >
-                                <Trash2 size={14} />
+                                <Trash2 size={10} />
                             </button>
                         </div>
                     </div>
@@ -134,15 +135,15 @@ const ReportPhotos: React.FC<ReportPhotosProps> = ({ reportId, onPhotosChange })
 
                 <div className="col-4 col-md-3">
                     <label
-                        className="card h-100 d-flex flex-column align-items-center justify-content-center border-dashed cursor-pointer"
-                        style={{ height: '100px', border: '2px dashed #dee2e6', cursor: 'pointer' }}
+                        className="card h-100 d-flex flex-column align-items-center justify-content-center border-dashed cursor-pointer bg-white shadow-sm"
+                        style={{ height: '60px', border: '2px dashed #dee2e6', cursor: 'pointer' }}
                     >
                         {isUploading ? (
-                            <Loader2 className="animate-spin text-primary" size={24} />
+                            <Loader2 className="animate-spin text-primary" size={18} />
                         ) : (
                             <>
-                                <Camera size={24} className="text-muted" />
-                                <span className="small text-muted mt-1">Add Foto</span>
+                                <Camera size={18} className="text-primary mb-0" />
+                                <span className="small text-muted fw-bold" style={{ fontSize: '0.65rem' }}>Adicionar</span>
                             </>
                         )}
                         <input

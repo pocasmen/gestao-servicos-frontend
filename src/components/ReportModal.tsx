@@ -6,7 +6,7 @@ import { Client, Equipment, ScheduleEvent, PartItem, Report, Technician, Billing
 import logger from '../utils/logger';
 import { StockType, UserRole, ServiceClassification } from '../constants/enums';
 import DeleteReportModal from './DeleteReportModal';
-import { Printer, Trash2 } from 'lucide-react';
+import { Printer, Trash2, X, Save } from 'lucide-react';
 
 // Sub-components
 import ReportServiceInfo from './Report/ReportServiceInfo';
@@ -53,6 +53,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [classification, setClassification] = useState<ServiceClassification>(ServiceClassification.GERAL);
   const [isBillingPending, setIsBillingPending] = useState(false);
   const [timeBlocks, setTimeBlocks] = useState<{ start: Date; end: Date }[]>([]);
+  const [clientSignerName, setClientSignerName] = useState('');
+  const [clientUsers, setClientUsers] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
 
   const damageRef = useRef<HTMLTextAreaElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
@@ -117,6 +119,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
         setIncludesTravel(fullReport.includes_travel || false);
         setClassification(fullReport.classification || ServiceClassification.GERAL);
         setIsBillingPending(fullReport.billing_status === BillingStatus.PENDING_COMPLETION);
+        setClientSignerName(fullReport.client_signer_name || '');
 
         if (fullReport.timeBlocks && fullReport.timeBlocks.length > 0) {
           setTimeBlocks(fullReport.timeBlocks.map((tb: any) => ({ start: new Date(tb.start), end: new Date(tb.end) })));
@@ -141,6 +144,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
         setIncludesTravel(reportToEdit.includes_travel || false);
         setClassification(reportToEdit.classification || ServiceClassification.GERAL);
         setIsBillingPending(reportToEdit.billing_status === BillingStatus.PENDING_COMPLETION);
+        setClientSignerName(reportToEdit.client_signer_name || '');
       });
 
     } else if (!isEditing && schedule) {
@@ -186,6 +190,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
       setClassification(schedule.classification || ServiceClassification.GERAL);
       setIsBillingPending(false);
       setSignature(undefined);
+      setClientSignerName('');
 
       apiClient.get('/api/technicians').then(res => {
         const sigs: Record<string, string> = {};
@@ -212,6 +217,14 @@ const ReportModal: React.FC<ReportModalProps> = ({
       apiClient.get(`/api/clients/${clientId}/equipments`).then(res => setClientEquipments(res.data));
     } else {
       setClientEquipments([]);
+      setClientUsers([]);
+    }
+  }, [clientId]);
+
+  useEffect(() => {
+    if (clientId) {
+      apiClient.get(`/api/clients/${clientId}/users`).then(res => setClientUsers(res.data))
+        .catch(err => logger.error(err, "Erro ao carregar utilizadores do cliente:"));
     }
   }, [clientId]);
 
@@ -366,7 +379,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
       parts: finalPartsToSubmit.map(p => ({ ...p, isApplied: p.isApplied === false ? false : true })),
       timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
       isBillingPending: isBillingPending,
-      markAsReadyForBilling: !isBillingPending
+      markAsReadyForBilling: !isBillingPending,
+      client_signer_name: clientSignerName
     };
 
     const saveRequest = isEditing ? apiClient.put(`/api/reports/${reportToEdit.id}`, reportData) : apiClient.post('/api/reports', reportData);
@@ -426,26 +440,50 @@ const ReportModal: React.FC<ReportModalProps> = ({
                 internalNotes={internalNotes} setInternalNotes={setInternalNotes} internalNotesRef={internalNotesRef}
               />
               <ReportPhotos reportId={reportToEdit?.id ?? null} />
-              <ReportSignaturesSection signature={signature} setSignature={setSignature} />
+              <ReportSignaturesSection
+                signature={signature} setSignature={setSignature}
+                clientSignerName={clientSignerName} setClientSignerName={setClientSignerName}
+                clientUsers={clientUsers}
+              />
             </div>
-            <div className="modal-footer d-flex justify-content-between">
-              <div className="form-check form-switch ms-2">
-                <input className="form-check-input" type="checkbox" id="billingPendingCheck" checked={isBillingPending} onChange={(e) => setIsBillingPending(e.target.checked)} />
-                <label className="form-check-label text-warning fw-bold" htmlFor="billingPendingCheck">Ainda não pronto para faturação</label>
+            <div className="modal-footer d-flex flex-column align-items-start py-2">
+              <div className="w-100 mb-1">
+                <div className="form-check form-switch p-0 ms-2">
+                  <input className="form-check-input ms-0 me-2" type="checkbox" id="billingPendingCheck" checked={isBillingPending} onChange={(e) => setIsBillingPending(e.target.checked)} />
+                  <label className="form-check-label text-primary fw-bold small" htmlFor="billingPendingCheck">Ainda não pronto para faturação</label>
+                </div>
               </div>
-              <div className="d-flex">
-                {isEditing && reportToEdit && (
-                  <button type="button" className="btn btn-outline-primary me-2" onClick={() => window.open(`/report/print/${reportToEdit.id}`, '_blank')}>
-                    <Printer size={18} className="me-2" />Relatório
+              <div className="d-flex justify-content-between align-items-center w-100">
+                <div>
+                  {isEditing && reportToEdit && isAdmin && (
+                    <button type="button" className="btn btn-sm btn-danger" onClick={handleDelete} disabled={isSubmitting}>
+                      <Trash2 size={16} className="me-2" />
+                      {isSubmitting ? 'A eliminar...' : 'Eliminar'}
+                    </button>
+                  )}
+                </div>
+                <div className="d-flex gap-2">
+                  <button type="button" className="btn btn-sm btn-secondary" onClick={onClose} disabled={isSubmitting}>
+                    <X size={16} className="me-2" /> Cancelar
                   </button>
-                )}
-                {isEditing && reportToEdit && isAdmin && (
-                  <button type="button" className="btn btn-outline-danger me-2" onClick={handleDelete} title="Eliminar Relatório"><Trash2 size={18} /></button>
-                )}
-                <button type="button" className="btn btn-secondary me-2" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
-                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                  {isSubmitting ? <><span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Guardando...</> : (isEditing ? 'Guardar Alterações' : 'Criar Relatório')}
-                </button>
+                  <button type="submit" className="btn btn-sm btn-primary" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                        A guardar...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={16} className="me-2" /> {isEditing ? 'Guardar' : 'Submeter'}
+                      </>
+                    )}
+                  </button>
+                  {isEditing && reportToEdit && (
+                    <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => window.open(`/report/print/${reportToEdit.id}`, '_blank')}>
+                      <Printer size={16} className="me-2" />Relatório
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </form>

@@ -19,12 +19,15 @@ const ReportClientEquipment: React.FC<ReportClientEquipmentProps> = ({
     clientEquipments
 }) => {
     return (
-        <div className="row mb-3">
+        <div className="row g-2 mb-2">
             <div className="col-md-6">
-                <div className="form-group">
-                    <label className="text-secondary fw-bold">Cliente</label>
+                <div className="form-group p-2 border rounded bg-light h-100">
+                    <label className="form-label fw-bold mb-1 d-flex align-items-center small">
+                        <i className="bi bi-building-fill me-2 text-primary"></i>
+                        Cliente
+                    </label>
                     <select
-                        className="form-control"
+                        className="form-select form-select-sm"
                         value={clientId}
                         onChange={e => setClientId(Number(e.target.value))}
                         required
@@ -35,10 +38,13 @@ const ReportClientEquipment: React.FC<ReportClientEquipmentProps> = ({
                 </div>
             </div>
             <div className="col-md-6">
-                <div className="form-group">
-                    <label className="text-secondary fw-bold">Equipamento</label>
+                <div className="form-group p-2 border rounded bg-light h-100">
+                    <label className="form-label fw-bold mb-1 d-flex align-items-center small">
+                        <i className="bi bi-pc-display me-2 text-primary"></i>
+                        Equipamento
+                    </label>
                     <select
-                        className="form-control"
+                        className="form-select form-select-sm"
                         value={equipmentId}
                         onChange={e => setEquipmentId(Number(e.target.value))}
                         required

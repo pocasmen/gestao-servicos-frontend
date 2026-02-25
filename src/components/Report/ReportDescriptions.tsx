@@ -24,12 +24,15 @@ const ReportDescriptions: React.FC<ReportDescriptionsProps> = ({
     internalNotesRef
 }) => {
     return (
-        <>
-            <div className="form-group mb-2">
-                <label className="text-secondary fw-bold">Descrição da Avaria</label>
+        <div className="d-flex flex-column gap-2">
+            <div className="form-group p-2 border rounded bg-light">
+                <label className="form-label fw-bold mb-1 d-flex align-items-center small">
+                    <i className="bi bi-exclamation-triangle-fill me-2 text-primary"></i>
+                    Descrição da Avaria
+                </label>
                 <textarea
                     ref={damageRef}
-                    className="form-control"
+                    className="form-control form-control-sm"
                     style={{ overflow: 'hidden', resize: 'none' }}
                     value={damage}
                     onChange={e => setDamage(e.target.value)}
@@ -37,11 +40,14 @@ const ReportDescriptions: React.FC<ReportDescriptionsProps> = ({
                 ></textarea>
             </div>
 
-            <div className="form-group mb-2">
-                <label className="text-secondary fw-bold">Descrição da Intervenção</label>
+            <div className="form-group p-2 border rounded bg-light">
+                <label className="form-label fw-bold mb-1 d-flex align-items-center small">
+                    <i className="bi bi-pencil-square me-2 text-primary"></i>
+                    Descrição da Intervenção
+                </label>
                 <textarea
                     ref={descriptionRef}
-                    className="form-control"
+                    className="form-control form-control-sm"
                     style={{ overflow: 'hidden', resize: 'none' }}
                     value={description}
                     onChange={e => setDescription(e.target.value)}
@@ -50,11 +56,14 @@ const ReportDescriptions: React.FC<ReportDescriptionsProps> = ({
                 ></textarea>
             </div>
 
-            <div className="form-group mb-3 p-2 bg-light border rounded">
-                <label className="text-secondary fw-bold">Notas Internas (Não visível ao cliente)</label>
+            <div className="form-group p-2 border rounded bg-light border-warning border-opacity-50">
+                <label className="form-label fw-bold mb-1 d-flex align-items-center text-dark small">
+                    <i className="bi bi-card-text me-2 text-warning"></i>
+                    Notas Internas <span className="ms-2 badge bg-warning text-dark small" style={{ fontSize: '0.65rem' }}>Privado</span>
+                </label>
                 <textarea
                     ref={internalNotesRef}
-                    className="form-control"
+                    className="form-control form-control-sm"
                     style={{ overflow: 'hidden', resize: 'none' }}
                     value={internalNotes}
                     onChange={e => setInternalNotes(e.target.value)}
@@ -62,7 +71,7 @@ const ReportDescriptions: React.FC<ReportDescriptionsProps> = ({
                     placeholder="Notas para a equipa técnica..."
                 ></textarea>
             </div>
-        </>
+        </div>
     );
 };
 
