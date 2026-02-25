@@ -58,59 +58,71 @@ h6,
   color: var(--primary-color) !important;
 }
 
-/* Redução forçada da altura do Header (extrema) */
+/* Ajuste da altura do Header - Menos agressivo */
 .navbar {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  min-height: 20px !important;
+  padding-top: 0.25rem !important;
+  padding-bottom: 0.25rem !important;
+  min-height: 56px !important;
+  /* Altura padrão Bootstrap mais segura */
 }
 
-/* Reduz o preenchimento de todos os componentes internos que "esticam" a barra */
+/* Ajusta o branding */
 .navbar .navbar-brand {
   padding-top: 0 !important;
   padding-bottom: 0 !important;
-  line-height: 20px !important;
-  font-size: 2rem !important;
+  line-height: 1.2 !important;
+  font-size: 1.25rem !important;
   display: flex !important;
   align-items: center !important;
 }
 
 .navbar .nav-link {
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  line-height: 20px !important;
-  font-size: 1.2rem !important;
+  padding-top: 0.5rem !important;
+  padding-bottom: 0.5rem !important;
+  line-height: normal !important;
+  font-size: 1rem !important;
   display: flex !important;
   align-items: center !important;
 }
 
-/* Tamanho de ícones para não expandirem o header */
+/* Ícones do menu */
 .navbar svg {
-  width: 14px !important;
-  height: 14px !important;
+  width: 18px !important;
+  height: 18px !important;
 }
 
-/* Ajusta a barra de pesquisa e botões em altura reduzida */
+/* Ajusta a barra de pesquisa e botões */
 .navbar form .input-group {
   margin-top: 0;
 }
 
 .navbar form .input-group .form-control,
 .navbar form .input-group .input-group-text {
-  height: 20px !important;
-  padding-top: 0 !important;
-  padding-bottom: 0 !important;
-  font-size: 0.8rem !important;
-  display: flex;
-  align-items: center;
+  height: 38px !important;
+  /* Altura padrão para facilitar toque */
+  padding: 0.375rem 0.75rem !important;
+  font-size: 1rem !important;
 }
 
-/* Em dispositivos móveis o dropdown pode precisar do espaço normal */
+/* Melhorias para dispositivos móveis */
 @media (max-width: 991px) {
+  .navbar {
+    min-height: 60px !important;
+  }
+
   .navbar .navbar-collapse {
     background-color: var(--header-background);
-    padding: 10px;
-    border-radius: 8px;
+    padding: 1rem;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    margin-top: 0.5rem;
+    border-top: 1px solid var(--border-color);
+  }
+
+  .navbar-dark .navbar-collapse {
+    background-color: #212529;
+    /* Manter escuro se a navbar for dark */
+    border-top-color: #373b3e;
   }
 }
 

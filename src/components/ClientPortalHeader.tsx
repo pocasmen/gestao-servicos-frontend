@@ -44,21 +44,21 @@ const ClientPortalHeader: React.FC = () => {
   const closeMenu = () => setExpanded(false);
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-light mb-4 border-bottom shadow-sm py-0" style={{ minHeight: '30px' }}>
+    <nav className="navbar navbar-expand-lg navbar-light bg-light mb-4 border-bottom shadow-sm">
       <div className="container-fluid">
-        <div className="navbar-brand d-flex align-items-center position-relative" style={{ minHeight: '30px' }}>
-          <img src="/logo512.png" alt="Logo da Empresa" style={{ width: '50px', height: '50px', objectFit: 'contain', position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 0, zIndex: 10 }} />
+        <div className="navbar-brand d-flex align-items-center gap-2">
+          <img src="/logo512.png" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
           {location.pathname !== '/portal' && activeClient && hasMultipleCompanies && (
             <button
-              className="btn btn-sm btn-outline-primary d-flex align-items-center me-3 border-0"
-              style={{ marginLeft: '55px', opacity: 0.8 }}
+              className="btn btn-sm btn-outline-primary d-flex align-items-center border-0"
+              style={{ opacity: 0.8 }}
               onClick={() => { setActiveClient(null); navigate('/portal'); }}
               title="Trocar Empresa"
             >
               <ArrowLeft size={18} />
             </button>
           )}
-          <span className="fw-bold text-primary text-truncate" style={{ maxWidth: '250px', marginLeft: location.pathname !== '/portal' && activeClient && hasMultipleCompanies ? '0' : '55px' }}>{clientName}</span>
+          <span className="fw-bold text-primary text-truncate" style={{ maxWidth: '200px' }}>{clientName}</span>
         </div>
 
         <button

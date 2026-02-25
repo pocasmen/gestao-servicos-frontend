@@ -65,11 +65,12 @@ const Header: React.FC = () => {
   const closeMenu = () => setExpanded(false);
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm border-bottom border-secondary border-opacity-25 mb-4 py-0" style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(33, 37, 41, 0.95)', minHeight: '30px' }}>
+    <nav className="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm border-bottom border-secondary border-opacity-25 mb-4" style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(33, 37, 41, 0.95)' }}>
       <div className="container-fluid">
-        <NavLink to="/" onClick={closeMenu} className="navbar-brand d-flex align-items-center position-relative" style={{ minHeight: '30px' }}>
-          <img src="/logo512.png" alt="Logo da Empresa" style={{ width: '50px', height: '50px', objectFit: 'contain', position: 'absolute', top: '50%', transform: 'translateY(-50%)', left: 0, zIndex: 10 }} />
-          <span style={{ marginLeft: '55px' }}>Gestão de Serviços</span>
+        <NavLink to="/" onClick={closeMenu} className="navbar-brand d-flex align-items-center gap-2">
+          <img src="/logo512.png" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+          <span className="d-none d-sm-inline">Gestão de Serviços</span>
+          <span className="d-inline d-sm-none">GS</span>
         </NavLink>
 
         <button
