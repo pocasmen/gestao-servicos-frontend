@@ -3,8 +3,8 @@ import { ServiceClassification, SchedulePriority, ScheduleStatus } from '../../c
 import { SERVICE_TYPES_LIST, SERVICE_CLASSIFICATIONS_LIST, SCHEDULE_PRIORITIES_LIST } from '../../constants';
 
 interface ScheduleFormHeaderProps {
-    serviceType: string;
-    setServiceType: (val: string) => void;
+    serviceType: string[];
+    setServiceType: React.Dispatch<React.SetStateAction<string[]>>;
     classification: ServiceClassification;
     setClassification: (val: ServiceClassification) => void;
     isCreating: boolean;
@@ -31,6 +31,12 @@ const ScheduleFormHeader: React.FC<ScheduleFormHeaderProps> = ({
     setIncludesTravel,
     isPastOrCompleted
 }) => {
+    const handleServiceTypeChange = (type: string) => {
+        setServiceType(prev =>
+            prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+        );
+    };
+
     return (
         <div className="row g-2 mb-2">
             <div className="col-md-6">
@@ -39,14 +45,25 @@ const ScheduleFormHeader: React.FC<ScheduleFormHeaderProps> = ({
                         <i className="bi bi-gear-fill me-2 text-primary"></i>
                         Tipo de Serviço
                     </label>
-                    <select className="form-select form-select-sm mb-2" value={serviceType} onChange={e => setServiceType(e.target.value)} disabled={isPastOrCompleted}>
-                        <option value="">Selecione um tipo...</option>
+                    <div className="d-flex flex-wrap gap-2 mb-2">
                         {SERVICE_TYPES_LIST.map(type => (
-                            <option key={type.id} value={type.id}>{type.label}</option>
+                            <div key={type.id} className="form-check mb-0">
+                                <input
+                                    className="form-check-input"
+                                    type="checkbox"
+                                    id={`service-type-${type.id}`}
+                                    checked={serviceType.includes(type.id)}
+                                    onChange={() => handleServiceTypeChange(type.id)}
+                                    disabled={isPastOrCompleted}
+                                />
+                                <label className="form-check-label small" htmlFor={`service-type-${type.id}`}>
+                                    {type.label}
+                                </label>
+                            </div>
                         ))}
-                    </select>
+                    </div>
 
-                    {serviceType && serviceType !== 'remota' && (
+                    {serviceType.length > 0 && !serviceType.every(t => t === 'remota') && (
                         <div className="form-check form-switch pt-1 border-top">
                             <input
                                 className="form-check-input"

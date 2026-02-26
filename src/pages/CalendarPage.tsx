@@ -102,7 +102,8 @@ const CalendarPage: React.FC = () => {
       }
 
       const schedule = result.data;
-      const serviceLabel = SERVICE_TYPE_LABELS[schedule.serviceType || ''] || schedule.serviceType || 'Serviço';
+      const stArray = Array.isArray(schedule.serviceType) ? schedule.serviceType : (schedule.serviceType ? [schedule.serviceType] : []);
+      const serviceLabel = stArray.map(t => SERVICE_TYPE_LABELS[t] || t).join(', ') || 'Serviço';
       const equipLabel = schedule.equipmentInfo || 'Mod. Desconhecido';
       const clientLabel = schedule.clientName || 'Cliente Desconhecido';
       const title = `${serviceLabel} - ${equipLabel} - ${clientLabel}`;
@@ -589,42 +590,33 @@ const CalendarPage: React.FC = () => {
                 .map(item => (
                   <div
                     key={item.id}
-                    className="card mb-2 backlog-item shadow-none border"
+                    className="card mb-2 backlog-item shadow-none border position-relative"
                     onClick={() => handleBacklogClick(item)}
                     draggable
                     onDragStart={() => handleDragStart(item)}
                     style={{
                       cursor: 'grab',
-                      borderLeft: `5px solid ${(item.priority || SchedulePriority.MEDIUM) === SchedulePriority.HIGH ? '#dc3545' :
-                        (item.priority || SchedulePriority.MEDIUM) === SchedulePriority.LOW ? '#6c757d' :
-                          '#ffc107'
-                        }`
+                      overflow: 'hidden'
                     }}
                   >
-                    <div className="card-body p-2">
+                    <div className={`priority-strip bg-${(item.priority || SchedulePriority.MEDIUM) === SchedulePriority.HIGH ? 'danger' :
+                      (item.priority || SchedulePriority.MEDIUM) === SchedulePriority.LOW ? 'secondary' :
+                        'warning'
+                      }`}></div>
+                    <div className="card-body p-2 pt-3">
                       <div className="small fw-bold text-truncate" title={item.clientName}>{item.clientName}</div>
                       <div className="d-flex justify-content-between align-items-center gap-2">
                         <div className="small text-muted text-truncate" title={item.equipmentInfo}>
                           {item.equipmentInfo}
                         </div>
                         <div className="d-flex align-items-center gap-1 flex-shrink-0">
-                          <span className="badge bg-light text-dark border p-1" style={{ fontSize: '0.6rem', lineHeight: 1 }}>
-                            {SERVICE_TYPE_LABELS[item.serviceType || '']?.substring(0, 3) || item.serviceType?.substring(0, 3)}
+                          <span className="badge bg-light text-dark border p-1" style={{ fontSize: '0.6rem', lineHeight: 1, whiteSpace: 'normal', textAlign: 'left', wordBreak: 'break-word', maxWidth: '100px' }} title={Array.isArray(item.serviceType) ? item.serviceType.map(t => SERVICE_TYPE_LABELS[t] || t).join(', ') : (SERVICE_TYPE_LABELS[item.serviceType || ''] || item.serviceType)}>
+                            {Array.isArray(item.serviceType)
+                              ? (item.serviceType.length > 1
+                                ? item.serviceType.map(t => (SERVICE_TYPE_LABELS[t] || t).substring(0, 3)).join(', ')
+                                : item.serviceType.map(t => SERVICE_TYPE_LABELS[t] || t).join(', '))
+                              : (SERVICE_TYPE_LABELS[item.serviceType || ''] || item.serviceType)}
                           </span>
-                          {item.priority && (
-                            <span
-                              className="badge p-1"
-                              style={{
-                                fontSize: '0.6rem',
-                                lineHeight: 1,
-                                backgroundColor: item.priority === SchedulePriority.HIGH ? '#dc3545' : item.priority === SchedulePriority.MEDIUM ? '#ffc107' : '#6c757d',
-                                color: item.priority === SchedulePriority.MEDIUM ? '#000' : '#fff'
-                              }}
-                              title={SCHEDULE_PRIORITY_LABELS[item.priority]}
-                            >
-                              {item.priority[0].toUpperCase()}
-                            </span>
-                          )}
                           <div className="d-flex ms-1">
                             {item.technicians?.map(t => (
                               <div

@@ -54,7 +54,7 @@ export const ScheduleEventSchema = z.object({
     hasReport: z.boolean().default(false),
     ticketId: z.number().optional().nullable().transform(v => v ?? undefined),
     internalNotes: z.string().optional().nullable().transform(v => v ?? undefined),
-    serviceType: z.string().optional().nullable().transform(v => v ?? undefined),
+    serviceType: z.union([z.string(), z.array(z.string())]).optional().nullable().transform(v => v ?? undefined),
     acknowledgementState: ScheduleStatusSchema.optional().nullable().transform(v => v ?? undefined),
     parts: z.array(PartItemSchema).optional().nullable().transform(v => v ?? undefined),
     clientName: z.string().optional().nullable().transform(v => v ?? undefined),
@@ -159,6 +159,7 @@ export const BillingTaskSchema = z.object({
     assigned_role: z.string(), // or enum if preferred
     notes: z.string().optional().nullable().transform(v => v ?? undefined),
     billing_notes: z.string().optional().nullable().transform(v => v ?? undefined),
+    invoice_number: z.string().optional().nullable().transform(v => v ?? undefined),
     billed_at: z.string().optional().nullable().transform(v => v ?? undefined),
     created_at: z.string(),
     updated_at: z.string(),

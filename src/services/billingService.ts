@@ -21,8 +21,8 @@ export const getBillingStats = async (params?: { startDate: string, endDate: str
     return data;
 };
 
-export const updateBillingTaskStatus = async (taskId: number, status: BillingStatus, notes?: string): Promise<BillingTask> => {
-    const { data } = await apiClient.patch<unknown>(`/api/billing/tasks/${taskId}`, { status, billing_notes: notes });
+export const updateBillingTaskStatus = async (taskId: number, status: BillingStatus, notes?: string, invoiceNumber?: string): Promise<BillingTask> => {
+    const { data } = await apiClient.patch<unknown>(`/api/billing/tasks/${taskId}`, { status, billing_notes: notes, invoice_number: invoiceNumber });
     const result = BillingTaskSchema.safeParse(data);
     if (!result.success) {
         logger.error(result.error.format(), '[SCHEMA_ERROR] Billing task update validation failed:');

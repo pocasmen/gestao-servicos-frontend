@@ -151,3 +151,11 @@
 .backlog-item .badge {
   font-weight: 500;
 }
+.priority-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+}
+

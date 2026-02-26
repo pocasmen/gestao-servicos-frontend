@@ -33,6 +33,7 @@ export interface BillingTask {
   assigned_role: UserRole;
   notes?: string;
   billing_notes?: string;
+  invoice_number?: string;
   billed_at?: string;
   created_at: string;
   updated_at: string;
@@ -53,7 +54,7 @@ export interface ScheduleEvent {
   hasReport: boolean;
   ticketId?: number;
   internalNotes?: string;
-  serviceType?: string;
+  serviceType?: string | string[];
   acknowledgementState?: ScheduleStatus;
   parts?: PartItem[]; // Adicionado
   clientName?: string;

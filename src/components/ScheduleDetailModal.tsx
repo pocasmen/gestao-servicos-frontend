@@ -35,7 +35,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const [technicianIds, setTechnicianIds] = useState<string[]>([]);
   const [isCompleted, setIsCompleted] = useState(false);
   const [internalNotes, setInternalNotes] = useState('');
-  const [serviceType, setServiceType] = useState('');
+  const [serviceType, setServiceType] = useState<string[]>([]);
   const [parts, setParts] = useState<PartItem[]>([]);
   const [includesTravel, setIncludesTravel] = useState(false);
   const [classification, setClassification] = useState<ServiceClassification>(ServiceClassification.GERAL);
@@ -87,7 +87,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     setTechnicianIds(event?.technicians?.map(t => String(t.id)) || []);
     setIsCompleted(event?.isCompleted || false);
     setInternalNotes(event?.internalNotes || '');
-    setServiceType(event?.serviceType || (isTicketScheduling ? 'remota' : ''));
+    setServiceType(Array.isArray(event?.serviceType) ? event.serviceType : (event?.serviceType ? [event.serviceType] : (isTicketScheduling ? ['remota'] : [])));
     setIncludesTravel(event?.includes_travel || false);
     setClassification(event?.classification || ServiceClassification.GERAL);
     setPriority(event?.priority || SchedulePriority.MEDIUM);
@@ -399,7 +399,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       return;
     }
 
-    if (!serviceType) {
+    if (serviceType.length === 0) {
       await alert('É obrigatório selecionar um tipo de serviço.');
       return;
     }
@@ -462,7 +462,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       internalNotes,
       serviceType,
       includesTravel,
-      classification: sendToBacklog ? (ScheduleStatus.PENDING_SCHEDULING as any) : classification,
+      classification: classification,
       acknowledgementState: sendToBacklog ? ScheduleStatus.PENDING_SCHEDULING : (event?.acknowledgementState === ScheduleStatus.PENDING_SCHEDULING && !isCreating ? ScheduleStatus.PENDING : (event?.acknowledgementState || ScheduleStatus.PENDING)),
       timeBlocks: sendToBacklog ? [] : timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
       priority: sendToBacklog ? priority : undefined,
@@ -525,7 +525,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       return;
     }
 
-    if (!serviceType) {
+    if (serviceType.length === 0) {
       await alert('É obrigatório selecionar um tipo de serviço.');
       return;
     }

@@ -18,6 +18,8 @@ const BillingPage: React.FC = () => {
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<BillingTask | null>(null);
     const [noteContent, setNoteContent] = useState('');
+    const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+    const [invoiceNumber, setInvoiceNumber] = useState('');
     const { confirm } = useConfirm();
 
     const fetchData = async () => {
@@ -45,8 +47,10 @@ const BillingPage: React.FC = () => {
 
     const handleStatusChange = async (task: BillingTask, newStatus: BillingStatus) => {
         if (newStatus === BillingStatus.BILLED) {
-            const confirmed = await confirm('Tem a certeza que deseja marcar como Faturado?');
-            if (!confirmed) return;
+            setSelectedTask(task);
+            setInvoiceNumber(task.invoice_number || '');
+            setShowInvoiceModal(true);
+            return;
         }
 
         try {
@@ -54,6 +58,24 @@ const BillingPage: React.FC = () => {
             fetchData();
         } catch (error: unknown) {
             logger.error(error, 'Error updating status:');
+        }
+    };
+
+    const handleSaveInvoice = async () => {
+        if (!selectedTask) return;
+        if (!invoiceNumber.trim()) {
+            alert('Por favor, insira o número da fatura.');
+            return;
+        }
+
+        try {
+            await updateBillingTaskStatus(selectedTask.id, BillingStatus.BILLED, selectedTask.billing_notes, invoiceNumber.trim());
+            setShowInvoiceModal(false);
+            setInvoiceNumber('');
+            fetchData();
+        } catch (error: unknown) {
+            logger.error(error, 'Error saving invoice number:');
+            alert('Erro ao guardar o número da fatura.');
         }
     };
 
@@ -168,15 +190,16 @@ const BillingPage: React.FC = () => {
                                     <th className="border-0" style={{ width: '110px' }}>Data</th>
                                     <th className="border-0">Cliente</th>
                                     <th className="border-0" style={{ width: '150px' }}>Estado</th>
+                                    <th className="border-0" style={{ width: '150px' }}>Nº Fatura</th>
                                     <th className="border-0" style={{ width: '350px' }}>Notas</th>
                                     <th className="border-0 text-end pe-3" style={{ width: '180px' }}>Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {loading ? (
-                                    <tr><td colSpan={6} className="text-center py-4">A carregar...</td></tr>
+                                    <tr><td colSpan={7} className="text-center py-4">A carregar...</td></tr>
                                 ) : filteredTasks.length === 0 ? (
-                                    <tr><td colSpan={6} className="text-center py-4 text-muted">Nenhuma tarefa encontrada.</td></tr>
+                                    <tr><td colSpan={7} className="text-center py-4 text-muted">Nenhuma tarefa encontrada.</td></tr>
                                 ) : (
                                     filteredTasks.map(task => {
                                         logger.debug(task, 'Billing Task Data:');
@@ -207,6 +230,7 @@ const BillingPage: React.FC = () => {
                                                     })()}
                                                 </td>
                                                 <td>{getStatusBadge(task.status)}</td>
+                                                <td>{task.invoice_number || '-'}</td>
                                                 <td>
                                                     <span className="text-truncate d-inline-block" style={{ maxWidth: '350px' }} title={task.billing_notes}>
                                                         {task.billing_notes || '-'}
@@ -229,6 +253,11 @@ const BillingPage: React.FC = () => {
                                                         )}
                                                         {task.status === BillingStatus.READY_FOR_BILLING && (
                                                             <button className="btn btn-outline-success btn-sm shadow-sm d-flex align-items-center justify-content-center" style={{ width: '32px', height: '32px' }} onClick={() => handleStatusChange(task, BillingStatus.BILLED)} title="Marcar como Faturado">
+                                                                <Receipt size={18} />
+                                                            </button>
+                                                        )}
+                                                        {task.status === BillingStatus.BILLED && (
+                                                            <button className="btn btn-outline-secondary btn-sm shadow-sm d-flex align-items-center justify-content-center" style={{ width: '32px', height: '32px' }} onClick={() => handleStatusChange(task, BillingStatus.BILLED)} title="Editar Nº Fatura">
                                                                 <Receipt size={18} />
                                                             </button>
                                                         )}
@@ -276,6 +305,43 @@ const BillingPage: React.FC = () => {
                                     </button>
                                     <button type="button" className="btn btn-primary shadow-sm" onClick={handleSaveNote} title="Guardar Nota">
                                         <Check size={20} />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="modal-backdrop fade show"></div>
+                </>
+            )}
+
+            {showInvoiceModal && (
+                <>
+                    <div className="modal show fade d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+                        <div className="modal-dialog">
+                            <div className="modal-content">
+                                <div className="modal-header">
+                                    <h5 className="modal-title">{selectedTask?.status === BillingStatus.BILLED ? 'Editar Nº Fatura' : 'Registar Fatura'}</h5>
+                                    <button type="button" className="btn-close" onClick={() => setShowInvoiceModal(false)}></button>
+                                </div>
+                                <div className="modal-body">
+                                    <div className="mb-3">
+                                        <label className="form-label">Número da Fatura <span className="text-danger">*</span></label>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            value={invoiceNumber}
+                                            onChange={(e) => setInvoiceNumber(e.target.value)}
+                                            placeholder="Ex: FT 2026/123"
+                                            autoFocus
+                                        />
+                                    </div>
+                                </div>
+                                <div className="modal-footer">
+                                    <button type="button" className="btn btn-secondary shadow-sm" onClick={() => setShowInvoiceModal(false)}>
+                                        Cancelar
+                                    </button>
+                                    <button type="button" className="btn btn-success shadow-sm" onClick={handleSaveInvoice}>
+                                        {selectedTask?.status === BillingStatus.BILLED ? 'Atualizar Fatura' : 'Confirmar Faturação'}
                                     </button>
                                 </div>
                             </div>
