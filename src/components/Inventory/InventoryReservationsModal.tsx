@@ -35,13 +35,13 @@ const InventoryReservationsModal: React.FC<InventoryReservationsModalProps> = ({
                         ) : reservations.length === 0 ? (
                             <div className="text-center py-4">
                                 <p className="mb-3">Não foram encontradas reservas ativas para este item.</p>
-                                {((selectedPart.reserved_quantity || 0) > 0 || (selectedPart.reserved_quantity_contract || 0) > 0) && (
+                                {((selectedPart.reserved_quantity || 0) > 0 || (selectedPart.reserved_quantity_foss || 0) > 0) && (
                                     <div className="alert alert-warning d-inline-block text-start">
                                         <div className="d-flex align-items-center">
                                             <i className="bi bi-exclamation-triangle-fill text-warning me-2 fs-4"></i>
                                             <div>
                                                 <strong>Inconsistência Detetada</strong><br />
-                                                O sistema indica {(selectedPart.reserved_quantity || 0) + (selectedPart.reserved_quantity_contract || 0)} unidade(s) reservada(s), mas não existem agendamentos correspondentes.
+                                                O sistema indica {(selectedPart.reserved_quantity || 0) + (selectedPart.reserved_quantity_foss || 0)} unidade(s) reservada(s), mas não existem agendamentos correspondentes.
                                             </div>
                                         </div>
                                         <div className="mt-3 text-center">
@@ -56,7 +56,7 @@ const InventoryReservationsModal: React.FC<InventoryReservationsModalProps> = ({
                             <>
                                 <div className="mb-4">
                                     <h6 className="fw-bold text-primary border-bottom pb-2 mb-3">Reservas de Stock Geral</h6>
-                                    {reservations.filter((r: any) => !r.stockType || r.stockType === StockType.GENERAL).length > 0 ? (
+                                    {reservations.filter((r: any) => !r.stockType || r.stockType === StockType.GENERAL || r.stockType === StockType.CONTRACT || r.stockType === StockType.MSD).length > 0 ? (
                                         <div className="table-responsive">
                                             <table className="table table-sm table-hover bg-white mb-0">
                                                 <thead className="table-light">
@@ -69,7 +69,7 @@ const InventoryReservationsModal: React.FC<InventoryReservationsModalProps> = ({
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {reservations.filter((r: any) => !r.stockType || r.stockType === StockType.GENERAL).map((res, index) => (
+                                                    {reservations.filter((r: any) => !r.stockType || r.stockType === StockType.GENERAL || r.stockType === StockType.CONTRACT || r.stockType === StockType.MSD).map((res, index) => (
                                                         <tr key={index}>
                                                             <td>
                                                                 <button
@@ -98,8 +98,8 @@ const InventoryReservationsModal: React.FC<InventoryReservationsModalProps> = ({
                                 </div>
 
                                 <div>
-                                    <h6 className="fw-bold text-info border-bottom pb-2 mb-3">Reservas de Stock Contrato</h6>
-                                    {reservations.filter((r: any) => r.stockType === StockType.CONTRACT).length > 0 ? (
+                                    <h6 className="fw-bold text-info border-bottom pb-2 mb-3">Reservas de Stock Foss</h6>
+                                    {reservations.filter((r: any) => r.stockType === StockType.FOSS).length > 0 ? (
                                         <div className="table-responsive">
                                             <table className="table table-sm table-hover bg-white mb-0">
                                                 <thead className="table-light">
@@ -112,7 +112,7 @@ const InventoryReservationsModal: React.FC<InventoryReservationsModalProps> = ({
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {reservations.filter((r: any) => r.stockType === StockType.CONTRACT).map((res, index) => (
+                                                    {reservations.filter((r: any) => r.stockType === StockType.FOSS).map((res, index) => (
                                                         <tr key={index}>
                                                             <td>
                                                                 <button
@@ -136,7 +136,7 @@ const InventoryReservationsModal: React.FC<InventoryReservationsModalProps> = ({
                                             </table>
                                         </div>
                                     ) : (
-                                        <p className="text-muted fst-italic ms-2">Sem reservas de stock de contrato.</p>
+                                        <p className="text-muted fst-italic ms-2">Sem reservas de stock Foss.</p>
                                     )}
                                 </div>
                             </>

@@ -5,6 +5,8 @@ export const STOCK_TYPE_LABELS: Record<StockType, string> = {
     [StockType.CONTRACT]: 'Contrato',
     [StockType.CLIENT]: 'Cliente',
     [StockType.WARRANTY]: 'Garantia',
+    [StockType.FOSS]: 'Foss',
+    [StockType.MSD]: 'MSD',
 };
 
 // Valores lowercase que correspondem ao que vem do backend/BD
@@ -38,6 +40,8 @@ export const SERVICE_CLASSIFICATION_LABELS: Record<ServiceClassification, string
     [ServiceClassification.CONTRATO]: 'Contrato',
     [ServiceClassification.GARANTIA]: 'Garantia',
     [ServiceClassification.OFERTA]: 'Oferta',
+    [ServiceClassification.FOSS]: 'Foss',
+    [ServiceClassification.MSD]: 'MSD',
 };
 
 export const SERVICE_CLASSIFICATIONS_LIST = [
@@ -45,6 +49,8 @@ export const SERVICE_CLASSIFICATIONS_LIST = [
     { id: ServiceClassification.CONTRATO, label: SERVICE_CLASSIFICATION_LABELS[ServiceClassification.CONTRATO] },
     { id: ServiceClassification.GARANTIA, label: SERVICE_CLASSIFICATION_LABELS[ServiceClassification.GARANTIA] },
     { id: ServiceClassification.OFERTA, label: SERVICE_CLASSIFICATION_LABELS[ServiceClassification.OFERTA] },
+    { id: ServiceClassification.FOSS, label: SERVICE_CLASSIFICATION_LABELS[ServiceClassification.FOSS] },
+    { id: ServiceClassification.MSD, label: SERVICE_CLASSIFICATION_LABELS[ServiceClassification.MSD] },
 ];
 
 export const SCHEDULE_PRIORITY_LABELS: Record<SchedulePriority, string> = {

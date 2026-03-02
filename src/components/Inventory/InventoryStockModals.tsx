@@ -1,6 +1,7 @@
 import React from 'react';
 import { Part } from '../../types';
 import { StockType } from '../../constants/enums';
+import { STOCK_TYPE_LABELS } from '../../constants';
 
 interface InventoryStockModalsProps {
     modalType: 'stock' | 'order' | 'receive' | 'add_item' | 'reservations' | null;
@@ -50,12 +51,12 @@ const InventoryStockModals: React.FC<InventoryStockModalsProps> = ({
                                 <button type="button" className="btn-close" onClick={onClose}></button>
                             </div>
                             <div className="modal-body">
-                                <p>Stock Atual: {targetStock === StockType.CONTRACT ? selectedPart.stock_quantity_contract : selectedPart.stock_quantity}</p>
+                                <p>Stock Atual: {targetStock === StockType.FOSS ? selectedPart.stock_quantity_foss : selectedPart.stock_quantity}</p>
                                 <div className="mb-3">
                                     <label className="form-label d-block">Canal de Inventário</label>
                                     <div className="btn-group w-100">
-                                        <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>Geral</button>
-                                        <button type="button" className={`btn ${targetStock === StockType.CONTRACT ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.CONTRACT)}>Contrato</button>
+                                        <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>{STOCK_TYPE_LABELS[StockType.GENERAL]}</button>
+                                        <button type="button" className={`btn ${targetStock === StockType.FOSS ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.FOSS)}>{STOCK_TYPE_LABELS[StockType.FOSS]}</button>
                                     </div>
                                 </div>
                                 <div className="mb-3">
@@ -89,12 +90,12 @@ const InventoryStockModals: React.FC<InventoryStockModalsProps> = ({
                                 <button type="button" className="btn-close" onClick={onClose}></button>
                             </div>
                             <div className="modal-body">
-                                <p>Encomenda Atual (Pendente): {targetStock === StockType.CONTRACT ? selectedPart.ordered_quantity_contract : selectedPart.ordered_quantity}</p>
+                                <p>Encomenda Atual (Pendente): {targetStock === StockType.FOSS ? selectedPart.ordered_quantity_foss : selectedPart.ordered_quantity}</p>
                                 <div className="mb-3">
                                     <label className="form-label d-block">Canal de Inventário</label>
                                     <div className="btn-group w-100">
-                                        <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>Geral</button>
-                                        <button type="button" className={`btn ${targetStock === StockType.CONTRACT ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.CONTRACT)}>Contrato</button>
+                                        <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>{STOCK_TYPE_LABELS[StockType.GENERAL]}</button>
+                                        <button type="button" className={`btn ${targetStock === StockType.FOSS ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.FOSS)}>{STOCK_TYPE_LABELS[StockType.FOSS]}</button>
                                     </div>
                                 </div>
                                 <div className="mb-3">
@@ -129,12 +130,12 @@ const InventoryStockModals: React.FC<InventoryStockModalsProps> = ({
                                 <button type="button" className="btn-close" onClick={onClose}></button>
                             </div>
                             <div className="modal-body">
-                                <p>Encomenda Atual (Pendente): {targetStock === StockType.CONTRACT ? selectedPart.ordered_quantity_contract : selectedPart.ordered_quantity}</p>
+                                <p>Encomenda Atual (Pendente): {targetStock === StockType.FOSS ? selectedPart.ordered_quantity_foss : selectedPart.ordered_quantity}</p>
                                 <div className="mb-3">
                                     <label className="form-label d-block">Receber em:</label>
                                     <div className="btn-group w-100">
-                                        <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>Stock Geral</button>
-                                        <button type="button" className={`btn ${targetStock === StockType.CONTRACT ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.CONTRACT)}>Stock Contrato</button>
+                                        <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>Stock {STOCK_TYPE_LABELS[StockType.GENERAL]}</button>
+                                        <button type="button" className={`btn ${targetStock === StockType.FOSS ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.FOSS)}>Stock {STOCK_TYPE_LABELS[StockType.FOSS]}</button>
                                     </div>
                                 </div>
                                 <div className="mb-3">
@@ -145,7 +146,7 @@ const InventoryStockModals: React.FC<InventoryStockModalsProps> = ({
                                         id="receiveQty"
                                         value={receiveQuantity}
                                         min="1"
-                                        max={targetStock === StockType.CONTRACT ? selectedPart.ordered_quantity_contract : selectedPart.ordered_quantity}
+                                        max={targetStock === StockType.FOSS ? selectedPart.ordered_quantity_foss : selectedPart.ordered_quantity}
                                         onChange={e => setReceiveQuantity(parseInt(e.target.value, 10) || 0)}
                                     />
                                 </div>

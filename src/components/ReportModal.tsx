@@ -184,7 +184,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
       setParts((schedule.parts || []).map(p => ({ ...p, isDesignationLocked: !!p.designation })));
       setDescription('');
       setDamage('');
-      setServiceTypes(schedule.serviceType ? [schedule.serviceType] : []);
+      setServiceTypes(schedule.serviceType ? (Array.isArray(schedule.serviceType) ? schedule.serviceType : [schedule.serviceType as string]) : []);
       setInternalNotes(schedule.internalNotes || '');
       setIncludesTravel(schedule.includes_travel || false);
       setClassification(schedule.classification || ServiceClassification.GERAL);
@@ -255,8 +255,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
           isDesignationLocked: true,
           stock_quantity: response.data.stock_quantity,
           reserved_quantity: response.data.reserved_quantity,
-          stock_quantity_contract: response.data.stock_quantity_contract,
-          reserved_quantity_contract: response.data.reserved_quantity_contract
+          stock_quantity_foss: response.data.stock_quantity_foss,
+          reserved_quantity_foss: response.data.reserved_quantity_foss
         };
         setParts(newParts);
       } catch (error: any) {
@@ -338,14 +338,19 @@ const ReportModal: React.FC<ReportModalProps> = ({
     const negativeStockParts = finalPartsToSubmit.filter(p => {
       if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
       const type = p.stockType || StockType.GENERAL;
-      const currentQtyInReport = isEditing ? (reportToEdit?.parts?.find(op => op.id === p.id)?.quantity || 0) : 0;
-      if (type === StockType.GENERAL) {
-        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0) + currentQtyInReport;
+      const currentQtyInReport = isEditing ? (reportToEdit?.parts?.find(op => Number(op.id) === Number(p.id))?.quantity || 0) : 0;
+      const currentQtyInSchedule = !isEditing && schedule ? (schedule.parts?.find(sp => Number(sp.id) === Number(p.id))?.quantity || 0) : 0;
+
+      const totalCompensated = currentQtyInReport + currentQtyInSchedule;
+
+      if (type === StockType.FOSS) {
+        const available = (p.stock_quantity_foss || 0) - (p.reserved_quantity_foss || 0) + totalCompensated;
         return available < p.quantity;
-      } else {
-        const available = (p.stock_quantity_contract || 0) - (p.reserved_quantity_contract || 0) + currentQtyInReport;
+      } else if (type === StockType.GENERAL || type === StockType.CONTRACT || type === StockType.MSD) {
+        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0) + totalCompensated;
         return available < p.quantity;
       }
+      return false;
     });
 
     if (negativeStockParts.length > 0) {

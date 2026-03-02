@@ -276,8 +276,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           newParts[index].isDesignationLocked = true;
           newParts[index].stock_quantity = part.stock_quantity;
           newParts[index].reserved_quantity = part.reserved_quantity;
-          newParts[index].stock_quantity_contract = part.stock_quantity_contract;
-          newParts[index].reserved_quantity_contract = part.reserved_quantity_contract;
+          newParts[index].stock_quantity_foss = part.stock_quantity_foss;
+          newParts[index].reserved_quantity_foss = part.reserved_quantity_foss;
           if (import.meta.env.DEV) {
             logger.debug({ designation: part.designation }, '[DEBUG] Part found, updating designation to');
           }
@@ -429,13 +429,19 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     const negativeStockParts = partsToValidate.filter(p => {
       if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
       const type = p.stockType || StockType.GENERAL;
-      if (type === StockType.GENERAL) {
-        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0);
+      // currentQtyInSchedule is the quantity of this part already in the current schedule
+      // This prevents false negatives when editing a schedule and reducing the quantity of a part.
+      // If the part is new, currentQtyInSchedule will be 0.
+      const currentQtyInSchedule = (event?.parts || []).find(ep => Number(ep.id) === Number(p.id))?.quantity || 0;
+
+      if (type === StockType.FOSS) {
+        const available = (p.stock_quantity_foss || 0) - (p.reserved_quantity_foss || 0) + currentQtyInSchedule;
         return available < p.quantity;
-      } else {
-        const available = (p.stock_quantity_contract || 0) - (p.reserved_quantity_contract || 0);
+      } else if (type === StockType.GENERAL || type === StockType.CONTRACT || type === StockType.MSD) {
+        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0) + currentQtyInSchedule;
         return available < p.quantity;
       }
+      return false;
     });
 
     if (negativeStockParts.length > 0) {

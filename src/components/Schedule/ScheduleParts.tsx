@@ -2,6 +2,7 @@ import React from 'react';
 import { Trash2, Copy, Clipboard } from 'lucide-react';
 import { PartItem } from '../../types';
 import { StockType } from '../../constants/enums';
+import { STOCK_TYPE_LABELS } from '../../constants';
 
 interface SchedulePartsProps {
     parts: PartItem[];
@@ -127,10 +128,12 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
                                         disabled={isPastOrCompleted}
                                         style={{ fontSize: '0.8rem' }}
                                     >
-                                        <option value={StockType.GENERAL}>Geral</option>
-                                        <option value={StockType.CONTRACT}>Contrato</option>
-                                        <option value={StockType.CLIENT}>Cliente</option>
-                                        <option value={StockType.WARRANTY}>Garantia</option>
+                                        <option value={StockType.GENERAL}>{STOCK_TYPE_LABELS[StockType.GENERAL]}</option>
+                                        <option value={StockType.FOSS}>{STOCK_TYPE_LABELS[StockType.FOSS]}</option>
+                                        <option value={StockType.MSD}>{STOCK_TYPE_LABELS[StockType.MSD]}</option>
+                                        <option value={StockType.CONTRACT}>{STOCK_TYPE_LABELS[StockType.CONTRACT]}</option>
+                                        <option value={StockType.CLIENT}>{STOCK_TYPE_LABELS[StockType.CLIENT]}</option>
+                                        <option value={StockType.WARRANTY}>{STOCK_TYPE_LABELS[StockType.WARRANTY]}</option>
                                     </select>
                                 </td>
                                 <td className="text-center align-middle">

@@ -85,7 +85,6 @@ const ReportSignaturesSection: React.FC<ReportSignaturesSectionProps> = ({
                             placeholder="Nome (Primeiro e Último)"
                             value={clientSignerName}
                             onChange={(e) => setClientSignerName(e.target.value)}
-                            autoFocus
                         />
                     </div>
                 )}

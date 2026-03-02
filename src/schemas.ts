@@ -32,12 +32,12 @@ export const PartItemSchema = z.object({
     isApplied: z.boolean().optional(),
     stock_quantity: z.number().optional(),
     reserved_quantity: z.number().optional(),
-    stock_quantity_contract: z.number().optional(),
-    reserved_quantity_contract: z.number().optional(),
+    stock_quantity_foss: z.number().optional(),
+    reserved_quantity_foss: z.number().optional(),
     raw_stock_quantity: z.number().optional(),
-    raw_stock_contract: z.number().optional(),
+    raw_stock_foss: z.number().optional(),
     available_quantity: z.number().optional(),
-    available_quantity_contract: z.number().optional(),
+    available_quantity_foss: z.number().optional(),
 });
 
 export const ScheduleEventSchema = z.object({
@@ -73,13 +73,13 @@ export const PartSchema = z.object({
     stock_quantity: z.number().optional(),
     reserved_quantity: z.number().optional(),
     ordered_quantity: z.number().optional(),
-    stock_quantity_contract: z.number().optional(),
-    reserved_quantity_contract: z.number().optional(),
-    ordered_quantity_contract: z.number().optional(),
+    stock_quantity_foss: z.number().optional(),
+    reserved_quantity_foss: z.number().optional(),
+    ordered_quantity_foss: z.number().optional(),
     raw_stock_quantity: z.number().optional(),
-    raw_stock_contract: z.number().optional(),
+    raw_stock_foss: z.number().optional(),
     available_quantity: z.number().optional(),
-    available_quantity_contract: z.number().optional(),
+    available_quantity_foss: z.number().optional(),
 });
 
 export const ClientSchema = z.object({

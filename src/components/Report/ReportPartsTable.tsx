@@ -12,6 +12,8 @@ interface ReportPartsTableProps {
     handleReferenceBlur: (index: number) => Promise<void>;
 }
 
+import { STOCK_TYPE_LABELS } from '../../constants';
+
 const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
     parts,
     setParts,
@@ -195,10 +197,12 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
                                         value={part.stockType || StockType.GENERAL}
                                         onChange={e => handlePartChange(index, 'stockType', e.target.value)}
                                     >
-                                        <option value={StockType.GENERAL}>Geral</option>
-                                        <option value={StockType.CONTRACT}>Contrato</option>
-                                        <option value={StockType.CLIENT}>Cliente</option>
-                                        <option value={StockType.WARRANTY}>Garantia</option>
+                                        <option value={StockType.GENERAL}>{STOCK_TYPE_LABELS[StockType.GENERAL]}</option>
+                                        <option value={StockType.FOSS}>{STOCK_TYPE_LABELS[StockType.FOSS]}</option>
+                                        <option value={StockType.MSD}>{STOCK_TYPE_LABELS[StockType.MSD]}</option>
+                                        <option value={StockType.CONTRACT}>{STOCK_TYPE_LABELS[StockType.CONTRACT]}</option>
+                                        <option value={StockType.CLIENT}>{STOCK_TYPE_LABELS[StockType.CLIENT]}</option>
+                                        <option value={StockType.WARRANTY}>{STOCK_TYPE_LABELS[StockType.WARRANTY]}</option>
                                     </select>
                                 </td>
                                 <td className="text-center align-middle">

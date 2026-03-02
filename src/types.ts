@@ -292,13 +292,13 @@ export interface Part {
   stock_quantity?: number;
   reserved_quantity?: number;
   ordered_quantity?: number;
-  stock_quantity_contract?: number;
-  reserved_quantity_contract?: number;
-  ordered_quantity_contract?: number;
+  stock_quantity_foss?: number;
+  reserved_quantity_foss?: number;
+  ordered_quantity_foss?: number;
   raw_stock_quantity?: number;
-  raw_stock_contract?: number;
+  raw_stock_foss?: number;
   available_quantity?: number;
-  available_quantity_contract?: number;
+  available_quantity_foss?: number;
 }
 
 
@@ -317,12 +317,12 @@ export interface PartItem {
   isApplied?: boolean;
   stock_quantity?: number;
   reserved_quantity?: number;
-  stock_quantity_contract?: number;
-  reserved_quantity_contract?: number;
+  stock_quantity_foss?: number;
+  reserved_quantity_foss?: number;
   raw_stock_quantity?: number;
-  raw_stock_contract?: number;
+  raw_stock_foss?: number;
   available_quantity?: number;
-  available_quantity_contract?: number;
+  available_quantity_foss?: number;
 }
 
 

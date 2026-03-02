@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
 import { ScheduleEvent, Report, Part } from '../types';
@@ -13,6 +13,7 @@ import InventoryTable from '../components/Inventory/InventoryTable';
 import InventoryItemModal, { ComponentItem } from '../components/Inventory/InventoryItemModal';
 import InventoryStockModals from '../components/Inventory/InventoryStockModals';
 import InventoryReservationsModal from '../components/Inventory/InventoryReservationsModal';
+import { supabase } from '../supabase';
 import logger from '../utils/logger';
 
 const InventoryPage: React.FC = () => {
@@ -32,9 +33,9 @@ const InventoryPage: React.FC = () => {
     stock_quantity: 0,
     reserved_quantity: 0,
     ordered_quantity: 0,
-    stock_quantity_contract: 0,
-    reserved_quantity_contract: 0,
-    ordered_quantity_contract: 0
+    stock_quantity_foss: 0,
+    reserved_quantity_foss: 0,
+    ordered_quantity_foss: 0
   });
 
   // Queries
@@ -67,6 +68,26 @@ const InventoryPage: React.FC = () => {
 
   const inventory = inventoryData?.items || [];
   const pagination = inventoryData?.pagination || { page: 1, limit: 100, total: 0, totalPages: 1 };
+
+  // Real-time synchronization
+  useEffect(() => {
+    const channel = supabase
+      .channel('inventory_updates')
+      .on('broadcast', { event: 'schedule_changed' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'parts' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'schedule_parts' }, () => {
+        queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   // Mutations
   const addItemMutation = useMutation({
@@ -133,9 +154,9 @@ const InventoryPage: React.FC = () => {
       stock_quantity: 0,
       reserved_quantity: 0,
       ordered_quantity: 0,
-      stock_quantity_contract: 0,
-      reserved_quantity_contract: 0,
-      ordered_quantity_contract: 0
+      stock_quantity_foss: 0,
+      reserved_quantity_foss: 0,
+      ordered_quantity_foss: 0
     });
     setReservations([]);
     setIsComposed(false);
@@ -270,9 +291,9 @@ const InventoryPage: React.FC = () => {
       stock_quantity: part.stock_quantity,
       reserved_quantity: part.reserved_quantity,
       ordered_quantity: part.ordered_quantity,
-      stock_quantity_contract: part.stock_quantity_contract,
-      reserved_quantity_contract: part.reserved_quantity_contract,
-      ordered_quantity_contract: part.ordered_quantity_contract,
+      stock_quantity_foss: part.stock_quantity_foss,
+      reserved_quantity_foss: part.reserved_quantity_foss,
+      ordered_quantity_foss: part.ordered_quantity_foss,
       id: part.id
     });
 

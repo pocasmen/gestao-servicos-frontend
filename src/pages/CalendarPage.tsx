@@ -330,6 +330,7 @@ const CalendarPage: React.FC = () => {
 
   const handleScheduleUpdated = useCallback((savedSchedule?: ScheduleEvent) => {
     queryClient.invalidateQueries({ queryKey: ['schedules'] });
+    queryClient.invalidateQueries({ queryKey: ['inventory'] });
     handleCloseModal();
   }, [queryClient, handleCloseModal]);
 
@@ -342,7 +343,8 @@ const CalendarPage: React.FC = () => {
       // 1. Ouvir via Broadcast (Enviado manualmente pelo servidor para rapidez total)
       .on('broadcast', { event: 'schedule_changed' }, (payload) => {
         logger.debug(payload, '[DEBUG:REALTIME] Mensagem Broadcast recebida:');
-        fetchSchedules();
+        queryClient.invalidateQueries({ queryKey: ['schedules'] });
+        queryClient.invalidateQueries({ queryKey: ['inventory'] });
       })
       // 2. Ouvir via Postgres Changes (Caso a tabela tenha Realtime ativo no dashboard)
       .on(
@@ -350,7 +352,8 @@ const CalendarPage: React.FC = () => {
         { event: '*', schema: 'public', table: 'schedules' },
         (payload) => {
           logger.debug(payload, '[DEBUG:REALTIME] Postgres Change detetada (schedules):');
-          fetchSchedules();
+          queryClient.invalidateQueries({ queryKey: ['schedules'] });
+          queryClient.invalidateQueries({ queryKey: ['inventory'] });
         }
       )
       .on(
@@ -358,7 +361,7 @@ const CalendarPage: React.FC = () => {
         { event: '*', schema: 'public', table: 'schedule_technicians' },
         (payload) => {
           logger.debug(payload, '[DEBUG:REALTIME] Postgres Change detetada (technicians):');
-          fetchSchedules();
+          queryClient.invalidateQueries({ queryKey: ['schedules'] });
         }
       )
       .subscribe((status, err) => {
@@ -378,9 +381,10 @@ const CalendarPage: React.FC = () => {
   }, []);
 
   const handleReportSaved = useCallback(() => {
-    fetchSchedules();
+    queryClient.invalidateQueries({ queryKey: ['schedules'] });
+    queryClient.invalidateQueries({ queryKey: ['inventory'] });
     handleCloseReportModal();
-  }, [fetchSchedules, handleCloseReportModal]);
+  }, [queryClient, handleCloseReportModal]);
 
   const handleSaveAll = useCallback(async () => {
     if (dirtyEventIds.size === 0) return;

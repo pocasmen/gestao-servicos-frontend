@@ -48,22 +48,22 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                 </span>
                             </td>
                             <td className="text-center align-middle">
-                                <span className={`badge ${(part.available_quantity_contract ?? 0) <= 5 ? 'bg-danger' : 'bg-info'}`}>
-                                    {part.available_quantity_contract ?? 0}
+                                <span className={`badge ${(part.available_quantity_foss ?? 0) <= 5 ? 'bg-danger' : 'bg-info'}`}>
+                                    {part.available_quantity_foss ?? 0}
                                 </span>
                             </td>
                             <td className="text-center align-middle">
-                                <span className="text-muted">{part.reserved_quantity || 0}</span> / <span className="text-info">{part.reserved_quantity_contract || 0}</span>
+                                <span className="text-muted">{part.reserved_quantity || 0}</span> / <span className="text-info">{part.reserved_quantity_foss || 0}</span>
                             </td>
                             <td className="text-center align-middle">
                                 {part.is_composed ? '-' : (
                                     <>
-                                        <span className="text-muted">{part.raw_stock_quantity || 0}</span> / <span className="text-info">{part.raw_stock_contract || 0}</span>
+                                        <span className="text-muted">{part.raw_stock_quantity || 0}</span> / <span className="text-info">{part.raw_stock_foss || 0}</span>
                                     </>
                                 )}
                             </td>
                             <td className="text-center align-middle">
-                                <span className="text-muted">{part.ordered_quantity || 0}</span> / <span className="text-info">{part.ordered_quantity_contract || 0}</span>
+                                <span className="text-muted">{part.ordered_quantity || 0}</span> / <span className="text-info">{part.ordered_quantity_foss || 0}</span>
                             </td>
                             <td className="align-middle">
                                 <div className="d-flex justify-content-end gap-1">
@@ -115,7 +115,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                         <div style={{ width: '32px', height: '32px' }} />
                                     )}
 
-                                    {(part.reserved_quantity || 0) > 0 || (part.reserved_quantity_contract || 0) > 0 ? (
+                                    {(part.reserved_quantity || 0) > 0 || (part.reserved_quantity_foss || 0) > 0 ? (
                                         <button
                                             className="btn btn-sm btn-primary shadow-sm"
                                             title="Ver Reservas"
