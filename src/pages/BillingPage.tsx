@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useMemo } from 'react';
 import { getBillingTasks, getBillingStats, updateBillingTaskStatus, deleteBillingTask } from '../services/billingService';
 import logger from '../utils/logger';
 import { BillingStatus, BillingTask } from '../types';
@@ -22,10 +22,60 @@ const BillingPage: React.FC = () => {
     const [invoiceNumber, setInvoiceNumber] = useState('');
     const { confirm } = useConfirm();
 
+    // Navegação Temporal (Igual ao Dashboard)
+    const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
+    const [baseDate, setBaseDate] = useState(new Date());
+
+    const dateRange = useMemo(() => {
+        const start = new Date(baseDate);
+        const end = new Date(baseDate);
+
+        if (viewMode === 'week') {
+            const day = start.getDay() || 7;
+            start.setDate(start.getDate() - (day - 1));
+            start.setHours(0, 0, 0, 0);
+
+            end.setTime(start.getTime());
+            end.setDate(start.getDate() + 4); // Sexta-feira
+            end.setHours(23, 59, 59, 999);
+        } else {
+            start.setDate(1);
+            start.setHours(0, 0, 0, 0);
+            end.setMonth(start.getMonth() + 1);
+            end.setDate(0);
+            end.setHours(23, 59, 59, 999);
+        }
+        return { start, end };
+    }, [baseDate, viewMode]);
+
+    const navigate = (direction: number) => {
+        const newDate = new Date(baseDate);
+        if (viewMode === 'week') {
+            newDate.setDate(newDate.getDate() + direction * 7);
+        } else {
+            newDate.setMonth(newDate.getMonth() + direction);
+        }
+        setBaseDate(newDate);
+    };
+
+    const rangeLabel = useMemo(() => {
+        if (viewMode === 'week') {
+            const startStr = dateRange.start.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+            const endStr = dateRange.end.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+            return `Semana de ${startStr} a ${endStr}`;
+        } else {
+            return dateRange.start.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+        }
+    }, [dateRange, viewMode]);
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [tasksData, statsData] = await Promise.all([getBillingTasks(), getBillingStats()]);
+            const params = {
+                startDate: dateRange.start.toISOString(),
+                endDate: dateRange.end.toISOString()
+            };
+            const [tasksData, statsData] = await Promise.all([getBillingTasks(params), getBillingStats(params)]);
             setTasks(tasksData);
             setStats({
                 total: statsData.total || 0,
@@ -43,7 +93,7 @@ const BillingPage: React.FC = () => {
 
     useEffect(() => {
         fetchData();
-    }, []);
+    }, [dateRange]);
 
     const handleStatusChange = async (task: BillingTask, newStatus: BillingStatus) => {
         if (newStatus === BillingStatus.BILLED) {
@@ -128,7 +178,44 @@ const BillingPage: React.FC = () => {
 
     return (
         <div className="container-fluid mt-4">
-            <h1 className="mb-4">Gestão de Faturação</h1>
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+                <div>
+                    <h1 className="mb-0">Gestão de Faturação</h1>
+                    <p className="text-muted mb-0">Controlo de faturação e tarefas administrativas.</p>
+                </div>
+
+                <div className="d-flex align-items-center gap-2 glass-panel p-2 rounded-4 shadow-sm border-0">
+                    <div className="btn-group me-3">
+                        <button
+                            className={`btn btn-sm ${viewMode === 'week' ? 'btn-primary' : 'btn-outline-secondary border-0'}`}
+                            onClick={() => setViewMode('week')}
+                        >
+                            Semana
+                        </button>
+                        <button
+                            className={`btn btn-sm ${viewMode === 'month' ? 'btn-primary' : 'btn-outline-secondary border-0'}`}
+                            onClick={() => setViewMode('month')}
+                        >
+                            Mês
+                        </button>
+                    </div>
+
+                    <div className="d-flex align-items-center gap-3 px-3 border-start">
+                        <button className="btn btn-outline-primary btn-sm rounded-circle" onClick={() => navigate(-1)}>
+                            <i className="bi bi-chevron-left"></i>
+                        </button>
+                        <span className="fw-bold text-capitalize" style={{ minWidth: '180px', textAlign: 'center' }}>
+                            {rangeLabel}
+                        </span>
+                        <button className="btn btn-outline-primary btn-sm rounded-circle" onClick={() => navigate(1)}>
+                            <i className="bi bi-chevron-right"></i>
+                        </button>
+                        <button className="btn btn-light btn-sm ms-2" onClick={() => setBaseDate(new Date())} title="Hoje">
+                            Hoje
+                        </button>
+                    </div>
+                </div>
+            </div>
 
             <div className="row mb-4">
                 <div className="col">

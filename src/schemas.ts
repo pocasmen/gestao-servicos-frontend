@@ -9,7 +9,7 @@ export const SchedulePrioritySchema = z.nativeEnum(SchedulePriority);
 export const StockTypeSchema = z.nativeEnum(StockType);
 
 export const TechnicianSchema = z.object({
-    id: z.string(),
+    id: z.string().optional().nullable().transform(v => v ?? undefined),
     name: z.string(),
     role: UserRoleSchema.optional(),
     color: z.string().optional().nullable().transform(v => v ?? undefined),
@@ -43,13 +43,15 @@ export const PartItemSchema = z.object({
 export const ScheduleEventSchema = z.object({
     id: z.union([z.number(), z.string()]),
     scheduleId: z.number().optional(),
-    title: z.string().optional(),
+    title: z.string().optional().nullable().transform(v => v ?? undefined),
     startDate: z.string().optional().nullable().transform(v => v ?? undefined),
     endDate: z.string().optional().nullable().transform(v => v ?? undefined),
-    clientId: z.number(),
-    equipmentId: z.number(),
+    clientId: z.number().optional().nullable().transform(v => v ?? undefined),
+    equipmentId: z.number().optional().nullable().transform(v => v ?? undefined),
     status: ScheduleStatusSchema.optional(),
-    technicians: z.array(TechnicianSchema).default([]),
+    technicians: z.array(z.union([z.string(), TechnicianSchema])).default([]).transform(val =>
+        val.map(t => typeof t === 'string' ? { id: '', name: t } : t)
+    ),
     isCompleted: z.boolean().default(false),
     hasReport: z.boolean().default(false),
     ticketId: z.number().optional().nullable().transform(v => v ?? undefined),
@@ -105,10 +107,10 @@ export const EquipmentSchema = z.object({
 
 export const TicketSchema = z.object({
     id: z.number(),
-    client_id: z.number(),
-    equipmentId: z.number(),
-    title: z.string(),
-    faultDescription: z.string(),
+    client_id: z.number().optional().nullable().transform(v => v ?? undefined),
+    equipmentId: z.number().optional().nullable().transform(v => v ?? undefined),
+    title: z.string().optional().nullable().transform(v => v ?? ''),
+    faultDescription: z.string().optional().nullable().transform(v => v ?? ''),
     status: z.nativeEnum(TicketStatus),
     scheduleId: z.number().optional().nullable().transform(v => v ?? undefined),
     createdAt: z.string(),
@@ -127,14 +129,16 @@ export const TicketSchema = z.object({
 export const ReportSchema = z.object({
     id: z.number().optional(),
     report_number: z.union([z.number(), z.string()]).optional(),
-    clientId: z.number(),
-    equipmentId: z.number(),
+    clientId: z.number().optional().nullable().transform(v => v ?? undefined),
+    equipmentId: z.number().optional().nullable().transform(v => v ?? undefined),
     scheduleId: z.number().optional().nullable().transform(v => v ?? undefined),
-    technicians: z.array(TechnicianSchema).default([]),
-    serviceDate: z.string(),
-    hours: z.number(),
+    technicians: z.array(z.union([z.string(), TechnicianSchema])).default([]).transform(val =>
+        val.map(t => typeof t === 'string' ? { id: '', name: t } : t)
+    ),
+    serviceDate: z.string().optional().nullable().transform(v => v ?? ''),
+    hours: z.number().optional().nullable().transform(v => v ?? 0),
     parts: z.array(PartItemSchema).default([]),
-    description: z.string(),
+    description: z.string().optional().nullable().transform(v => v ?? ''),
     serviceType: z.array(z.string()).default([]),
     damage: z.string().optional().nullable().transform(v => v ?? undefined),
     internalNotes: z.string().optional().nullable().transform(v => v ?? undefined),
@@ -156,7 +160,7 @@ export const BillingTaskSchema = z.object({
     id: z.number(),
     report_id: z.number(),
     status: z.nativeEnum(BillingStatus),
-    assigned_role: z.string(), // or enum if preferred
+    assigned_role: z.string().optional().nullable().transform(v => v ?? ''),
     notes: z.string().optional().nullable().transform(v => v ?? undefined),
     billing_notes: z.string().optional().nullable().transform(v => v ?? undefined),
     invoice_number: z.string().optional().nullable().transform(v => v ?? undefined),
@@ -176,6 +180,7 @@ export const DashboardStatsSchema = z.object({
         total: z.number(),
         completed: z.number(),
         withReport: z.number(),
+        overdue: z.number().optional(),
     }),
     overdue: z.number(),
     pendingReports: z.object({

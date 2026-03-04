@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
@@ -61,6 +61,12 @@ const mustSetPassword = (user: SupabaseUser | null) => {
   return user?.user_metadata?.must_set_password === true;
 }
 
+const isProfileIncomplete = (user: SupabaseUser | null) => {
+  if (!user || user?.user_metadata?.role !== UserRole.CLIENT) return false;
+  const { first_name, last_name, client_role } = user.user_metadata;
+  return !first_name || !last_name || !client_role;
+};
+
 // Componente para Rotas Protegidas
 interface ProtectedRouteProps {
   allowedRoles: Array<UserRole>;
@@ -80,6 +86,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectP
     return <Navigate to={redirectPath} replace state={{ from: location }} />;
   }
 
+  // Redirection for Incomplete Profiles (Client Portal only)
+  if (isProfileIncomplete(user) && !location.pathname.includes('/portal/profile') && userHasRole(user, UserRole.CLIENT)) {
+    return <Navigate to="/portal/profile" replace />;
+  }
+
   const userRole = user.user_metadata.role;
   if (!allowedRoles.includes(userRole)) {
     if (isInternalUser(user)) {
@@ -96,6 +107,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectP
 // Componente Interno para conter a lógica das rotas
 const AppRoutes: React.FC = () => {
   const { user, loading } = useContext(AuthContext);
+  const location = useLocation();
   const [urlError, setUrlError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -148,6 +160,30 @@ const AppRoutes: React.FC = () => {
             </div>
           </div>
         )}
+
+        {isProfileIncomplete(user) && location.pathname === '/portal/profile' && (
+          <div className="container mt-3">
+            <div className="glass-panel p-3 rounded-4 shadow-sm mb-4 border-0 animate__animated animate__fadeInDown"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.15))',
+                backdropFilter: 'blur(12px)',
+                WebkitBackdropFilter: 'blur(12px)',
+                border: '1px solid rgba(255, 193, 7, 0.25)',
+                color: '#856404'
+              }}>
+              <div className="d-flex align-items-center">
+                <div className="bg-warning text-white p-2 rounded-3 me-3 d-flex align-items-center justify-content-center" style={{ width: '45px', height: '45px' }}>
+                  <i className="bi bi-person-fill-exclamation fs-3"></i>
+                </div>
+                <div>
+                  <h5 className="mb-1 fw-bold">Perfil Incompleto</h5>
+                  <p className="mb-0 small opacity-75">Por favor, acabe de preencher os seus dados obrigatórios (Nome, Apelido e Função) para poder utilizar todas as funcionalidades do portal.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <React.Suspense fallback={<div className="d-flex justify-content-center mt-5"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">A carregar...</span></div></div>}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -163,9 +199,11 @@ const AppRoutes: React.FC = () => {
                   ? <Navigate to="/login" />
                   : (isPendingClient(user) || mustSetPassword(user))
                     ? <Navigate to="/complete-registration" />
-                    : isInternalUser(user)
-                      ? <Navigate to="/dashboard" />
-                      : <Navigate to="/portal" />
+                    : isProfileIncomplete(user)
+                      ? <Navigate to="/portal/profile" />
+                      : isInternalUser(user)
+                        ? <Navigate to="/dashboard" />
+                        : <Navigate to="/portal" />
               }
             />
 

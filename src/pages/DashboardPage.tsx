@@ -183,7 +183,7 @@ const DashboardPage: React.FC = () => {
           apiClient.get('/api/dashboard/pending-reports', { params }),
           apiClient.get('/api/tickets'), // Fetching all/recent tickets. Assuming endpoint exists.
           getBillingStats(params),
-          getBillingTasks()
+          getBillingTasks(params)
         ]);
         const statsValidated = DashboardStatsSchema.safeParse(statsRes.data);
         if (statsValidated.success) {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import apiClient from '../apiClient';
 import { AuthContext } from '../contexts/AuthContext';
+import { supabase } from '../supabase';
 import SignaturePad from '../components/SignaturePad';
 import { UserRole } from '../constants/enums';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -13,6 +14,7 @@ interface UserProfile {
     role: UserRole;
     first_name: string;
     last_name: string;
+    client_role?: string;
     color?: string;
     telegramchatid?: string;
     signature?: string;
@@ -26,6 +28,7 @@ const ClientProfilePage: React.FC = () => {
     const [user, setUser] = useState<UserProfile | null>(null);
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+    const [clientRole, setClientRole] = useState('');
     const [telegramchatid, setTelegramchatid] = useState('');
     const [phone, setPhone] = useState('');
     const [signature, setSignature] = useState('');
@@ -47,6 +50,7 @@ const ClientProfilePage: React.FC = () => {
                 setUser(currentUser);
                 setFirstName(currentUser.first_name || '');
                 setLastName(currentUser.last_name || '');
+                setClientRole(currentUser.client_role || '');
                 setTelegramchatid(currentUser.telegramchatid || '');
                 setPhone(currentUser.phone || '');
                 setSignature(currentUser.signature || '');
@@ -88,16 +92,24 @@ const ClientProfilePage: React.FC = () => {
 
         if (!user) return;
 
+        if (!firstName.trim() || !lastName.trim() || !clientRole.trim()) {
+            alert('Por favor, preencha todos os campos obrigatórios (Nome, Apelido e Função).');
+            return;
+        }
+
         const updatedData = {
             first_name: firstName,
             last_name: lastName,
+            client_role: clientRole,
             telegramchatid,
             signature,
             phone
         };
 
         apiClient.put(`/api/technicians/${user.id}`, updatedData)
-            .then(() => {
+            .then(async () => {
+                // Sincronizar a sessão local do Supabase para refletir os novos metadados salvos no backend
+                await supabase.auth.refreshSession();
                 alert('Perfil atualizado com sucesso!');
             })
             .catch((err: any) => {
@@ -107,6 +119,13 @@ const ClientProfilePage: React.FC = () => {
     };
 
     if (!user) return <div className="container-fluid mt-4">A carregar perfil...</div>;
+
+    const roleOptions = [
+        "Operador",
+        "Responsável Qualidade",
+        "Administrador",
+        "Responsável Compras"
+    ];
 
     return (
         <div className="container-fluid mt-4">
@@ -122,18 +141,28 @@ const ClientProfilePage: React.FC = () => {
                                 <input type="email" className="form-control bg-light" value={user.email} disabled readOnly />
                             </div>
                             <div className="col-md-6 mb-3">
-                                <label className="form-label">Função</label>
-                                <input type="text" className="form-control bg-light" value="Cliente" disabled readOnly />
+                                <label className="form-label">Função (Cargo na Empresa) <span className="text-danger">*</span></label>
+                                <select
+                                    className="form-select"
+                                    value={clientRole}
+                                    onChange={e => setClientRole(e.target.value)}
+                                    required
+                                >
+                                    <option value="">Selecione a sua função...</option>
+                                    {roleOptions.map(opt => (
+                                        <option key={opt} value={opt}>{opt}</option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
 
                         <div className="row">
                             <div className="col-md-6 mb-3">
-                                <label className="form-label">Primeiro Nome</label>
+                                <label className="form-label">Primeiro Nome <span className="text-danger">*</span></label>
                                 <input type="text" className="form-control" value={firstName} onChange={e => setFirstName(e.target.value)} required />
                             </div>
                             <div className="col-md-6 mb-3">
-                                <label className="form-label">Último Nome</label>
+                                <label className="form-label">Último Nome <span className="text-danger">*</span></label>
                                 <input type="text" className="form-control" value={lastName} onChange={e => setLastName(e.target.value)} required />
                             </div>
                         </div>

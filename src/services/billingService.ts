@@ -4,8 +4,8 @@ import { BillingTaskSchema } from '../schemas';
 
 import logger from '../utils/logger';
 
-export const getBillingTasks = async (): Promise<BillingTask[]> => {
-    const { data } = await apiClient.get<unknown[]>('/api/billing/tasks');
+export const getBillingTasks = async (params?: { startDate: string, endDate: string }): Promise<BillingTask[]> => {
+    const { data } = await apiClient.get<unknown[]>('/api/billing/tasks', { params });
     return (data || []).map(item => {
         const result = BillingTaskSchema.safeParse(item);
         if (!result.success) {

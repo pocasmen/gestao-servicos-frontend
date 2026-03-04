@@ -144,6 +144,7 @@ const EditEquipmentModal: React.FC<{
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [clientId, setClientId] = useState<number | string>('');
+  const [clientSearch, setClientSearch] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const { data: clients = [] } = useQuery({
@@ -182,9 +183,32 @@ const EditEquipmentModal: React.FC<{
       const client = clients.find(c => c.name === equipment.clientName);
       if (client) {
         setClientId(client.id);
+        setClientSearch(client.name);
       }
     }
   }, [equipment, clients]);
+
+  // Sync clientId with clientSearch when user types with Debounce
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (clientSearch && clients.length > 0) {
+        const selectedClient = clients.find(c => c.name.toLowerCase() === clientSearch.toLowerCase().trim());
+        if (selectedClient) {
+          if (selectedClient.id !== clientId) {
+            setClientId(selectedClient.id);
+          }
+        } else {
+          if (clientId !== '') {
+            setClientId('');
+          }
+        }
+      } else if (!clientSearch && clientId !== '') {
+        setClientId('');
+      }
+    }, 500);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [clientSearch, clients, clientId]);
 
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -212,11 +236,21 @@ const EditEquipmentModal: React.FC<{
             </div>
             <div className="modal-body">
               <div className="mb-3">
-                <label className="form-label">Cliente (Proprietário)</label>
-                <select className="form-control" value={clientId} onChange={e => setClientId(e.target.value)} required>
-                  <option value="">Selecione...</option>
-                  {clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
-                </select>
+                <label className="form-label" style={{ fontWeight: 500 }}>Cliente (Proprietário)</label>
+                <input
+                  className="form-control"
+                  list="editClientOptions"
+                  value={clientSearch}
+                  onChange={e => setClientSearch(e.target.value)}
+                  placeholder="Pesquisar cliente..."
+                  required
+                />
+                <datalist id="editClientOptions">
+                  {clients.map(client => <option key={client.id} value={client.name} />)}
+                </datalist>
+                {!clientId && clientSearch.trim() !== '' && (
+                  <div className="form-text text-danger small">Cliente não encontrado. Selecione um cliente da lista.</div>
+                )}
               </div>
               <div className="mb-3">
                 <SmartInput
