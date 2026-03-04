@@ -14,7 +14,7 @@ const BillingPage: React.FC = () => {
     const [tasks, setTasks] = useState<BillingTask[]>([]);
     const [stats, setStats] = useState({ total: 0, pending_completion: 0, report_issued: 0, ready_for_billing: 0, billed: 0 });
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<string>('all');
+    const [filter, setFilter] = useState<string>('pending');
     const [showNoteModal, setShowNoteModal] = useState(false);
     const [selectedTask, setSelectedTask] = useState<BillingTask | null>(null);
     const [noteContent, setNoteContent] = useState('');
@@ -119,7 +119,12 @@ const BillingPage: React.FC = () => {
         }
     };
 
-    const filteredTasks = tasks.filter(t => filter === 'all' || t.status === filter);
+    const filteredTasks = tasks.filter(t => {
+        if (filter === 'pending') {
+            return t.status !== BillingStatus.BILLED;
+        }
+        return filter === 'all' || t.status === filter;
+    });
 
     return (
         <div className="container-fluid mt-4">
@@ -173,6 +178,7 @@ const BillingPage: React.FC = () => {
                     <h5 className="mb-0">Tarefas de Faturação</h5>
                     <div style={{ width: '200px' }}>
                         <select className="form-select" value={filter} onChange={(e) => setFilter(e.target.value)}>
+                            <option value="pending">Tarefas Pendentes</option>
                             <option value="all">Todos os Estados</option>
                             <option value={BillingStatus.PENDING_COMPLETION}>Pendente de Finalização</option>
                             <option value={BillingStatus.REPORT_ISSUED}>Relatório Emitido</option>

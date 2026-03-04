@@ -64,7 +64,12 @@ const CompleteRegistrationPage: React.FC = () => {
             if (updateError) {
                 throw updateError;
             }
-            alert('A sua password foi definida com sucesso. A sua conta aguarda agora a aprovação de um administrador. Será notificado quando for ativada.', 'Sucesso');
+
+            if (isPending) {
+                alert('A sua password foi definida com sucesso. A sua conta aguarda agora a aprovação de um administrador. Será notificado quando for ativada.', 'Sucesso');
+            } else {
+                alert('A sua password foi definida com sucesso. Já pode aceder à plataforma.', 'Sucesso');
+            }
         } catch (err: any) {
             logger.error(err);
             alert(err.message || 'Ocorreu um erro ao definir a sua password.');
