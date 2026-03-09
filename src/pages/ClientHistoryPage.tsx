@@ -140,13 +140,17 @@ const ClientHistoryPage: React.FC = () => {
                                             <td>{schedule.equipmentInfo}</td>
                                             <td>{schedule.technicians.join(', ') || 'N/A'}</td>
                                             <td>
-                                                {schedule.hasReport && (
+                                                {schedule.hasReport ? (
                                                     <button
                                                         className="btn btn-sm btn-outline-primary"
                                                         onClick={() => handleViewReport(schedule.id, 'schedule')}
+                                                        title="Ver Relatório"
                                                     >
+                                                        <i className="bi bi-file-earmark-pdf-fill me-1"></i>
                                                         Ver Relatório
                                                     </button>
+                                                ) : (
+                                                    <span className="badge bg-secondary">Relatório em Elaboração</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -172,13 +176,19 @@ const ClientHistoryPage: React.FC = () => {
                                     <small className="text-muted">{ticket.faultDescription}</small>
                                     <div className="mt-2">
                                         <Link to={`/portal/tickets/${ticket.id}`} className="btn btn-sm btn-link ps-0">Ver Detalhes</Link>
-                                        {ticket.hasReport && ticket.scheduleId && (
-                                            <button
-                                                className="btn btn-sm btn-outline-primary ms-2"
-                                                onClick={() => handleViewReport(ticket.scheduleId!, 'schedule')}
-                                            >
-                                                Ver Relatório
-                                            </button>
+                                        {ticket.scheduleId && (
+                                            ticket.hasReport ? (
+                                                <button
+                                                    className="btn btn-sm btn-outline-primary ms-2"
+                                                    onClick={() => handleViewReport(ticket.scheduleId!, 'schedule')}
+                                                    title="Ver Relatório"
+                                                >
+                                                    <i className="bi bi-file-earmark-pdf-fill me-1"></i>
+                                                    Ver Relatório
+                                                </button>
+                                            ) : (
+                                                <span className="badge bg-secondary ms-2">Relatório em Elaboração</span>
+                                            )
                                         )}
                                     </div>
                                 </div>

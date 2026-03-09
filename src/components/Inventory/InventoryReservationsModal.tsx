@@ -80,7 +80,7 @@ const InventoryReservationsModal: React.FC<InventoryReservationsModalProps> = ({
                                                                     {res.title}
                                                                 </button>
                                                             </td>
-                                                            <td style={{ fontSize: '0.9rem' }}>{new Date(res.startDate).toLocaleDateString()}</td>
+                                                            <td style={{ fontSize: '0.9rem' }}>{res.startDate ? new Date(res.startDate).toLocaleDateString() : 'Pendente'}</td>
                                                             <td style={{ fontSize: '0.9rem' }}>{res.clientName}</td>
                                                             <td style={{ fontSize: '0.85rem' }} className="text-muted">
                                                                 {res.origin || 'Direta'}
@@ -123,7 +123,7 @@ const InventoryReservationsModal: React.FC<InventoryReservationsModalProps> = ({
                                                                     {res.title}
                                                                 </button>
                                                             </td>
-                                                            <td style={{ fontSize: '0.9rem' }}>{new Date(res.startDate).toLocaleDateString()}</td>
+                                                            <td style={{ fontSize: '0.9rem' }}>{res.startDate ? new Date(res.startDate).toLocaleDateString() : 'Pendente'}</td>
                                                             <td style={{ fontSize: '0.9rem' }}>{res.clientName}</td>
                                                             <td style={{ fontSize: '0.85rem' }} className="text-muted">
                                                                 {res.origin || 'Direta'}

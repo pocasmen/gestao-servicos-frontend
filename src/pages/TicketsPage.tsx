@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '../supabase';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { Ticket } from '../types';
@@ -27,6 +28,24 @@ const TicketsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:tickets:manager')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tickets' },
+        (payload) => {
+          logger.info(payload, 'Ticket table changed:');
+          queryClient.invalidateQueries({ queryKey: ['tickets'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   // Queries
   const { data: ticketsData, isLoading, isError, error } = useQuery({

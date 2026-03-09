@@ -65,6 +65,7 @@ export const ScheduleEventSchema = z.object({
     includes_travel: z.boolean().optional().nullable().transform(v => v ?? undefined),
     classification: z.nativeEnum(ServiceClassification).optional().nullable().transform(v => v ?? undefined),
     priority: SchedulePrioritySchema.optional().nullable().transform(v => v ?? undefined),
+    isTask: z.boolean().optional(),
 });
 
 export const PartSchema = z.object({

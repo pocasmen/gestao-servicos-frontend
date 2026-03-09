@@ -150,7 +150,6 @@ const ReportPhotos: React.FC<ReportPhotosProps> = ({ reportId, onPhotosChange })
                             type="file"
                             className="d-none"
                             accept="image/*"
-                            capture="environment"
                             multiple
                             onChange={handleFileUpload}
                             disabled={isUploading}

@@ -4,6 +4,7 @@ import { Equipment, Ticket } from '../types';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
+import { supabase } from '../supabase';
 
 const ClientTicketsPage: React.FC = () => {
   const [equipments, setEquipments] = useState<Equipment[]>([]);
@@ -22,14 +23,14 @@ const ClientTicketsPage: React.FC = () => {
     }
   }, [location.state]);
 
-  const fetchClientData = useCallback(async (page = 1) => {
+  const fetchClientData = useCallback(async (pageToFetch = 1) => {
     try {
       const equipmentsRes = await apiClient.get('/api/my-equipments');
       setEquipments(equipmentsRes.data);
 
-      const ticketsRes = await apiClient.get(`/api/my-tickets?page=${page}&limit=10`);
+      const ticketsRes = await apiClient.get(`/api/my-tickets?page=${pageToFetch}&limit=10`);
       if (ticketsRes.data && ticketsRes.data.data) {
-        if (page === 1) {
+        if (pageToFetch === 1) {
           setTickets(ticketsRes.data.data);
         } else {
           setTickets(prev => [...prev, ...ticketsRes.data.data]);
@@ -46,6 +47,24 @@ const ClientTicketsPage: React.FC = () => {
 
   useEffect(() => {
     fetchClientData();
+  }, [fetchClientData]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('public:tickets:client')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'tickets' },
+        (payload) => {
+          logger.info(payload, 'Client Ticket table changed:');
+          fetchClientData(1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchClientData]);
   // ... handleSubmitTicket, handleViewReport unchanged ...
   const handleSubmitTicket = async (e: React.FormEvent) => {

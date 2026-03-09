@@ -63,6 +63,7 @@ export interface ScheduleEvent {
   includes_travel?: boolean; // Indica se o serviço inclui deslocação
   classification?: ServiceClassification;
   priority?: SchedulePriority;
+  isTask?: boolean;
 }
 
 export interface TimeBlock {
@@ -377,6 +378,8 @@ export interface InternalTask {
   estimated_hours?: number | null;
   created_at: string;
   updated_at: string;
+  completed?: boolean;
+  completed_at?: string | null;
   assignee?: {
     first_name: string | null;
     last_name: string | null;

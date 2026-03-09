@@ -33,6 +33,22 @@ const TasksPage: React.FC = () => {
         }
     });
 
+    const toggleCompletionMutation = useMutation({
+        mutationFn: (task: InternalTask) => {
+            const completed = !task.completed;
+            const completed_at = completed ? new Date().toISOString() : null;
+            return apiClient.patch(`/api/tasks/${task.id}`, { ...task, completed, completed_at });
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['internal-tasks'] });
+            queryClient.invalidateQueries({ queryKey: ['schedules'] });
+        },
+        onError: (err: any) => {
+            logger.error(err);
+            alert('Não foi possível atualizar o estado da tarefa.');
+        }
+    });
+
     const handleEdit = (task: InternalTask) => {
         setSelectedTask(task);
         setIsModalOpen(true);
@@ -52,6 +68,10 @@ const TasksPage: React.FC = () => {
         })) {
             deleteMutation.mutate(id);
         }
+    };
+
+    const handleToggleCompletion = (task: InternalTask) => {
+        toggleCompletionMutation.mutate(task);
     };
 
     const getTypeLabel = (type: string) => {
@@ -195,9 +215,16 @@ const TasksPage: React.FC = () => {
 
                                         <div className="d-flex justify-content-between align-items-center mt-3 pt-2">
                                             <div className="x-small text-muted fw-semibold">
-                                                CRIADA EM: {new Date(task.created_at).toLocaleDateString('pt-PT')}
+                                                <span>CRIADA EM: {new Date(task.created_at).toLocaleDateString('pt-PT')}</span><br />
+                                                <span className="text-secondary opacity-75">CRIADA POR: {task.creator?.first_name || 'Desconhecido'} {task.creator?.last_name || ''}</span>
+                                                {task.completed && task.completed_at && (
+                                                    <><br /><span className="text-success">CONCLUÍDA EM: {new Date(task.completed_at).toLocaleDateString('pt-PT')}</span></>
+                                                )}
                                             </div>
                                             <div className="d-flex gap-1">
+                                                <button className={`btn btn-sm ${task.completed ? 'btn-success text-white' : 'btn-outline-success'} border-0`} onClick={(e) => { e.stopPropagation(); handleToggleCompletion(task); }} title={task.completed ? "Marcar como pendente" : "Marcar como concluída"}>
+                                                    <Check size={18} />
+                                                </button>
                                                 <button className="btn btn-sm btn-outline-warning border-0" onClick={(e) => { e.stopPropagation(); handleEdit(task); }} title="Editar Tarefa">
                                                     <Pencil size={18} />
                                                 </button>
@@ -218,7 +245,10 @@ const TasksPage: React.FC = () => {
                 isOpen={isModalOpen}
                 onClose={() => setIsModalOpen(false)}
                 task={selectedTask}
-                onTaskSaved={() => queryClient.invalidateQueries({ queryKey: ['internal-tasks'] })}
+                onTaskSaved={() => {
+                    queryClient.invalidateQueries({ queryKey: ['internal-tasks'] });
+                    queryClient.invalidateQueries({ queryKey: ['schedules'] });
+                }}
             />
 
             <style>{`

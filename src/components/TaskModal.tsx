@@ -201,7 +201,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
             timeBlocks: timeBlocks.map(tb => ({
                 start_time: tb.start_time.toISOString(),
                 end_time: tb.end_time.toISOString()
-            }))
+            })),
+            ...(task && { completed: task.completed, completed_at: task.completed_at })
         };
 
         setIsSubmitting(true);

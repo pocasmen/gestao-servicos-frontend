@@ -14,10 +14,11 @@ import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import './CalendarPage.css';
 
-import { ScheduleEvent, Report, Ticket, Technician } from '../types';
+import { ScheduleEvent, Report, Ticket, Technician, InternalTask } from '../types';
 import { ScheduleEventSchema } from '../schemas';
 import ScheduleDetailModal from '../components/ScheduleDetailModal';
 import ReportModal from '../components/ReportModal';
+import TaskModal from '../components/TaskModal';
 import { SERVICE_TYPE_LABELS, SCHEDULE_PRIORITY_LABELS } from '../constants';
 import { ScheduleStatus, SchedulePriority } from '../constants/enums';
 
@@ -71,6 +72,8 @@ const CalendarPage: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [draggedItemMetadata, setDraggedItemMetadata] = useState<ScheduleEvent | null>(null);
   const [backlogSortMode, setBacklogSortMode] = useState<'date' | 'priority'>('priority');
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<InternalTask | null>(null);
 
   const location = useLocation();
   const navigate = useNavigate();
@@ -106,10 +109,12 @@ const CalendarPage: React.FC = () => {
       const serviceLabel = stArray.map(t => SERVICE_TYPE_LABELS[t] || t).join(', ') || 'Serviço';
       const equipLabel = schedule.equipmentInfo || 'Mod. Desconhecido';
       const clientLabel = schedule.clientName || 'Cliente Desconhecido';
-      const title = `${serviceLabel} - ${equipLabel} - ${clientLabel}`;
+      const isTask = String(schedule.id).startsWith('task_');
+      const title = isTask ? (schedule.title || 'Tarefa') : `${serviceLabel} - ${equipLabel} - ${clientLabel}`;
 
-      const baseEvent = {
+      const baseEvent: ScheduleEvent = {
         ...schedule,
+        isTask: isTask || schedule.isTask,
         id: schedule.id,
         scheduleId: schedule.scheduleId || (typeof schedule.id === 'number' ? schedule.id : undefined),
         title,
@@ -289,10 +294,26 @@ const CalendarPage: React.FC = () => {
     setDirtyEventIds(prev => new Set(prev).add(event.id));
   }, []);
 
-  const handleSelectEvent = useCallback((event: ScheduleEvent) => {
+  const handleSelectEvent = useCallback(async (event: ScheduleEvent) => {
+    // Check if it's a task
+    if (event.isTask) {
+      const taskId = event.scheduleId || (typeof event.id === 'number' ? event.id : parseInt(String(event.id).replace('blk_', '').replace('task_', '').split('_')[0]));
+      if (!taskId) return;
+
+      try {
+        const response = await apiClient.get<InternalTask>(`/api/tasks/${taskId}`);
+        setSelectedTask(response.data);
+        setIsTaskModalOpen(true);
+      } catch (error) {
+        logger.error(error, "Error fetching task details:");
+        contextAlert("Não foi possível carregar os detalhes da tarefa.");
+      }
+      return;
+    }
+
     setSelectedEvent(event);
     setIsModalOpen(true);
-  }, []);
+  }, [contextAlert]);
 
   const handleSelectSlot = useCallback(({ start, end }: { start: Date, end: Date }) => {
     setSelectedEvent({ id: 0, title: '', start, end, clientId: 0, equipmentId: 0, technicians: [], isCompleted: false, hasReport: false, clientName: '', equipmentInfo: '' });
@@ -320,12 +341,7 @@ const CalendarPage: React.FC = () => {
   }, [draggedItemMetadata]);
 
   const handleBacklogClick = (item: ScheduleEvent) => {
-    setSelectedEvent({
-      ...item,
-      start: new Date(), // Default to now if clicking
-      end: addHours(new Date(), 1)
-    });
-    setIsModalOpen(true);
+    handleSelectEvent(item);
   };
 
   const handleScheduleUpdated = useCallback((savedSchedule?: ScheduleEvent) => {
@@ -364,6 +380,14 @@ const CalendarPage: React.FC = () => {
           queryClient.invalidateQueries({ queryKey: ['schedules'] });
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'internal_tasks' },
+        (payload) => {
+          logger.debug(payload, '[DEBUG:REALTIME] Postgres Change detetada (tasks):');
+          queryClient.invalidateQueries({ queryKey: ['schedules'] });
+        }
+      )
       .subscribe((status, err) => {
         logger.debug({ err }, `[DEBUG:REALTIME] Status da subscrição: ${status}`);
       });
@@ -397,53 +421,59 @@ const CalendarPage: React.FC = () => {
       return;
     }
 
-    // 1. Identify distinct schedules that need update
-    const dirtyScheduleIds = new Set<number>();
+    // 1. Identify distinct items that need update
+    const dirtyScheduleIds = new Set<string | number>();
     dirtyEventIds.forEach(id => {
       const ev = events.find(e => e.id === id);
       if (ev) {
-        // Use scheduleId if available (for virtual events), or fallback to id (for legacy/single events)
-        const realId = ev.scheduleId !== undefined ? ev.scheduleId : (typeof ev.id === 'number' ? ev.id : Number(ev.id));
-        dirtyScheduleIds.add(realId);
+        const identifier = String(ev.id).startsWith('task_') ? ev.id : (ev.scheduleId !== undefined ? ev.scheduleId : (typeof ev.id === 'number' ? ev.id : Number(ev.id)));
+        dirtyScheduleIds.add(identifier);
       }
     });
 
-    const updatePromises = Array.from(dirtyScheduleIds).map(schId => {
-      // 2. Gather all blocks for this schedule
-      const scheduleEvents = events.filter(e => (e.scheduleId === schId) || (e.id === schId));
+    const updatePromises = Array.from(dirtyScheduleIds).map(async schId => {
+      const isTask = String(schId).startsWith('task_');
+      const taskId = isTask ? parseInt(String(schId).replace('task_', '')) : null;
 
-      if (scheduleEvents.length === 0) return Promise.resolve();
+      // 2. Gather all blocks for this item
+      const itemEvents = events.filter(e => (e.id === schId) || (e.scheduleId === (isTask ? taskId : schId)) || (String(e.id).startsWith(`task_${taskId}_`)) || (String(e.id).startsWith(`blk_`) && e.scheduleId === (isTask ? taskId : schId)));
 
-      // 3. Calculate Min/Max for the parent schedule container
-      const times = scheduleEvents.flatMap(e => [e.start?.getTime() || 0, e.end?.getTime() || 0]);
+      if (itemEvents.length === 0) return Promise.resolve();
+
+      // 3. Calculate Min/Max and blocks
+      const times = itemEvents.flatMap(e => [e.start?.getTime() || 0, e.end?.getTime() || 0]);
       const minTime = new Date(Math.min(...times.filter(t => t > 0)));
       const maxTime = new Date(Math.max(...times.filter(t => t > 0)));
 
-      // 4. Construct payload
-      const baseEvent = scheduleEvents[0];
-      if (!baseEvent) return Promise.resolve();
-
-      const timeBlocks = scheduleEvents.map(e => ({
-        start: e.start?.toISOString() || '',
-        end: e.end?.toISOString() || ''
+      const timeBlocks = itemEvents.map(e => ({
+        [isTask ? 'start_time' : 'start']: e.start?.toISOString() || '',
+        [isTask ? 'end_time' : 'end']: e.end?.toISOString() || ''
       }));
 
-      const { technicians, scheduleId: _sId, id: _id, ...baseEventRest } = baseEvent;
-      // Note: timeBlocks_raw is not in ScheduleEvent interface, so if it exists on runtime object we might need to ignore it, 
-      // but strictly typing suggests we should only destructure known props.
-      // If timeBlocks_raw comes from API but isn't in type, it won't be in baseEventRest if we strictly typed it? 
-      // Actually spread of object includes everything. 
-      // Let's rely on baseEventRest which now excludes technicans, scheduleId, id.
+      const baseEvent = itemEvents[0];
+      if (!baseEvent) return Promise.resolve();
 
-      const payload = {
-        ...baseEventRest,
-        startDate: minTime.toISOString(),
-        endDate: maxTime.toISOString(),
-        technicianIds: baseEvent.technicians ? baseEvent.technicians.map(t => t.id) : [],
-        timeBlocks
-      };
-
-      return apiClient.put(`/api/schedules/${schId}`, payload);
+      if (isTask) {
+        try {
+          const { data: fullTask } = await apiClient.get<InternalTask>(`/api/tasks/${taskId}`);
+          return apiClient.patch(`/api/tasks/${taskId}`, {
+            ...fullTask,
+            timeBlocks
+          });
+        } catch (err) {
+          logger.error(err, "Error fetching task for update:");
+          throw err;
+        }
+      } else {
+        const { technicians, scheduleId: _sId, id: _id, ...baseEventRest } = baseEvent;
+        return apiClient.put(`/api/schedules/${schId}`, {
+          ...baseEventRest,
+          startDate: minTime.toISOString(),
+          endDate: maxTime.toISOString(),
+          technicianIds: technicians ? technicians.map(t => t.id) : [],
+          timeBlocks
+        });
+      }
     });
 
     try {
@@ -683,6 +713,17 @@ const CalendarPage: React.FC = () => {
           onReportSaved={handleReportSaved}
         />
       )}
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setSelectedTask(null);
+        }}
+        task={selectedTask}
+        onTaskSaved={() => {
+          fetchSchedules();
+        }}
+      />
     </div>
   );
 };

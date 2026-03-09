@@ -193,10 +193,12 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
   const handleAddBlock = () => {
     const lastBlock = timeBlocks[timeBlocks.length - 1];
-    // Default new block to start 1 hour after the last block ends?
-    // Or simply same day?
-    // Let's use simple new Date() but maybe aligned if possible.
-    setTimeBlocks([...timeBlocks, { start: new Date(), end: new Date() }]);
+    let newStart = new Date();
+    if (lastBlock && lastBlock.end) {
+      newStart = new Date(lastBlock.end);
+    }
+    const newEnd = addHours(newStart, 1);
+    setTimeBlocks([...timeBlocks, { start: newStart, end: newEnd }]);
   };
 
   const handleRemoveBlock = (index: number) => {
@@ -207,7 +209,14 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   const handleBlockChange = (index: number, field: 'start' | 'end', value: Date | null) => {
     if (!value) return;
     const newBlocks = [...timeBlocks];
-    newBlocks[index] = { ...newBlocks[index], [field]: value };
+    const currentBlock = { ...newBlocks[index], [field]: value };
+
+    // Rule: End date must not be before start date. If it is, set it to 1 hour after start.
+    if (currentBlock.end < currentBlock.start) {
+      currentBlock.end = addHours(currentBlock.start, 1);
+    }
+
+    newBlocks[index] = currentBlock;
     setTimeBlocks(newBlocks);
   };
 

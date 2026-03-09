@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
+import { addHours } from 'date-fns';
 import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 import apiClient from '../apiClient';
 import { AuthContext } from '../contexts/AuthContext';
@@ -284,7 +285,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
   };
 
   const handleAddBlock = () => {
-    setTimeBlocks([...timeBlocks, { start: new Date(), end: new Date() }]);
+    const lastBlock = timeBlocks[timeBlocks.length - 1];
+    let newStart = new Date();
+    if (lastBlock && lastBlock.end) {
+      newStart = new Date(lastBlock.end);
+    }
+    const newEnd = addHours(newStart, 1);
+    setTimeBlocks([...timeBlocks, { start: newStart, end: newEnd }]);
   };
 
   const handleRemoveBlock = (index: number) => {
@@ -296,7 +303,14 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const handleBlockChange = (index: number, field: 'start' | 'end', value: Date | null) => {
     if (!value) return;
     const newBlocks = [...timeBlocks];
-    newBlocks[index] = { ...newBlocks[index], [field]: value };
+    const currentBlock = { ...newBlocks[index], [field]: value };
+
+    // Rule: End date must not be before start date. If it is, set it to 1 hour after start.
+    if (currentBlock.end < currentBlock.start) {
+      currentBlock.end = addHours(currentBlock.start, 1);
+    }
+
+    newBlocks[index] = currentBlock;
     setTimeBlocks(newBlocks);
     updateTotalHours(newBlocks);
   };
