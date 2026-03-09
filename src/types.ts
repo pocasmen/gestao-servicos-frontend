@@ -170,6 +170,7 @@ export interface Equipment {
 
   clientId: number;
   clientName?: string;
+  additionalInfo?: string;
 }
 
 

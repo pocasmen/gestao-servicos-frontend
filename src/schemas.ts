@@ -104,6 +104,7 @@ export const EquipmentSchema = z.object({
     serialNumber: z.string(),
     clientName: z.string().optional(),
     clientId: z.number().optional().nullable().transform(v => v ?? undefined),
+    additionalInfo: z.string().optional().nullable().transform(v => v ?? undefined),
 });
 
 export const TicketSchema = z.object({

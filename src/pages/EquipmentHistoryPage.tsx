@@ -81,6 +81,12 @@ const EquipmentHistoryPage: React.FC = () => {
             <div className="card-body">
               <p><strong>Número de Série:</strong> {details.serialNumber}</p>
               <p><strong>Cliente:</strong> {details.clientName}</p>
+              {details.additionalInfo && (
+                <p style={{ whiteSpace: 'pre-wrap' }}>
+                  <strong>Notas:</strong><br />
+                  <span className="text-muted">{details.additionalInfo}</span>
+                </p>
+              )}
             </div>
           </div>
         </div>

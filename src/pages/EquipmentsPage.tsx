@@ -17,6 +17,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
   const [clientName, setClientName] = useState('');
+  const [additionalInfo, setAdditionalInfo] = useState('');
   const { alert } = useConfirm();
 
   const { data: clients = [] } = useQuery({
@@ -38,6 +39,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
       setModel('');
       setSerialNumber('');
       setClientName('');
+      setAdditionalInfo('');
       alert('Equipamento criado com sucesso!', 'Sucesso');
       onEquipmentAdded();
     },
@@ -61,7 +63,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
     }
 
     setIsSubmitting(true);
-    createMutation.mutate({ brand, model, serialNumber, clientId: selectedClient.id });
+    createMutation.mutate({ brand, model, serialNumber, clientId: selectedClient.id, additionalInfo });
   };
 
   return (
@@ -118,6 +120,17 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
               />
             </div>
           </div>
+          <div className="mt-3">
+            <label className="form-label" style={{ fontWeight: 500, color: '#374151' }}>Notas:</label>
+            <textarea
+              className="form-control"
+              rows={2}
+              value={additionalInfo}
+              onChange={e => setAdditionalInfo(e.target.value)}
+              placeholder="Informações adicionais sobre o equipamento..."
+              style={{ padding: '0.5rem 0.75rem' }}
+            />
+          </div>
           <div className="row mt-2">
             <div className="col-md-12 text-end">
               <button type="submit" className="btn btn-success" disabled={isSubmitting} title="Adicionar Equipamento">
@@ -145,6 +158,7 @@ const EditEquipmentModal: React.FC<{
   const [serialNumber, setSerialNumber] = useState('');
   const [clientId, setClientId] = useState<number | string>('');
   const [clientSearch, setClientSearch] = useState('');
+  const [additionalInfo, setAdditionalInfo] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const { data: clients = [] } = useQuery({
@@ -162,6 +176,7 @@ const EditEquipmentModal: React.FC<{
       setBrand(equipment.brand);
       setModel(equipment.model);
       setSerialNumber(equipment.serialNumber);
+      setAdditionalInfo(equipment.additionalInfo || '');
       // We need the clientId. The GET /api/equipments returns clientName but might not return clientId directly if not requested.
       // Let's assume we might need to find the client by name or ensure the API returns clientId.
       // Checking the API implementation: it returns 'clients(name)'. It does NOT return clientId explicitly in the top level.
@@ -216,7 +231,7 @@ const EditEquipmentModal: React.FC<{
     if (equipment && clientId) {
       setIsSaving(true);
       try {
-        await onSave({ ...equipment, brand, model, serialNumber, clientId: Number(clientId) });
+        await onSave({ ...equipment, brand, model, serialNumber, clientId: Number(clientId), additionalInfo });
       } finally {
         setIsSaving(false);
       }
@@ -279,6 +294,16 @@ const EditEquipmentModal: React.FC<{
                   options={{ minLength: 3, disableHeuristics: true }}
                 />
               </div>
+              <div className="mb-3">
+                <label className="form-label" style={{ fontWeight: 500 }}>Notas:</label>
+                <textarea
+                  className="form-control"
+                  rows={3}
+                  value={additionalInfo}
+                  onChange={e => setAdditionalInfo(e.target.value)}
+                  placeholder="Informações adicionais..."
+                />
+              </div>
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving} title="Cancelar">
@@ -322,7 +347,7 @@ const EquipmentList: React.FC<{
             <tbody>
               {equipments.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-4 text-muted">Nenhum equipamento encontrado.</td>
+                  <td colSpan={4} className="text-center py-4 text-muted">Nenhum equipamento encontrado.</td>
                 </tr>
               ) : (
                 equipments.map(equipment => (
