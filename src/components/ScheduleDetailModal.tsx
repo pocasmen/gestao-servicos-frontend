@@ -9,6 +9,7 @@ import logger from '../utils/logger';
 import { StockType, UserRole, ServiceClassification, ScheduleStatus, SchedulePriority } from '../constants/enums';
 import { Trash2, X, Save } from 'lucide-react';
 import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
+import { calculateHours } from '../utils/dateCalculations';
 
 // Sub-components
 import ScheduleFormHeader from './Schedule/ScheduleFormHeader';
@@ -703,14 +704,34 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                 isPastOrCompleted={isPastOrCompleted}
               />
 
-              <ScheduleTimeBlocks
-                timeBlocks={timeBlocks}
-                handleBlockChange={handleBlockChange}
-                handleAddBlock={handleAddBlock}
-                handleRemoveBlock={handleRemoveBlock}
-                isPastOrCompleted={isPastOrCompleted}
-                sendToBacklog={sendToBacklog}
-              />
+              <div className="row mb-0">
+                <div className={sendToBacklog ? "col-12" : "col-md-9"}>
+                  <ScheduleTimeBlocks
+                    timeBlocks={timeBlocks}
+                    handleBlockChange={handleBlockChange}
+                    handleAddBlock={handleAddBlock}
+                    handleRemoveBlock={handleRemoveBlock}
+                    isPastOrCompleted={isPastOrCompleted}
+                    sendToBacklog={sendToBacklog}
+                  />
+                </div>
+                {!sendToBacklog && (
+                  <div className="col-md-3 mb-2">
+                    <div className="form-group p-2 border rounded bg-light h-100 d-flex flex-column justify-content-center align-items-center">
+                      <label className="form-label fw-bold mb-1 d-flex align-items-center small">
+                        <i className="bi bi-hourglass-split me-2 text-primary"></i>
+                        Horas Totais
+                      </label>
+                      <div className="h4 mb-0 text-primary fw-bold">
+                        {timeBlocks.reduce((acc, block) => acc + calculateHours(block.start, block.end), 0)}h
+                      </div>
+                      <small className="text-muted mt-1 d-block italic text-center" style={{ fontSize: '0.6rem' }}>
+                        Calculado auto.
+                      </small>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <ScheduleClientEquipment
                 clientSearch={clientSearch}

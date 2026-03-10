@@ -74,7 +74,7 @@ const TicketsPage: React.FC = () => {
 
   // Mutations
   const deleteMutation = useMutation({
-    mutationFn: (ticketId: number) => apiClient.delete(`/admin/tickets/${ticketId}`),
+    mutationFn: (ticketId: number) => apiClient.delete(`/api/tickets/${ticketId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] });
     },

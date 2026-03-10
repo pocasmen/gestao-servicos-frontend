@@ -1,6 +1,7 @@
 import React from 'react';
 import DatePicker from 'react-datepicker';
 import { Trash2 } from 'lucide-react';
+import { calculateHours } from '../../utils/dateCalculations';
 
 interface ScheduleTimeBlocksProps {
     timeBlocks: { start: Date; end: Date }[];
@@ -36,51 +37,62 @@ const ScheduleTimeBlocks: React.FC<ScheduleTimeBlocksProps> = ({
                 )}
             </div>
 
-            {timeBlocks.map((block, index) => (
-                <div key={index} className={`row g-2 align-items-end ${index < timeBlocks.length - 1 ? 'border-bottom pb-2 mb-2' : ''}`}>
-                    <div className="col-md-5">
-                        <div className="form-group mb-0">
-                            <label className="small text-muted fw-bold mb-0" style={{ fontSize: '0.65rem' }}>Início ({index + 1})</label>
-                            <DatePicker
-                                selected={block.start}
-                                onChange={(date: Date | null) => handleBlockChange(index, 'start', date)}
-                                showTimeSelect
-                                dateFormat="dd/MM/yyyy HH:mm"
-                                timeFormat="HH:mm"
-                                timeIntervals={15}
-                                locale="pt"
-                                className="form-control form-control-sm"
-                                disabled={isPastOrCompleted}
-                                required
-                            />
+            {timeBlocks.map((block, index) => {
+                const blockHours = calculateHours(block.start, block.end);
+                return (
+                    <div key={index} className={`row g-2 align-items-end ${index < timeBlocks.length - 1 ? 'border-bottom pb-2 mb-2' : ''}`}>
+                        <div className="col-md-4">
+                            <div className="form-group mb-0">
+                                <label className="small text-muted fw-bold mb-0" style={{ fontSize: '0.65rem' }}>Início ({index + 1})</label>
+                                <DatePicker
+                                    selected={block.start}
+                                    onChange={(date: Date | null) => handleBlockChange(index, 'start', date)}
+                                    showTimeSelect
+                                    dateFormat="dd/MM/yyyy HH:mm"
+                                    timeFormat="HH:mm"
+                                    timeIntervals={15}
+                                    locale="pt"
+                                    className="form-control form-control-sm"
+                                    disabled={isPastOrCompleted}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="col-md-4">
+                            <div className="form-group mb-0">
+                                <label className="small text-muted fw-bold mb-0" style={{ fontSize: '0.65rem' }}>Fim ({index + 1})</label>
+                                <DatePicker
+                                    selected={block.end}
+                                    onChange={(date: Date | null) => handleBlockChange(index, 'end', date)}
+                                    showTimeSelect
+                                    dateFormat="dd/MM/yyyy HH:mm"
+                                    timeFormat="HH:mm"
+                                    timeIntervals={15}
+                                    locale="pt"
+                                    className="form-control form-control-sm"
+                                    disabled={isPastOrCompleted}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="col-md-2 text-center">
+                            <div className="form-group mb-0">
+                                <label className="small text-muted fw-bold mb-0" style={{ fontSize: '0.65rem' }}>Horas</label>
+                                <div className="text-primary fw-bold" style={{ fontSize: '0.85rem', lineHeight: '1.5' }}>
+                                    {blockHours}h
+                                </div>
+                            </div>
+                        </div>
+                        <div className="col-md-2 text-end">
+                            {!isPastOrCompleted && timeBlocks.length > 1 && (
+                                <button type="button" className="btn btn-link text-danger p-0" onClick={() => handleRemoveBlock(index)} title="Remover horário">
+                                    <Trash2 size={16} />
+                                </button>
+                            )}
                         </div>
                     </div>
-                    <div className="col-md-5">
-                        <div className="form-group mb-0">
-                            <label className="small text-muted fw-bold mb-0" style={{ fontSize: '0.65rem' }}>Fim ({index + 1})</label>
-                            <DatePicker
-                                selected={block.end}
-                                onChange={(date: Date | null) => handleBlockChange(index, 'end', date)}
-                                showTimeSelect
-                                dateFormat="dd/MM/yyyy HH:mm"
-                                timeFormat="HH:mm"
-                                timeIntervals={15}
-                                locale="pt"
-                                className="form-control form-control-sm"
-                                disabled={isPastOrCompleted}
-                                required
-                            />
-                        </div>
-                    </div>
-                    <div className="col-md-2 text-end">
-                        {!isPastOrCompleted && timeBlocks.length > 1 && (
-                            <button type="button" className="btn btn-link text-danger p-0" onClick={() => handleRemoveBlock(index)} title="Remover horário">
-                                <Trash2 size={16} />
-                            </button>
-                        )}
-                    </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 };
