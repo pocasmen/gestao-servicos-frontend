@@ -25,10 +25,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                         <th>Designação</th>
                         <th>Referência</th>
                         <th className="text-center">Disp. (G)</th>
-                        <th className="text-center">Disp. (C)</th>
-                        <th className="text-center">Res. (G/C)</th>
-                        <th className="text-center">Stock Real (G/C)</th>
-                        <th className="text-center">Enc. (G/C)</th>
+                        <th className="text-center">Disp. (F)</th>
+                        <th className="text-center">Res. (G/F)</th>
+                        <th className="text-center">Stock Real (G/F)</th>
+                        <th className="text-center">Enc. (G/F)</th>
                         <th className="text-end pe-4">Ações</th>
                     </tr>
                 </thead>

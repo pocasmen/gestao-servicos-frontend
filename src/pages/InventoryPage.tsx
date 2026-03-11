@@ -10,16 +10,18 @@ import { useConfirm } from '../contexts/ConfirmContext';
 
 import InventoryToolbar from '../components/Inventory/InventoryToolbar';
 import InventoryTable from '../components/Inventory/InventoryTable';
-import InventoryItemModal, { ComponentItem } from '../components/Inventory/InventoryItemModal';
+import InventoryItemForm, { ComponentItem } from '../components/Inventory/InventoryItemForm';
 import InventoryStockModals from '../components/Inventory/InventoryStockModals';
 import InventoryReservationsModal from '../components/Inventory/InventoryReservationsModal';
 import { supabase } from '../supabase';
 import logger from '../utils/logger';
+import { Plus, X } from 'lucide-react';
 
 const InventoryPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('');
-  const [view, setView] = useState<'all' | 'low_stock'>('all');
+  const [search, setSearch] = useState('');
+  const [view, setView] = useState<'all' | 'low_stock' | 'reserved'>('all');
   const { confirm, alert } = useConfirm();
 
   const [selectedPart, setSelectedPart] = useState<Part | null>(null);
@@ -40,9 +42,9 @@ const InventoryPage: React.FC = () => {
 
   // Queries
   const { data: inventoryData, isLoading: loading } = useQuery({
-    queryKey: ['inventory', page],
+    queryKey: ['inventory', page, search],
     queryFn: async () => {
-      const response = await apiClient.get(`/api/inventory?page=${page}&limit=100`);
+      const response = await apiClient.get(`/api/inventory?page=${page}&limit=100&search=${encodeURIComponent(search)}`);
       let rawData: unknown[] = [];
       let pagination = { page: 1, limit: 100, total: 0, totalPages: 1 };
 
@@ -242,16 +244,17 @@ const InventoryPage: React.FC = () => {
     });
   };
 
-  const handleCompSearch = (query: string) => {
-    setCompSearch(query);
-    if (query.length > 1) {
-      const results = inventory.filter(p =>
-        !p.is_composed &&
-        (p.reference.toLowerCase().includes(query.toLowerCase()) ||
-          p.designation.toLowerCase().includes(query.toLowerCase()))
-      ).slice(0, 10);
-      setCompSearchResults(results);
-      setShowCompResults(true);
+  const executeCompSearch = async (query: string) => {
+    if (query.trim().length > 1) {
+      try {
+        // Search server-side for components to ensure we find everything
+        const response = await apiClient.get(`/api/inventory?page=1&limit=20&search=${encodeURIComponent(query)}`);
+        const results = (response.data.data || response.data || []).filter((p: Part) => !p.is_composed);
+        setCompSearchResults(results);
+        setShowCompResults(true);
+      } catch (err) {
+        logger.error(err, 'Error searching for components:');
+      }
     } else {
       setShowCompResults(false);
     }
@@ -460,15 +463,11 @@ const InventoryPage: React.FC = () => {
     let items = inventory;
     if (view === 'low_stock') {
       items = items.filter(p => (p.available_quantity ?? 0) <= 5);
-    }
-    if (filter) {
-      items = items.filter(p =>
-        p.designation.toLowerCase().includes(filter.toLowerCase()) ||
-        p.reference.toLowerCase().includes(filter.toLowerCase())
-      );
+    } else if (view === 'reserved') {
+      items = items.filter(p => (p.reserved_quantity || 0) > 0 || (p.reserved_quantity_foss || 0) > 0);
     }
     return items;
-  }, [inventory, filter, view]);
+  }, [inventory, view]);
 
   if (loading && !inventory.length) {
     return (
@@ -495,14 +494,60 @@ const InventoryPage: React.FC = () => {
 
   return (
     <div className="container-fluid mt-4">
-      <h1>Gestão de Inventário</h1>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h1>Gestão de Inventário</h1>
+        <button
+          className={`btn ${modalType === 'add_item' ? 'btn-secondary' : 'btn-success'}`}
+          onClick={() => {
+            if (modalType === 'add_item') {
+              closeModal();
+            } else {
+              closeModal();
+              setModalType('add_item');
+            }
+          }}
+          title={modalType === 'add_item' ? 'Cancelar' : 'Novo Item'}
+        >
+          {modalType === 'add_item' ? <X size={20} /> : <Plus size={20} />}
+        </button>
+      </div>
+
+      {modalType === 'add_item' && !newItem.id && (
+        <InventoryItemForm
+          newItem={newItem}
+          setNewItem={setNewItem}
+          isComposed={isComposed}
+          setIsComposed={setIsComposed}
+          components={components}
+          compSearch={compSearch}
+          setCompSearch={setCompSearch}
+          handleCompSearch={executeCompSearch}
+          compSearchResults={compSearchResults}
+          showCompResults={showCompResults}
+          addComponent={addComponent}
+          removeComponent={removeComponent}
+          updateComponentQty={updateComponentQty}
+          isSubmitting={addItemMutation.isPending || updateItemMutation.isPending}
+          onClose={closeModal}
+          onSubmit={handleAddItem}
+          isInline={true}
+        />
+      )}
 
       <InventoryToolbar
         filter={filter}
         setFilter={setFilter}
+        onSearch={() => {
+          setSearch(filter);
+          setPage(1);
+        }}
+        onReset={() => {
+          setFilter('');
+          setSearch('');
+          setPage(1);
+        }}
         view={view}
         setView={setView}
-        onAddItem={() => setModalType('add_item')}
       />
 
       {filteredInventory.length === 0 ? (
@@ -540,15 +585,16 @@ const InventoryPage: React.FC = () => {
       )}
 
       {/* Modals */}
-      {modalType === 'add_item' && (
-        <InventoryItemModal
+      {modalType === 'add_item' && newItem.id && (
+        <InventoryItemForm
           newItem={newItem}
           setNewItem={setNewItem}
           isComposed={isComposed}
           setIsComposed={setIsComposed}
           components={components}
           compSearch={compSearch}
-          handleCompSearch={handleCompSearch}
+          setCompSearch={setCompSearch}
+          handleCompSearch={executeCompSearch}
           compSearchResults={compSearchResults}
           showCompResults={showCompResults}
           addComponent={addComponent}
@@ -556,7 +602,8 @@ const InventoryPage: React.FC = () => {
           updateComponentQty={updateComponentQty}
           isSubmitting={addItemMutation.isPending || updateItemMutation.isPending}
           onClose={closeModal}
-          onSubmit={newItem.id ? handleUpdateItem : handleAddItem}
+          onSubmit={handleUpdateItem}
+          isInline={false}
         />
       )}
 
@@ -589,7 +636,7 @@ const InventoryPage: React.FC = () => {
         />
       )}
 
-      {modalType && <div className="modal-backdrop fade show"></div>}
+      {modalType && (modalType !== 'add_item' || newItem.id) && <div className="modal-backdrop fade show"></div>}
 
       {isScheduleModalOpen && selectedEvent && (
         <ScheduleDetailModal
