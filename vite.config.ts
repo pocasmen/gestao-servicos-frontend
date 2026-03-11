@@ -23,7 +23,13 @@ export default defineConfig({
         target: 'http://localhost:5001',
         changeOrigin: true,
       }
-    }
+    },
+    // S2 — Prevent browser from caching invite/registration pages.
+    // These pages read one-time tokens from the URL; caching them would allow
+    // the browser to restore a stale version with an already-consumed token.
+    headers: {
+      'Cache-Control': 'no-store, no-cache, must-revalidate',
+    },
   },
   build: {
     minify: 'esbuild',

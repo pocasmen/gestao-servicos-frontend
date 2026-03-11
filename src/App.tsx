@@ -30,6 +30,7 @@ const SettingsPage = React.lazy(() => import('./pages/SettingsPage'));
 const SelfRegisterPage = React.lazy(() => import('./pages/SelfRegisterPage'));
 const PendingUsersPage = React.lazy(() => import('./pages/PendingUsersPage'));
 const CompleteRegistrationPage = React.lazy(() => import('./pages/CompleteRegistrationPage'));
+const AcceptInvitePage = React.lazy(() => import('./pages/AcceptInvitePage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const ClientProfilePage = React.lazy(() => import('./pages/ClientProfilePage'));
 const ClientHistoryPage = React.lazy(() => import('./pages/ClientHistoryPage'));
@@ -111,6 +112,16 @@ const AppRoutes: React.FC = () => {
   const [urlError, setUrlError] = useState<string | null>(null);
 
   useEffect(() => {
+    // S2 — Anti-bfcache: if this page is restored from browser's back/forward
+    // cache, the stale URL hash (with old token) would be re-processed. Force
+    // a full reload to get a clean state with the current URL.
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+    window.addEventListener('pageshow', handlePageShow);
+
     // Verificar se existem erros no hash da URL (formato do Supabase)
     const hash = window.location.hash;
     if (hash && hash.startsWith('#')) {
@@ -131,6 +142,8 @@ const AppRoutes: React.FC = () => {
         window.history.replaceState(null, '', window.location.pathname + window.location.search);
       }
     }
+
+    return () => window.removeEventListener('pageshow', handlePageShow);
   }, []);
 
   if (loading) {
@@ -186,6 +199,7 @@ const AppRoutes: React.FC = () => {
 
         <React.Suspense fallback={<div className="d-flex justify-content-center mt-5"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">A carregar...</span></div></div>}>
           <Routes>
+            <Route path="/accept-invite" element={<AcceptInvitePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/self-register" element={<SelfRegisterPage />} />
