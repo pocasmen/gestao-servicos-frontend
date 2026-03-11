@@ -31,6 +31,7 @@ const SelfRegisterPage = React.lazy(() => import('./pages/SelfRegisterPage'));
 const PendingUsersPage = React.lazy(() => import('./pages/PendingUsersPage'));
 const CompleteRegistrationPage = React.lazy(() => import('./pages/CompleteRegistrationPage'));
 const AcceptInvitePage = React.lazy(() => import('./pages/AcceptInvitePage'));
+const TestEmailPage = React.lazy(() => import('./pages/TestEmailPage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const ClientProfilePage = React.lazy(() => import('./pages/ClientProfilePage'));
 const ClientHistoryPage = React.lazy(() => import('./pages/ClientHistoryPage'));
@@ -200,6 +201,7 @@ const AppRoutes: React.FC = () => {
         <React.Suspense fallback={<div className="d-flex justify-content-center mt-5"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">A carregar...</span></div></div>}>
           <Routes>
             <Route path="/accept-invite" element={<AcceptInvitePage />} />
+            <Route path="/test-email" element={<TestEmailPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/self-register" element={<SelfRegisterPage />} />
