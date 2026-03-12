@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+import apiClient from '../apiClient';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -12,7 +12,7 @@ const TestEmailPage: React.FC = () => {
         setStatus('loading');
         setResult(null);
         try {
-            const { data } = await axios.post('/api/test-email', { to });
+            const { data } = await apiClient.post('/api/test-email', { to });
             setResult(data);
             setStatus('success');
         } catch (err: any) {
