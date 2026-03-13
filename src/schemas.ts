@@ -190,6 +190,11 @@ export const DashboardStatsSchema = z.object({
         completed: z.number(),
         overdue: z.number(),
     }),
+    tasks: z.object({
+        total: z.number(),
+        completed: z.number(),
+        pending: z.number(),
+    }),
 });
 
 export const AttachmentSchema = z.object({

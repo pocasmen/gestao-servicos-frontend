@@ -32,6 +32,10 @@
   background: linear-gradient(135deg, #10b981 0%, #059669 100%);
 }
 
+.bg-gradient-secondary {
+  background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+}
+
 .stat-icon-wrapper {
   width: 60px;
   height: 60px;

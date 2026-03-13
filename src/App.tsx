@@ -17,6 +17,7 @@ const EquipmentsPage = React.lazy(() => import('./pages/EquipmentsPage'));
 const EquipmentHistoryPage = React.lazy(() => import('./pages/EquipmentHistoryPage'));
 const InventoryPage = React.lazy(() => import('./pages/InventoryPage'));
 const TechniciansPage = React.lazy(() => import('./pages/TechniciansPage'));
+const UsersPage = React.lazy(() => import('./pages/UsersPage'));
 const ReportsPage = React.lazy(() => import('./pages/ReportsPage'));
 const ReportPrintPage = React.lazy(() => import('./pages/ReportPrintPage'));
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
@@ -110,7 +111,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectP
 
 // Componente Interno para conter a lógica das rotas
 const AppRoutes: React.FC = () => {
-  const { user, loading } = useContext(AuthContext);
+  const { user, loading, impersonatedUser, stopImpersonation } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   const [urlError, setUrlError] = useState<string | null>(null);
@@ -178,6 +179,14 @@ const AppRoutes: React.FC = () => {
 
   return (
     <>
+      {impersonatedUser && (
+        <div className="bg-danger text-white text-center py-2 px-3 fw-bold d-flex justify-content-between align-items-center shadow-sm w-100" style={{ zIndex: 10000, position: 'relative' }}>
+            <span><i className="bi bi-exclamation-triangle-fill me-2"></i> MODO SIMULAÇÃO: {impersonatedUser.user_metadata?.first_name} {impersonatedUser.user_metadata?.last_name}</span>
+            <button className="btn btn-sm btn-light text-danger fw-bold shadow-sm" onClick={stopImpersonation}>
+                <i className="bi bi-x-circle text-danger me-1"></i> Sair da Simulação
+            </button>
+        </div>
+      )}
       {renderHeader()}
       <main className="app-main">
         {urlError && (
@@ -246,7 +255,8 @@ const AppRoutes: React.FC = () => {
             <Route path="/equipments" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><EquipmentsPage /></ProtectedRoute>} />
             <Route path="/equipments/:id/history" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><EquipmentHistoryPage /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><InventoryPage /></ProtectedRoute>} />
-            <Route path="/technicians" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TechniciansPage /></ProtectedRoute>} />
+            <Route path="/technicians" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><TechniciansPage /></ProtectedRoute>} />
+            <Route path="/users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><UsersPage /></ProtectedRoute>} />
             <Route path="/admin/pending-users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><PendingUsersPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><ReportsPage /></ProtectedRoute>} />
             <Route path="/report/print/:id" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.CLIENT]}><ReportPrintPage /></ProtectedRoute>} />
@@ -278,22 +288,51 @@ const AppRoutes: React.FC = () => {
 function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [impersonatedUser, setImpersonatedUser] = useState<SupabaseUser | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.user?.user_metadata?.role === UserRole.SUPER_ADMIN) {
+        const storedImpersonatedUser = sessionStorage.getItem('impersonatedUser');
+        if (storedImpersonatedUser) {
+          try {
+            setImpersonatedUser(JSON.parse(storedImpersonatedUser));
+          } catch {
+             sessionStorage.removeItem('impersonatedUser');
+          }
+        }
+      }
       setLoading(false);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (!session) {
+        setImpersonatedUser(null);
+        sessionStorage.removeItem('impersonatedUser');
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
+  const startImpersonation = (userToImpesonate: SupabaseUser) => {
+    setImpersonatedUser(userToImpesonate);
+    sessionStorage.setItem('impersonatedUser', JSON.stringify(userToImpesonate));
+    window.location.href = '/';
+  }
+
+  const stopImpersonation = () => {
+    setImpersonatedUser(null);
+    sessionStorage.removeItem('impersonatedUser');
+    window.location.href = '/';
+  }
+
+  const effectiveUser = impersonatedUser ?? (session?.user ?? null);
+
   return (
-    <AuthContext.Provider value={{ user: session?.user ?? null, session, loading, setSession }}>
+    <AuthContext.Provider value={{ user: effectiveUser, session, loading, setSession, impersonatedUser, startImpersonation, stopImpersonation }}>
       <ConfirmProvider>
         <ActiveClientProvider>
           <Router>

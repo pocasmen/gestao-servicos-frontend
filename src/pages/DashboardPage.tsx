@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import StatCard from '../components/StatCard';
 import { Link } from 'react-router-dom';
@@ -96,6 +96,28 @@ const BillingDistributionBar: React.FC<{
   );
 };
 
+const TaskDistributionBar: React.FC<{
+  completed: number;
+  pending: number;
+  total: number;
+}> = ({ completed, pending, total }) => {
+  const getW = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+
+  return (
+    <div className="visualizer-container">
+      <div className="visual-title">Estado das Tarefas</div>
+      <div className="dist-bar-container">
+        <div className="dist-bar-segment bg-azure" style={{ width: `${getW(completed)}%` }} data-label={`Concluídas: ${completed}`} />
+        <div className="dist-bar-segment bg-ruby" style={{ width: `${getW(pending)}%` }} data-label={`Por concluir: ${pending}`} />
+      </div>
+      <div className="dist-legend">
+        <div className="legend-item"><span className="dot bg-azure"></span> Concluídas</div>
+        <div className="legend-item"><span className="dot bg-ruby"></span> Por concluir</div>
+      </div>
+    </div>
+  );
+};
+
 const PerformanceGauge: React.FC<{ percentage: number; label: string }> = ({ percentage, label }) => {
   // Converte porcentagem (0-100) para rotação (-90 a 90 graus)
   // 0% = -90deg (Esquerda), 50% = 0deg (Topo), 100% = 90deg (Direita)
@@ -137,9 +159,10 @@ const DashboardPage: React.FC = () => {
   const [recentTickets, setRecentTickets] = useState<TicketDetail[]>([]);
   const [billingStats, setBillingStats] = useState<{ total: number; pending_completion: number; report_issued: number; ready_for_billing: number; billed: number } | null>(null);
   const [billingTasks, setBillingTasks] = useState<BillingTask[]>([]);
+  const [dashboardTasks, setDashboardTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { alert } = useConfirm();
-  const [activeSection, setActiveSection] = useState<'tickets' | 'schedules' | 'reports' | 'billing' | null>(null);
+  const [activeSection, setActiveSection] = useState<'tickets' | 'schedules' | 'reports' | 'billing' | 'tasks' | null>(null);
 
   // Navegação
   const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
@@ -177,24 +200,47 @@ const DashboardPage: React.FC = () => {
           endDate: dateRange.end.toISOString()
         };
 
-        const [statsRes, schedulesRes, reportsRes, ticketsRes, billingRes, billingTasksRes] = await Promise.all([
+        const [statsRes, schedulesRes, reportsRes, ticketsRes, billingRes, billingTasksRes, tasksRes] = await Promise.all([
           apiClient.get('/api/dashboard/stats', { params }),
           apiClient.get('/api/dashboard/weekly-schedules', { params }),
           apiClient.get('/api/dashboard/pending-reports', { params }),
           apiClient.get('/api/tickets'), // Fetching all/recent tickets. Assuming endpoint exists.
           getBillingStats(params),
-          getBillingTasks(params)
+          getBillingTasks(params),
+          apiClient.get('/api/tasks')
         ]);
         const statsValidated = DashboardStatsSchema.safeParse(statsRes.data);
         if (statsValidated.success) {
           setStats(statsValidated.data);
         } else {
           logger.error(statsValidated.error.format(), '[SCHEMA_ERROR] Dashboard stats validation failed:');
-          setStats(statsRes.data);
+          // Providencie estrutura mínima para evitar crashes
+          setStats({
+            tickets: { open: 0, scheduled: 0, closed: 0 },
+            weekly: { total: 0, completed: 0, withReport: 0, overdue: 0 },
+            pendingReports: { total: 0, completed: 0, overdue: 0 },
+            tasks: { total: 0, completed: 0, pending: 0 },
+            ...statsRes.data
+          });
         }
 
         setBillingStats(billingRes);
         setBillingTasks(billingTasksRes);
+
+        // Filter and sort dashboard tasks
+        const allTasks = Array.isArray(tasksRes.data) ? tasksRes.data : [];
+        const filteredTasks = allTasks.filter((t: any) => {
+          const createdAt = t.created_at ? new Date(t.created_at) : null;
+          const blocks = t.internal_task_time_blocks || [];
+          if (blocks.length > 0) {
+            return blocks.some((b: any) => {
+              const bStart = new Date(b.start_time);
+              return bStart >= dateRange.start && bStart <= dateRange.end;
+            });
+          }
+          return createdAt && createdAt >= dateRange.start && createdAt <= dateRange.end;
+        });
+        setDashboardTasks(filteredTasks);
 
         // Map and sort tickets (Recent 10)
         const ticketsDataArray = ticketsRes.data.data ? ticketsRes.data.data : ticketsRes.data;
@@ -494,12 +540,40 @@ const DashboardPage: React.FC = () => {
                     />
                     <div className="mb-4"></div>
                     <PerformanceGauge
-                      percentage={
+      percentage={
                         billingStats && (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed) > 0
                           ? (billingStats.billed / (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed)) * 100
                           : 0
                       }
                       label="EFICIÊNCIA DE FATURAÇÃO"
+                    />
+                  </>
+                }
+              />
+            </div>
+            <div className="col-12 col-md-6 col-xl-4">
+              <StatCard
+                title="Tarefas"
+                value={stats.tasks.total}
+                linkTo="/tasks"
+                onClick={() => setActiveSection('tasks')}
+                icon="bi bi-list-check"
+                color="secondary"
+                details={[
+                  { label: 'Concluídas', value: stats.tasks.completed, colorClass: 'bg-azure' },
+                  { label: 'Por concluir', value: stats.tasks.pending, colorClass: 'bg-ruby' }
+                ]}
+                extra={
+                  <>
+                    <TaskDistributionBar
+                      completed={stats.tasks.completed}
+                      pending={stats.tasks.pending}
+                      total={stats.tasks.total}
+                    />
+                    <div className="mb-4"></div>
+                    <PerformanceGauge
+                      percentage={stats.tasks.total > 0 ? (stats.tasks.completed / stats.tasks.total) * 100 : 0}
+                      label="ÍNDICE DE PERFORMANCE"
                     />
                   </>
                 }
@@ -728,6 +802,60 @@ const DashboardPage: React.FC = () => {
                             <span className="text-truncate d-inline-block" style={{ maxWidth: '350px' }} title={task.billing_notes}>
                               {task.billing_notes || '-'}
                             </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'tasks' && (
+          <div className="col-12">
+            <div className="card border-0 shadow-sm p-4 h-100">
+              <h3 className="h5 fw-bold mb-4">Lista de Tarefas ({dashboardTasks.length})</h3>
+              <div className="table-responsive">
+                <table className="table table-hover align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th style={{ width: '40px' }}>Ver</th>
+                      <th>Estado</th>
+                      <th>Tarefa</th>
+                      <th>Cliente</th>
+                      <th>Prioridade</th>
+                      <th>Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {dashboardTasks.length === 0 ? (
+                      <tr><td colSpan={6} className="text-center py-4 text-muted">Nenhuma tarefa encontrada neste período.</td></tr>
+                    ) : (
+                      dashboardTasks.map((task: any) => (
+                        <tr key={task.id}>
+                          <td>
+                            <Link to="/tasks" className="btn btn-sm btn-outline-primary border-0">
+                              <i className="bi bi-search"></i>
+                            </Link>
+                          </td>
+                          <td>
+                            <span className={`badge bg-${task.completed ? 'success' : 'warning text-dark'}`}>
+                              {task.completed ? 'Concluída' : 'Pendente'}
+                            </span>
+                          </td>
+                          <td>{task.title}</td>
+                          <td>{task.clients?.name || '-'}</td>
+                          <td>
+                            <span className={`badge bg-${task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warning text-dark' : 'info'}`}>
+                              {task.priority || 'medium'}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="small text-muted">
+                              {task.created_at ? new Date(task.created_at).toLocaleDateString('pt-PT') : '-'}
+                            </div>
                           </td>
                         </tr>
                       ))

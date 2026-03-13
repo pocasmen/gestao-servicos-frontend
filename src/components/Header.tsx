@@ -154,6 +154,11 @@ const Header: React.FC = () => {
                       <>
                         <li>
                           <NavLink to="/technicians" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
+                            <Users size={16} /> Funcionários
+                          </NavLink>
+                        </li>
+                        <li>
+                          <NavLink to="/users" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
                             <Users size={16} /> Utilizadores
                           </NavLink>
                         </li>

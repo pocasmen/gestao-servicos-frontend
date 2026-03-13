@@ -6,6 +6,9 @@ export interface AuthContextType {
     session: Session | null;
     loading: boolean;
     setSession: (session: Session | null) => void;
+    impersonatedUser: SupabaseUser | null;
+    startImpersonation: (user: SupabaseUser) => void;
+    stopImpersonation: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -13,4 +16,7 @@ export const AuthContext = createContext<AuthContextType>({
     session: null,
     loading: true,
     setSession: () => { },
+    impersonatedUser: null,
+    startImpersonation: () => { },
+    stopImpersonation: () => { }
 });

@@ -536,7 +536,7 @@ const CalendarPage: React.FC = () => {
     }
 
     if (event.isCompleted) {
-      if (event.hasReport) {
+      if (event.hasReport || event.isTask) {
         return { className: 'event-with-report' };
       }
       return { className: 'event-completed' };

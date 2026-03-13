@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { SmartInput } from '../components/SmartInput';
 import { UserRole } from '../constants/enums';
+import { AuthContext } from '../contexts/AuthContext';
 
 import { Client } from '../types';
 import { ClientSchema } from '../schemas';

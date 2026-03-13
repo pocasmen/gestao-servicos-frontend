@@ -18,6 +18,18 @@ apiClient.interceptors.request.use(
       config.headers['Authorization'] = `Bearer ${session.access_token}`;
     }
 
+    const storedImpersonatedUser = sessionStorage.getItem('impersonatedUser');
+    if (storedImpersonatedUser) {
+      try {
+        const parsed = JSON.parse(storedImpersonatedUser);
+        if (parsed?.id) {
+          config.headers['x-impersonate-user'] = parsed.id;
+        }
+      } catch (e) {
+        // ignore parsing error
+      }
+    }
+
     if (config.url?.includes('/api/my-') && !config.url.includes('companies')) {
       const savedClient = localStorage.getItem('activeClient');
       if (savedClient) {

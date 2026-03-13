@@ -228,6 +228,20 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
             </div>
             <div className="modal-footer">
               <button type="button" className="btn btn-danger me-auto" onClick={handleDelete}>Eliminar Utilizador</button>
+              {user.role === UserRole.CLIENT && currentUserRole === UserRole.SUPER_ADMIN && (
+                <button
+                    type="button"
+                    className="btn btn-outline-warning"
+                    title="Simular conta de Cliente"
+                    onClick={() => {
+                        onClose();
+                        // Dispatch the event that both TechniciansPage and UsersPage listen to
+                        document.dispatchEvent(new CustomEvent('initImpersonate', { detail: user }));
+                    }}
+                >
+                    <i className="bi bi-person-lines-fill"></i> Simular Conta
+                </button>
+              )}
               <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
               <button type="submit" className="btn btn-primary">Guardar Alterações</button>
             </div>

@@ -17,6 +17,11 @@ export interface DashboardStats {
     completed: number;
     overdue: number;
   };
+  tasks: {
+    total: number;
+    completed: number;
+    pending: number;
+  };
 }
 
 export enum BillingStatus {

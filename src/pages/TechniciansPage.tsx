@@ -142,10 +142,11 @@ const UserList: React.FC<{ users: AppUser[], onSelectUser: (user: AppUser) => vo
 
 // Main page, updated to use the new components and data fetching
 const TechniciansPage: React.FC = () => {
-  const { user } = useContext(AuthContext);
+  const { user, startImpersonation } = useContext(AuthContext);
   const [users, setUsers] = useState<AppUser[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
+  const { confirm, alert } = useConfirm();
 
   const fetchUsers = () => {
     apiClient.get('/api/technicians').then(response => {
