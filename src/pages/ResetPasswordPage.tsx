@@ -10,20 +10,6 @@ import logger from '../utils/logger';
  *  - Legacy: #access_token=...&refresh_token=...&type=recovery   (hash)
  *  - PKCE:   ?token_hash=...&type=recovery                       (query string)
  */
-const _search = new URLSearchParams(window.location.search);
-const _hash   = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-
-const CAPTURED = {
-    tokenHash:     _search.get('token_hash'),
-    typeFromQuery: _search.get('type'),
-    accessToken:   _hash.get('access_token'),
-    refreshToken:  _hash.get('refresh_token'),
-    typeFromHash:  _hash.get('type'),
-} as const;
-
-const IS_PKCE   = Boolean(CAPTURED.tokenHash && CAPTURED.typeFromQuery === 'recovery');
-const IS_LEGACY = Boolean(CAPTURED.accessToken && CAPTURED.typeFromHash === 'recovery');
-
 type PageStatus = 'detecting' | 'ready' | 'loading' | 'success' | 'error' | 'no-token';
 
 const ResetPasswordPage: React.FC = () => {
@@ -33,12 +19,29 @@ const ResetPasswordPage: React.FC = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [errorMessage, setErrorMessage]   = useState<string | null>(null);
 
+    // Captura os tokens apenas uma vez no momento em que o componente é montado
+    const captured = React.useMemo(() => {
+        const _search = new URLSearchParams(window.location.search);
+        const _hash   = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+        
+        return {
+            tokenHash:     _search.get('token_hash'),
+            typeFromQuery: _search.get('type'),
+            accessToken:   _hash.get('access_token'),
+            refreshToken:  _hash.get('refresh_token'),
+            typeFromHash:  _hash.get('type'),
+        };
+    }, []);
+
+    const isPKCE   = Boolean(captured.tokenHash && captured.typeFromQuery === 'recovery');
+    const isLegacy = Boolean(captured.accessToken && captured.typeFromHash === 'recovery');
+
     useEffect(() => {
         const prepare = async () => {
-            if (IS_PKCE && CAPTURED.tokenHash) {
+            if (isPKCE && captured.tokenHash) {
                 // PKCE: verify the token so the session is ready for updateUser
                 const { error } = await supabase.auth.verifyOtp({
-                    token_hash: CAPTURED.tokenHash,
+                    token_hash: captured.tokenHash,
                     type: 'recovery',
                 });
                 if (error) {
@@ -56,11 +59,11 @@ const ResetPasswordPage: React.FC = () => {
                 return;
             }
 
-            if (IS_LEGACY && CAPTURED.accessToken && CAPTURED.refreshToken) {
+            if (isLegacy && captured.accessToken && captured.refreshToken) {
                 // Legacy: explicitly set the session from hash tokens
                 const { error } = await supabase.auth.setSession({
-                    access_token: CAPTURED.accessToken,
-                    refresh_token: CAPTURED.refreshToken,
+                    access_token: captured.accessToken,
+                    refresh_token: captured.refreshToken,
                 });
                 if (error) {
                     logger.error(error, '[ResetPassword] setSession failed');

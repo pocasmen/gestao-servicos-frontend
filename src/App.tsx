@@ -121,8 +121,11 @@ const AppRoutes: React.FC = () => {
 
     // 1. Intercetar links de recuperação de password
     if (hash && hash.includes('type=recovery')) {
-      navigate('/reset-password', { replace: true });
-      return;
+      if (location.pathname !== '/reset-password') {
+        // Redireciona preservando o hash para que a página de reset possa lê-lo
+        navigate('/reset-password' + window.location.hash, { replace: true });
+        return;
+      }
     }
 
     // 2. S2 — Anti-bfcache: if this page is restored from browser's back/forward
