@@ -79,11 +79,20 @@ const LoginPage: React.FC = () => {
                     autoComplete="email"
                   />
                 </div>
-                <div className="form-group mb-3">
-                  <label htmlFor="password">Password</label>
+                <div className="form-group mb-2">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <label htmlFor="password">Password</label>
+                    <Link
+                      to="/forgot-password"
+                      className="text-decoration-none"
+                      style={{ fontSize: '0.85rem' }}
+                    >
+                      Esqueceu-se da password?
+                    </Link>
+                  </div>
                   <input
                     type="password"
-                    className="form-control"
+                    className="form-control mt-1"
                     id="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -91,6 +100,7 @@ const LoginPage: React.FC = () => {
                     autoComplete="current-password"
                   />
                 </div>
+                <div className="mb-3" />
                 <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                   {loading ? 'A entrar...' : 'Entrar'}
                 </button>

@@ -1,5 +1,5 @@
 import React, { useState, useContext } from 'react';
-import { Navigate, Link } from 'react-router-dom';
+import { Navigate, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
 import { UserRole } from '../constants/enums';
@@ -12,6 +12,7 @@ const CompleteRegistrationPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const { user } = useContext(AuthContext);
     const { alert } = useConfirm();
+    const navigate = useNavigate();
 
     // If no user is in context, they shouldn't be here.
     if (!user) {
@@ -59,17 +60,24 @@ const CompleteRegistrationPage: React.FC = () => {
         try {
             const { error: updateError } = await supabase.auth.updateUser({
                 password,
-                data: { must_set_password: false } // Limpa o flag nos metadados
+                data: { must_set_password: false }
             });
             if (updateError) {
                 throw updateError;
             }
 
+            // Sign out the invite session so the user logs in fresh with their
+            // new credentials. Without this, the stale session metadata
+            // (must_set_password: true) would keep redirecting back here.
+            await supabase.auth.signOut({ scope: 'local' });
+
             if (isPending) {
-                alert('A sua password foi definida com sucesso. A sua conta aguarda agora a aprovação de um administrador. Será notificado quando for ativada.', 'Sucesso');
+                await alert('A sua password foi definida com sucesso. A sua conta aguarda agora a aprovação de um administrador. Será notificado quando for ativada.', 'Sucesso');
             } else {
-                alert('A sua password foi definida com sucesso. Já pode aceder à plataforma.', 'Sucesso');
+                await alert('A sua password foi definida com sucesso. Já pode aceder à plataforma com as suas novas credenciais.', 'Sucesso');
             }
+
+            navigate('/login', { replace: true });
         } catch (err: any) {
             logger.error(err);
             alert(err.message || 'Ocorreu um erro ao definir a sua password.');

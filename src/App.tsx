@@ -1,5 +1,5 @@
 import React, { useState, useContext, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet, useNavigate } from 'react-router-dom';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
@@ -31,6 +31,8 @@ const SelfRegisterPage = React.lazy(() => import('./pages/SelfRegisterPage'));
 const PendingUsersPage = React.lazy(() => import('./pages/PendingUsersPage'));
 const CompleteRegistrationPage = React.lazy(() => import('./pages/CompleteRegistrationPage'));
 const AcceptInvitePage = React.lazy(() => import('./pages/AcceptInvitePage'));
+const ForgotPasswordPage = React.lazy(() => import('./pages/ForgotPasswordPage'));
+const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 const TestEmailPage = React.lazy(() => import('./pages/TestEmailPage'));
 const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const ClientProfilePage = React.lazy(() => import('./pages/ClientProfilePage'));
@@ -109,11 +111,21 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectP
 // Componente Interno para conter a lógica das rotas
 const AppRoutes: React.FC = () => {
   const { user, loading } = useContext(AuthContext);
+  const navigate = useNavigate();
   const location = useLocation();
   const [urlError, setUrlError] = useState<string | null>(null);
 
   useEffect(() => {
-    // S2 — Anti-bfcache: if this page is restored from browser's back/forward
+    // Capturar hash uma única vez para este efeito
+    const hash = window.location.hash;
+
+    // 1. Intercetar links de recuperação de password
+    if (hash && hash.includes('type=recovery')) {
+      navigate('/reset-password', { replace: true });
+      return;
+    }
+
+    // 2. S2 — Anti-bfcache: if this page is restored from browser's back/forward
     // cache, the stale URL hash (with old token) would be re-processed. Force
     // a full reload to get a clean state with the current URL.
     const handlePageShow = (event: PageTransitionEvent) => {
@@ -123,8 +135,7 @@ const AppRoutes: React.FC = () => {
     };
     window.addEventListener('pageshow', handlePageShow);
 
-    // Verificar se existem erros no hash da URL (formato do Supabase)
-    const hash = window.location.hash;
+    // 3. Verificar se existem erros no hash da URL (formato do Supabase)
     if (hash && hash.startsWith('#')) {
       const params = new URLSearchParams(hash.substring(1));
       const errorCode = params.get('error_code');
@@ -145,7 +156,7 @@ const AppRoutes: React.FC = () => {
     }
 
     return () => window.removeEventListener('pageshow', handlePageShow);
-  }, []);
+  }, [navigate]);
 
   if (loading) {
     return <div className="d-flex justify-content-center align-items-center vh-100">A carregar sessão...</div>;
@@ -206,6 +217,8 @@ const AppRoutes: React.FC = () => {
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/self-register" element={<SelfRegisterPage />} />
             <Route path="/complete-registration" element={<CompleteRegistrationPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/unauthorized" element={<div>Acesso Negado</div>} />
 
             <Route
