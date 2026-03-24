@@ -62,7 +62,7 @@ const ProfilePage: React.FC = () => {
         setIsSyncing(true);
         setSyncStatus('A verificar atualizações...');
 
-        apiClient.post('/api/admin/sync-telegram-updates')
+        apiClient.post('/api/telegram/sync-updates')
             .then((res) => {
                 if (res.data.success) {
                     fetchUserProfile();

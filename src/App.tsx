@@ -5,7 +5,10 @@ import { supabase } from './supabase';
 
 import Header from './components/Header';
 import ClientPortalHeader from './components/ClientPortalHeader';
-import { ConfirmProvider } from './contexts/ConfirmContext';
+import { ConfirmProvider, useConfirm } from './contexts/ConfirmContext';
+import packageJson from '../package.json';
+import apiClient from './apiClient';
+import logger from './utils/logger';
 import './index.css';
 import './theme.css';
 
@@ -39,10 +42,12 @@ const ProfilePage = React.lazy(() => import('./pages/ProfilePage'));
 const ClientProfilePage = React.lazy(() => import('./pages/ClientProfilePage'));
 const ClientHistoryPage = React.lazy(() => import('./pages/ClientHistoryPage'));
 const BillingPage = React.lazy(() => import('./pages/BillingPage'));
+const InvoiceDocsPage = React.lazy(() => import('./pages/InvoiceDocsPage'));
 const TasksPage = React.lazy(() => import('./pages/TasksPage'));
 const ClientPortalDashboardPage = React.lazy(() => import('./pages/ClientPortalDashboardPage'));
 const ClientEntityDashboardPage = React.lazy(() => import('./pages/ClientEntityDashboardPage'));
 const ClientEquipmentsPage = React.lazy(() => import('./pages/ClientEquipmentsPage'));
+const DataPage = React.lazy(() => import('./pages/DataPage'));
 
 import { AuthContext } from './contexts/AuthContext';
 import { ActiveClientProvider } from './contexts/ActiveClientContext';
@@ -115,6 +120,44 @@ const AppRoutes: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [urlError, setUrlError] = useState<string | null>(null);
+  const { confirm } = useConfirm();
+  const [hasShownUpgrade, setHasShownUpgrade] = useState(false);
+
+  useEffect(() => {
+    const checkUpgrade = async () => {
+      if (user && !loading && !impersonatedUser && !hasShownUpgrade) {
+        try {
+          // Fetch full technician profile to ensure first_name is available
+          // (Metadata might be stale or incomplete on some sessions)
+          const response = await apiClient.get('/api/technicians');
+          const profile = response.data.find((u: any) => u.id === user.id);
+          
+          if (!profile) return;
+
+          const currentVersion = packageJson.version;
+          const storageKey = `app_version_${user.id}`;
+          const storedVersion = localStorage.getItem(storageKey);
+
+          if (storedVersion !== currentVersion) {
+            const firstName = profile.first_name || user.user_metadata?.first_name || 'Utilizador';
+            setHasShownUpgrade(true);
+            
+            await confirm({
+              title: 'Atualização de Sistema',
+              message: `Olá ${firstName}, está a usar pela primeira vez a nova versão ${currentVersion}. Se notar alguma dificuldade ou tiver uma sugestão, informe para pedro@microatomo.pt`,
+              confirmText: 'Entendido',
+              isAlert: true
+            });
+            localStorage.setItem(storageKey, currentVersion);
+          }
+        } catch (err) {
+          logger.error(err, 'Erro ao verificar versão/perfil:');
+        }
+      }
+    };
+
+    checkUpgrade();
+  }, [user, loading, impersonatedUser, confirm, hasShownUpgrade]);
 
   useEffect(() => {
     // Capturar hash uma única vez para este efeito
@@ -263,7 +306,9 @@ const AppRoutes: React.FC = () => {
             <Route path="/tickets" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TicketsPage /></ProtectedRoute>} />
             <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TicketDetailPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><SettingsPage /></ProtectedRoute>} /> {/* Apenas SuperAdmin pode mexer nas configs */}
+            <Route path="/admin/data" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><DataPage /></ProtectedRoute>} />
             <Route path="/billing" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><BillingPage /></ProtectedRoute>} />
+            <Route path="/documents" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><InvoiceDocsPage /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TasksPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><ProfilePage /></ProtectedRoute>} />
 

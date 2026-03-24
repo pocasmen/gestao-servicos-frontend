@@ -92,7 +92,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     setIncludesTravel(event?.includes_travel || false);
     setClassification(event?.classification || ServiceClassification.GERAL);
     setPriority(event?.priority || SchedulePriority.MEDIUM);
-    setSendToBacklog(event?.acknowledgementState === ScheduleStatus.PENDING_SCHEDULING && !event?.start);
+    const isBacklogItem = !!event && !event.start;
+    setSendToBacklog(isBacklogItem);
     if (isTicketScheduling) {
       setParts([]);
     } else {
@@ -238,30 +239,17 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     setParts(newParts);
   };
 
-  const handlePartChange = (index: number, field: keyof PartItem, value: string | number | boolean) => {
-    const newParts = [...parts];
-    const item = { ...newParts[index] };
-
-    if (field === 'quantity') {
-      item.quantity = Number(value);
-    } else if (field === 'isDesignationLocked') {
-      // isDesignationLocked is boolean, but value is string|number here? 
-      // The signature says value: string | number. 
-      // Checking usage: handlePartChange(index, 'isDesignationLocked', ...) is not called in the code provided in previous turn, but let's be safe.
-      // Actually, looking at the code, it's capable of receiving boolean too if I change the signature?
-      // The component calls it with: handlePartChange(index, 'quantity', parseInt...)
-      // handlePartChange(index, 'reference', e.target.value)
-      // handlePartChange(index, 'designation', e.target.value)
-      // It does NOT seem to call it for isDesignationLocked.
-    } else {
-      // reference, designation are strings
-      (item as any)[field] = value;
-    }
-    // Wait, let's just use the spread which is standard React pattern, TS might complain about union type mismatch
-    // simpler:
-    newParts[index] = { ...newParts[index], [field]: value };
-    setParts(newParts);
-  };
+  const handlePartChange = useCallback((index: number, fieldOrUpdates: keyof PartItem | Partial<PartItem>, value?: any) => {
+    setParts(prev => {
+      const newParts = [...prev];
+      if (typeof fieldOrUpdates === 'string') {
+        newParts[index] = { ...newParts[index], [fieldOrUpdates]: value };
+      } else {
+        newParts[index] = { ...newParts[index], ...fieldOrUpdates };
+      }
+      return newParts;
+    });
+  }, []);
 
   const handleReferenceBlur = async (index: number) => {
     const reference = parts[index].reference;
@@ -288,6 +276,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           newParts[index].reserved_quantity = part.reserved_quantity;
           newParts[index].stock_quantity_foss = part.stock_quantity_foss;
           newParts[index].reserved_quantity_foss = part.reserved_quantity_foss;
+          newParts[index].image_path = part.image_path;
           if (import.meta.env.DEV) {
             logger.debug({ designation: part.designation }, '[DEBUG] Part found, updating designation to');
           }
@@ -459,6 +448,35 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       const proceed = await confirm({
         title: 'Aviso de Stock Insuficiente',
         message: `As seguintes peças ficarão com stock negativo: ${partNames}. Gostaria de continuar?`,
+        variant: 'warning',
+        confirmText: 'Continuar',
+        cancelText: 'Cancelar'
+      } as ConfirmOptions);
+      if (!proceed) return;
+    }
+
+    // Validação de stock baixo (Abaixo do mínimo)
+    const lowStockParts = partsToValidate.filter(p => {
+      if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
+      const type = p.stockType || StockType.GENERAL;
+      const currentQtyInSchedule = (event?.parts || []).find(ep => Number(ep.id) === Number(p.id))?.quantity || 0;
+
+      if (type === StockType.FOSS) {
+        const available = (p.stock_quantity_foss || 0) - (p.reserved_quantity_foss || 0) - p.quantity + currentQtyInSchedule;
+        return available < (p.min_stock_foss || 0);
+      } else if (type === StockType.GENERAL || type === StockType.CONTRACT || type === StockType.MSD) {
+        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0) - p.quantity + currentQtyInSchedule;
+        return available < (p.min_stock || 0);
+      }
+      return false;
+    });
+
+    const uniqueLowStockParts = lowStockParts.filter(lp => !negativeStockParts.some(np => np.id === lp.id));
+    if (uniqueLowStockParts.length > 0) {
+      const partNames = uniqueLowStockParts.map(p => p.designation || p.reference).join(', ');
+      const proceed = await confirm({
+        title: 'Aviso de Stock Baixo',
+        message: `As seguintes peças ficarão abaixo do nível mínimo: ${partNames}. Deve providenciar nova encomenda. Deseja continuar?`,
         variant: 'warning',
         confirmText: 'Continuar',
         cancelText: 'Cancelar'

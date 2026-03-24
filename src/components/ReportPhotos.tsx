@@ -64,7 +64,8 @@ const ReportPhotos: React.FC<ReportPhotosProps> = ({ reportId, onPhotosChange })
 
                 const compressedBlob = await compressImage(file, {
                     quality: compressionSettings.quality,
-                    maxWidth: compressionSettings.maxWidth
+                    maxWidth: compressionSettings.maxWidth,
+                    type: 'image/jpeg'
                 });
 
                 const formData = new FormData();

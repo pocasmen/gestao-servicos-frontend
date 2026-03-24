@@ -50,6 +50,16 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 }) => {
     const content = (
         <>
+            {newItem.image_path && (
+                <div className="mb-4 text-center">
+                    <img 
+                        src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${newItem.image_path}`} 
+                        alt={newItem.reference}
+                        className="rounded shadow-sm border p-1"
+                        style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain', backgroundColor: '#fff' }}
+                    />
+                </div>
+            )}
             <div className="row">
                 <div className="col-md-6 mb-3">
                     <SmartInput
@@ -81,6 +91,57 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                         required
                     />
                 </div>
+            </div>
+
+            <div className="row">
+                <div className="col-md-12 mb-3">
+                    <label className="form-label fw-bold small text-muted">Preço (€)</label>
+                    <div className="input-group input-group-sm">
+                        <span className="input-group-text bg-light border-end-0">€</span>
+                        <input
+                            type="number"
+                            className="form-control form-control-sm border-start-0"
+                            placeholder="0,00"
+                            step="0.01"
+                            value={newItem.price ?? ''}
+                            onChange={(e) => setNewItem(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            <div className="row">
+                <div className="col-md-6 mb-3">
+                    <label className="form-label fw-bold small text-muted">Stock Mínimo (Geral)</label>
+                    <input
+                        type="number"
+                        className="form-control form-control-sm"
+                        placeholder="0"
+                        value={newItem.min_stock ?? 0}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, min_stock: parseInt(e.target.value, 10) || 0 }))}
+                    />
+                </div>
+                <div className="col-md-6 mb-3">
+                    <label className="form-label fw-bold small text-muted">Stock Mínimo (FOSS)</label>
+                    <input
+                        type="number"
+                        className="form-control form-control-sm"
+                        placeholder="0"
+                        value={newItem.min_stock_foss ?? 0}
+                        onChange={(e) => setNewItem(prev => ({ ...prev, min_stock_foss: parseInt(e.target.value, 10) || 0 }))}
+                    />
+                </div>
+            </div>
+
+            <div className="mb-3">
+                <label className="form-label fw-bold small text-muted">Notas</label>
+                <textarea
+                    className="form-control form-control-sm"
+                    rows={3}
+                    placeholder="Notas internas sobre este item..."
+                    value={newItem.notes ?? ''}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, notes: e.target.value }))}
+                />
             </div>
 
             {!newItem.id && (

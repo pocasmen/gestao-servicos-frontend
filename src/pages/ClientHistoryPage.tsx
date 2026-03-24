@@ -13,8 +13,9 @@ interface ClientSchedule {
     endDate: string;
     isCompleted: boolean;
     hasReport: boolean;
+    isSigned?: boolean;
     serviceType: string;
-    technicians: string[];
+    technicians: any[];
     equipmentInfo: string;
     equipmentId?: number;
 }
@@ -23,7 +24,7 @@ const ClientHistoryPage: React.FC = () => {
     const [schedules, setSchedules] = useState<ClientSchedule[]>([]);
     const [tickets, setTickets] = useState<Ticket[]>([]);
     const [loading, setLoading] = useState(true);
-    const { alert } = useConfirm();
+    const { alert, confirm } = useConfirm();
     const navigate = useNavigate();
     const location = useLocation();
     const [filterEquipmentId, setFilterEquipmentId] = useState<number | null>(null);
@@ -39,8 +40,8 @@ const ClientHistoryPage: React.FC = () => {
             try {
                 setLoading(true);
                 const [schedulesRes, ticketsRes] = await Promise.all([
-                    apiClient.get('/api/my-schedules?page=1&limit=50'),
-                    apiClient.get('/api/my-tickets?page=1&limit=50')
+                    apiClient.get('/api/client-portal/my-schedules?page=1&limit=50'),
+                    apiClient.get('/api/client-portal/my-tickets?page=1&limit=50')
                 ]);
 
                 // Handle paginated response structure
@@ -76,7 +77,7 @@ const ClientHistoryPage: React.FC = () => {
 
         try {
             // First we need the report ID. We can fetch it by schedule ID.
-            const response = await apiClient.get(`/api/my-report/by-schedule/${scheduleId}`);
+            const response = await apiClient.get(`/api/client-portal/my-report/by-schedule/${scheduleId}`);
             if (response.data && response.data.id) {
                 navigate(`/report/print/${response.data.id}`);
             } else {
@@ -85,6 +86,43 @@ const ClientHistoryPage: React.FC = () => {
         } catch (error) {
             logger.error(error, "Erro ao carregar o relatório:");
             alert("Não foi possível carregar o relatório. Por favor, tente mais tarde.");
+        }
+    };
+
+    const handleSignReport = async (scheduleId: number) => {
+        try {
+            const response = await apiClient.get(`/api/client-portal/my-report/by-schedule/${scheduleId}`);
+            if (!response.data || !response.data.id) {
+                alert("Relatório não encontrado.");
+                return;
+            }
+            
+            const reportId = response.data.id;
+
+            await apiClient.post(`/api/client-portal/my-report/${reportId}/sign`);
+            alert("Relatório assinado digitalmente com sucesso!");
+
+            // Atualizar o estado local para remover o botão de assinar
+            setSchedules(prev => prev.map(s => s.id === scheduleId ? { ...s, isSigned: true } : s));
+            setTickets(prev => prev.map(t => t.scheduleId === scheduleId ? { ...t, isSigned: true } : t));
+        } catch (error: any) {
+            logger.error(error, "Erro ao assinar o relatório:");
+            
+            const errorMessage = error.response?.data?.error || "";
+            if (errorMessage.toLowerCase().includes("assinatura")) {
+                const proceed = await confirm({
+                    title: "Assinatura em Falta",
+                    message: "Não tem uma assinatura definida no seu perfil. Deseja ir para o perfil agora para definir uma?",
+                    confirmText: "Ir para o Perfil",
+                    cancelText: "Agora não"
+                });
+                
+                if (proceed) {
+                    navigate('/portal/profile');
+                }
+            } else {
+                alert(error.response?.data?.error || "Não foi possível assinar o relatório digitalmente. Por favor, tente mais tarde.");
+            }
         }
     };
 
@@ -136,23 +174,35 @@ const ClientHistoryPage: React.FC = () => {
                                                 <div className="fw-bold">{format(new Date(schedule.startDate), 'dd/MM/yyyy')}</div>
                                                 <small className="text-muted">{format(new Date(schedule.startDate), 'HH:mm')}</small>
                                             </td>
-                                            <td>{schedule.title}</td>
+                                            <td>{schedule.title.split(' - ')[0]}</td>
                                             <td>{schedule.equipmentInfo}</td>
-                                            <td>{schedule.technicians.join(', ') || 'N/A'}</td>
-                                            <td>
-                                                {schedule.hasReport ? (
-                                                    <button
-                                                        className="btn btn-sm btn-outline-primary"
-                                                        onClick={() => handleViewReport(schedule.id, 'schedule')}
-                                                        title="Ver Relatório"
-                                                    >
-                                                        <i className="bi bi-file-earmark-pdf-fill me-1"></i>
-                                                        Ver Relatório
-                                                    </button>
-                                                ) : (
-                                                    <span className="badge bg-secondary">Relatório em Elaboração</span>
-                                                )}
-                                            </td>
+                                            <td>{schedule.technicians.map((t: any) => typeof t === 'object' ? t.name : t).join(', ') || 'N/A'}</td>
+                                             <td>
+                                                 {schedule.hasReport ? (
+                                                     <div className="d-flex gap-2">
+                                                         <button
+                                                             className="btn btn-sm btn-outline-primary"
+                                                             onClick={() => handleViewReport(schedule.id, 'schedule')}
+                                                             title="Ver Relatório"
+                                                         >
+                                                             <i className="bi bi-file-earmark-pdf-fill me-1"></i>
+                                                             Relatório
+                                                         </button>
+                                                         {!schedule.isSigned && (
+                                                            <button
+                                                                className="btn btn-sm btn-outline-success"
+                                                                onClick={() => handleSignReport(schedule.id)}
+                                                                title="Assinar Relatório"
+                                                            >
+                                                                <i className="bi bi-pencil-fill me-1"></i>
+                                                                Assinar
+                                                            </button>
+                                                         )}
+                                                     </div>
+                                                 ) : (
+                                                     <span className="badge bg-secondary">Relatório em Elaboração</span>
+                                                 )}
+                                             </td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -169,28 +219,43 @@ const ClientHistoryPage: React.FC = () => {
                             {filteredTickets.map((ticket) => (
                                 <div key={ticket.id} className="list-group-item list-group-item-action flex-column align-items-start">
                                     <div className="d-flex w-100 justify-content-between">
-                                        <h6 className="mb-1">#{ticket.id} - {ticket.title}</h6>
+                                        <h6 className="mb-1">#{ticket.id} - {ticket.title.split(' - ')[0]}</h6>
                                         <small className="text-muted">{format(new Date(ticket.createdAt), 'dd/MM/yyyy')}</small>
                                     </div>
                                     <p className="mb-1">{ticket.equipmentInfo}</p>
                                     <small className="text-muted">{ticket.faultDescription}</small>
-                                    <div className="mt-2">
-                                        <Link to={`/portal/tickets/${ticket.id}`} className="btn btn-sm btn-link ps-0">Ver Detalhes</Link>
-                                        {ticket.scheduleId && (
-                                            ticket.hasReport ? (
-                                                <button
-                                                    className="btn btn-sm btn-outline-primary ms-2"
-                                                    onClick={() => handleViewReport(ticket.scheduleId!, 'schedule')}
-                                                    title="Ver Relatório"
-                                                >
-                                                    <i className="bi bi-file-earmark-pdf-fill me-1"></i>
-                                                    Ver Relatório
-                                                </button>
-                                            ) : (
-                                                <span className="badge bg-secondary ms-2">Relatório em Elaboração</span>
-                                            )
-                                        )}
-                                    </div>
+                                     <div className="mt-2 d-flex gap-2 align-items-center">
+                                         <Link to={`/portal/tickets/${ticket.id}`} className="btn btn-sm btn-outline-secondary">
+                                             <i className="bi bi-info-circle-fill me-1"></i>
+                                             Detalhes
+                                         </Link>
+                                         {ticket.scheduleId && (
+                                             ticket.hasReport ? (
+                                                 <div className="d-inline-flex gap-2">
+                                                     <button
+                                                         className="btn btn-sm btn-outline-primary"
+                                                         onClick={() => handleViewReport(ticket.scheduleId!, 'schedule')}
+                                                         title="Ver Relatório"
+                                                     >
+                                                         <i className="bi bi-file-earmark-pdf-fill me-1"></i>
+                                                         Relatório
+                                                     </button>
+                                                     {!ticket.isSigned && (
+                                                         <button
+                                                             className="btn btn-sm btn-outline-success"
+                                                             onClick={() => handleSignReport(ticket.scheduleId!)}
+                                                             title="Assinar Relatório Digitalmente"
+                                                         >
+                                                             <i className="bi bi-pencil-fill me-1"></i>
+                                                             Assinar
+                                                         </button>
+                                                     )}
+                                                 </div>
+                                             ) : (
+                                                 <span className="badge bg-secondary">Relatório em Elaboração</span>
+                                             )
+                                         )}
+                                     </div>
                                 </div>
                             ))}
                         </div>

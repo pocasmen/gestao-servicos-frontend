@@ -45,7 +45,7 @@ const InviteTechnicianForm: React.FC<{ onUserInvited: () => void; currentUserRol
     };
 
     setIsSubmitting(true);
-    apiClient.post('/admin/invite-user', invitationData)
+    apiClient.post('/api/auth/admin/invite-user', invitationData)
       .then((response) => {
         alert(response.data.message || `Convite enviado para ${email}.`, 'Sucesso');
         // Reset form

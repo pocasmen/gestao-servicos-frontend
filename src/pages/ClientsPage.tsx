@@ -390,7 +390,7 @@ const ClientsPage: React.FC = () => {
     if (!selectedClientForInvite || !inviteEmail || isInviting) return;
 
     setIsInviting(true);
-    apiClient.post('/admin/invite-user', {
+    apiClient.post('/api/auth/admin/invite-user', {
       client_id: selectedClientForInvite.id,
       email: inviteEmail,
       role: UserRole.CLIENT

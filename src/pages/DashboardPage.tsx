@@ -16,7 +16,6 @@ interface TicketDetail {
   subject: string;
   clientName: string;
   status: string;
-  priority: string;
   date: string;
 }
 
@@ -204,7 +203,7 @@ const DashboardPage: React.FC = () => {
           apiClient.get('/api/dashboard/stats', { params }),
           apiClient.get('/api/dashboard/weekly-schedules', { params }),
           apiClient.get('/api/dashboard/pending-reports', { params }),
-          apiClient.get('/api/tickets'), // Fetching all/recent tickets. Assuming endpoint exists.
+          apiClient.get('/api/tickets?status=all'), // Fetching all/recent tickets.
           getBillingStats(params),
           getBillingTasks(params),
           apiClient.get('/api/tasks')
@@ -231,10 +230,10 @@ const DashboardPage: React.FC = () => {
         const allTasks = Array.isArray(tasksRes.data) ? tasksRes.data : [];
         const filteredTasks = allTasks.filter((t: any) => {
           const createdAt = t.created_at ? new Date(t.created_at) : null;
-          const blocks = t.internal_task_time_blocks || [];
+          const blocks = t.time_blocks || t.internal_task_time_blocks || [];
           if (blocks.length > 0) {
             return blocks.some((b: any) => {
-              const bStart = new Date(b.start_time);
+              const bStart = new Date(b.start_time || b.start);
               return bStart >= dateRange.start && bStart <= dateRange.end;
             });
           }
@@ -262,7 +261,6 @@ const DashboardPage: React.FC = () => {
             subject: t.title || 'Sem Assunto',
             clientName: t.clientName || 'Cliente Desconhecido',
             status: t.status,
-            priority: (t as any).priority || 'medium',
             date: t.createdAt
           }));
         setRecentTickets(sortedTickets);
@@ -596,7 +594,6 @@ const DashboardPage: React.FC = () => {
                       <th>Estado</th>
                       <th>Assunto</th>
                       <th>Cliente</th>
-                      <th>Prioridade</th>
                       <th>Data</th>
                     </tr>
                   </thead>
@@ -615,7 +612,6 @@ const DashboardPage: React.FC = () => {
                         </td>
                         <td>{t.subject}</td>
                         <td>{t.clientName}</td>
-                        <td> <span className={`badge bg-${t.priority === 'high' ? 'danger' : t.priority === 'medium' ? 'warning' : 'info'}`}>{t.priority}</span></td>
                         <td><div className="small text-muted">{new Date(t.date).toLocaleDateString('pt-PT')}</div></td>
                       </tr>
                     ))}
@@ -846,7 +842,7 @@ const DashboardPage: React.FC = () => {
                             </span>
                           </td>
                           <td>{task.title}</td>
-                          <td>{task.clients?.name || '-'}</td>
+                          <td>{task.clientName || '-'}</td>
                           <td>
                             <span className={`badge bg-${task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warning text-dark' : 'info'}`}>
                               {task.priority || 'medium'}

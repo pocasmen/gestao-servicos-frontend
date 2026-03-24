@@ -1,6 +1,6 @@
-import React from 'react';
 import { Part } from '../../types';
 import { Pencil, Trash2, ArrowUpDown, Truck, Package, CalendarCheck } from 'lucide-react';
+import './InventoryTable.css';
 
 interface InventoryTableProps {
     inventory: Part[];
@@ -22,8 +22,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
             <table className="table table-hover">
                 <thead>
                     <tr>
+                        <th style={{ width: '50px' }}>Foto</th>
                         <th>Designação</th>
                         <th>Referência</th>
+                        <th className="text-end">Preço</th>
                         <th className="text-center">Disp. (G)</th>
                         <th className="text-center">Disp. (F)</th>
                         <th className="text-center">Res. (G/F)</th>
@@ -36,19 +38,51 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                     {inventory.map(part => (
                         <tr key={part.id}>
                             <td className="align-middle">
+                                {part.image_path ? (
+                                    <div className="inventory-photo-container d-inline-block">
+                                        <img 
+                                            src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${part.image_path}`} 
+                                            alt={part.reference}
+                                            className="inventory-photo-thumbnail rounded shadow-sm border p-1 bg-white"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).src = 'https://placehold.co/40x40?text=?';
+                                            }}
+                                        />
+                                        <div className="inventory-photo-large shadow-lg rounded overflow-hidden">
+                                            <img 
+                                                src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${part.image_path}`} 
+                                                alt={`${part.reference} - Large Preview`}
+                                                className="w-100 h-100"
+                                                style={{ objectFit: 'contain', backgroundColor: '#fff' }}
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-light rounded d-flex align-items-center justify-content-center text-muted border p-1" style={{ width: '40px', height: '40px', fontSize: '10px' }}>
+                                        N/A
+                                    </div>
+                                )}
+                            </td>
+                            <td className="align-middle">
                                 {part.designation}
                                 {part.is_composed && (
                                     <span className="badge bg-primary ms-2 shadow-sm" style={{ fontSize: '0.65rem' }}>COMPOSTO</span>
                                 )}
                             </td>
                             <td className="align-middle fw-bold text-muted">{part.reference}</td>
+                            <td className="align-middle text-end fw-bold text-muted">
+                                {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(part.price || 0)}
+                            </td>
                             <td className="text-center align-middle">
-                                <span className={`badge ${(part.available_quantity ?? 0) <= 5 ? 'bg-danger' : 'bg-success'}`}>
+                                <span className={`badge ${(part.available_quantity ?? 0) < (part.min_stock ?? 0) ? 'bg-danger' : 'bg-success'}`}>
                                     {part.available_quantity ?? 0}
                                 </span>
                             </td>
                             <td className="text-center align-middle">
-                                <span className={`badge ${(part.available_quantity_foss ?? 0) <= 5 ? 'bg-danger' : 'bg-info'}`}>
+                                <span className={`badge ${(part.available_quantity_foss ?? 0) < (part.min_stock_foss ?? 0) ? 'bg-danger' : 'bg-info'}`}>
                                     {part.available_quantity_foss ?? 0}
                                 </span>
                             </td>
@@ -102,7 +136,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                         <div style={{ width: '32px', height: '32px' }} />
                                     )}
 
-                                    {!part.is_composed && (part.ordered_quantity || 0) > 0 ? (
+                                    {!part.is_composed && ((part.ordered_quantity || 0) > 0 || (part.ordered_quantity_foss || 0) > 0) ? (
                                         <button
                                             className="btn btn-sm btn-info shadow-sm"
                                             title="Receber Encomenda"

@@ -12,6 +12,7 @@ import { UserRole, TicketStatus } from '../constants/enums';
 import logger from '../utils/logger';
 import { DetailedTicketSchema } from '../schemas';
 import { Attachment, DetailedTicket, TicketResponse } from '../types';
+import { compressIfImage } from '../utils/imageUtils';
 
 
 
@@ -42,6 +43,23 @@ const TicketDetailPage: React.FC = () => {
   const getUserDisplayNameRef = useRef((userId: string): string => `Utilizador ${userId.substring(0, 4)}`);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isPopupActiveRef = useRef(false);
+  const [compressionSettings, setCompressionSettings] = useState({ quality: 0.7, maxWidth: 1280 });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data } = await apiClient.get('/api/settings');
+      setCompressionSettings({
+        quality: parseFloat(data.img_compression_quality || '0.7'),
+        maxWidth: parseInt(data.img_compression_max_width || '1280')
+      });
+    } catch (err) {
+      logger.error(err, "Erro ao carregar definições de compressão");
+    }
+  };
 
   useEffect(() => {
     if (presenceQueue.length === 0 || isPopupActiveRef.current) return;
@@ -186,7 +204,7 @@ const TicketDetailPage: React.FC = () => {
       if (!hasUnreadFromOthers) return;
 
       try {
-        await apiClient.put(`/api/my-tickets/${id}/mark-as-read`);
+        await apiClient.put(`/api/tickets/${id}/mark-as-read`);
       } catch (error) {
         logger.error(error, 'Failed to mark messages as read:');
       }
@@ -288,10 +306,15 @@ const TicketDetailPage: React.FC = () => {
     if (!id || !selectedFile) return;
 
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', selectedFile);
-
     try {
+      const fileToUpload = await compressIfImage(selectedFile, {
+        quality: compressionSettings.quality,
+        maxWidth: compressionSettings.maxWidth
+      });
+
+      const formData = new FormData();
+      formData.append('file', fileToUpload);
+
       await apiClient.post(`/api/tickets/${id}/attachments`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',

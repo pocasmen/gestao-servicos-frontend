@@ -130,30 +130,63 @@ const InventoryStockModals: React.FC<InventoryStockModalsProps> = ({
                                 <button type="button" className="btn-close" onClick={onClose}></button>
                             </div>
                             <div className="modal-body">
-                                <p>Encomenda Atual (Pendente): {targetStock === StockType.FOSS ? selectedPart.ordered_quantity_foss : selectedPart.ordered_quantity}</p>
-                                <div className="mb-3">
-                                    <label className="form-label d-block">Receber em:</label>
-                                    <div className="btn-group w-100">
-                                        <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>Stock {STOCK_TYPE_LABELS[StockType.GENERAL]}</button>
-                                        <button type="button" className={`btn ${targetStock === StockType.FOSS ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.FOSS)}>Stock {STOCK_TYPE_LABELS[StockType.FOSS]}</button>
-                                    </div>
-                                </div>
-                                <div className="mb-3">
-                                    <label htmlFor="receiveQty" className="form-label">Quantidade Recebida</label>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        id="receiveQty"
-                                        value={receiveQuantity}
-                                        min="1"
-                                        max={targetStock === StockType.FOSS ? selectedPart.ordered_quantity_foss : selectedPart.ordered_quantity}
-                                        onChange={e => setReceiveQuantity(parseInt(e.target.value, 10) || 0)}
-                                    />
-                                </div>
+                                {(() => {
+                                    const currentOrdered = targetStock === StockType.FOSS ? (selectedPart.ordered_quantity_foss || 0) : (selectedPart.ordered_quantity || 0);
+                                    const isInvalid = receiveQuantity > currentOrdered || currentOrdered === 0;
+
+                                    return (
+                                        <>
+                                            <p className="mb-2">
+                                                Encomenda Atual (Pendente): <strong>{currentOrdered}</strong>
+                                            </p>
+                                            
+                                            <div className="mb-3">
+                                                <label className="form-label d-block">Receber em:</label>
+                                                <div className="btn-group w-100">
+                                                    <button type="button" className={`btn ${targetStock === StockType.GENERAL ? 'btn-primary' : 'btn-outline-primary'}`} onClick={() => setTargetStock(StockType.GENERAL)}>Stock {STOCK_TYPE_LABELS[StockType.GENERAL]}</button>
+                                                    <button type="button" className={`btn ${targetStock === StockType.FOSS ? 'btn-info' : 'btn-outline-info'}`} onClick={() => setTargetStock(StockType.FOSS)}>Stock {STOCK_TYPE_LABELS[StockType.FOSS]}</button>
+                                                </div>
+                                            </div>
+
+                                            <div className="mb-3">
+                                                <label htmlFor="receiveQty" className="form-label">Quantidade Recebida</label>
+                                                <input
+                                                    type="number"
+                                                    className="form-control"
+                                                    id="receiveQty"
+                                                    value={receiveQuantity}
+                                                    min="0"
+                                                    max={currentOrdered}
+                                                    onChange={e => setReceiveQuantity(parseInt(e.target.value, 10) || 0)}
+                                                    disabled={currentOrdered === 0}
+                                                />
+                                                {currentOrdered === 0 && (
+                                                    <small className="text-danger d-block mt-1">
+                                                        Não existem encomendas pendentes neste canal.
+                                                    </small>
+                                                )}
+                                                {receiveQuantity > currentOrdered && currentOrdered > 0 && (
+                                                    <small className="text-danger d-block mt-1">
+                                                        A quantidade não pode exceder o valor encomendado ({currentOrdered}).
+                                                    </small>
+                                                )}
+                                            </div>
+                                        </>
+                                    );
+                                })()}
                             </div>
                             <div className="modal-footer">
                                 <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
-                                <button type="button" className="btn btn-primary" onClick={onReceiveOrder} disabled={isSubmitting}>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-primary" 
+                                    onClick={onReceiveOrder} 
+                                    disabled={
+                                        isSubmitting || 
+                                        receiveQuantity <= 0 || 
+                                        receiveQuantity > (targetStock === StockType.FOSS ? (selectedPart.ordered_quantity_foss || 0) : (selectedPart.ordered_quantity || 0))
+                                    }
+                                >
                                     {isSubmitting ? 'A receber...' : 'Confirmar Entrada'}
                                 </button>
                             </div>

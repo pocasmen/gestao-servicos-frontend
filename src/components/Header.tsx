@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 // Eliminado react-bootstrap
-import { Search, User, LogOut, LayoutDashboard, Calendar, Ticket, FileText, Users, Wrench, Package, Settings, FileCheck, CreditCard } from 'lucide-react';
+import { Search, User, LogOut, LayoutDashboard, Calendar, Ticket, FileText, Users, Wrench, Package, Settings, FileCheck, CreditCard, Database } from 'lucide-react';
 import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -68,7 +68,7 @@ const Header: React.FC = () => {
 
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm border-bottom border-secondary border-opacity-25 mb-4" style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(33, 37, 41, 0.95)' }}>
-      <div className="container-fluid">
+      <div className="container-fluid">@
         <NavLink to="/" onClick={closeMenu} className="navbar-brand d-flex align-items-center gap-2">
           <img src="/logo512.png" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
           <span className="d-none d-sm-inline">Gestão de Serviços</span>
@@ -171,11 +171,18 @@ const Header: React.FC = () => {
                     )}
 
                     {(isUserAdmin(user) || user?.user_metadata?.role === UserRole.OFFICE_STAFF) && (
-                      <li>
-                        <NavLink to="/billing" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
-                          <CreditCard size={16} /> Faturação
-                        </NavLink>
-                      </li>
+                      <>
+                        <li>
+                          <NavLink to="/billing" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
+                            <CreditCard size={16} /> Faturação
+                          </NavLink>
+                        </li>
+                        <li>
+                          <NavLink to="/documents" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
+                            <FileText size={16} /> Documentos
+                          </NavLink>
+                        </li>
+                      </>
                     )}
 
                     {isSystemAdmin(user) && (
@@ -184,6 +191,11 @@ const Header: React.FC = () => {
                         <li>
                           <NavLink to="/settings" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
                             <Settings size={16} /> Configurações
+                          </NavLink>
+                        </li>
+                        <li>
+                          <NavLink to="/admin/data" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
+                            <Database size={16} /> Dados
                           </NavLink>
                         </li>
                       </>

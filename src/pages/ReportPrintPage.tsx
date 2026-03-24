@@ -8,6 +8,7 @@ import './ReportPrintPage.css';
 import { SERVICE_TYPE_LABELS, STOCK_TYPE_LABELS, SERVICE_CLASSIFICATION_LABELS } from '../constants';
 import { StockType, ServiceClassification } from '../constants/enums';
 import { logger } from '../utils/logger';
+import { calculateHours } from '../utils/dateCalculations';
 
 
 interface DetailedReport {
@@ -30,31 +31,13 @@ interface DetailedReport {
     signature?: string;
     technician_signature?: string;
     timeBlocks?: { id: number; start: string; end: string }[];
+    time_blocks?: { id: number; start_time: string; end_time: string; start?: string; end?: string }[];
     includes_travel?: boolean;
     classification?: ServiceClassification;
     client_signer_name?: string;
 }
 
-const calculateHours = (start: Date, end: Date): number => {
-    let diffMs = end.getTime() - start.getTime();
-    let diffHours = diffMs / (1000 * 60 * 60);
 
-    const lunchStart = new Date(start);
-    lunchStart.setHours(13, 0, 0, 0);
-    const lunchEnd = new Date(start);
-    lunchEnd.setHours(14, 0, 0, 0);
-
-    if (start < lunchEnd && end > lunchStart) {
-        const overlapStart = Math.max(start.getTime(), lunchStart.getTime());
-        const overlapEnd = Math.min(end.getTime(), lunchEnd.getTime());
-        if (overlapEnd > overlapStart) {
-            const overlapHours = (overlapEnd - overlapStart) / (1000 * 60 * 60);
-            diffHours -= overlapHours;
-        }
-    }
-
-    return Math.max(0, Math.ceil(diffHours));
-};
 
 const ReportPrintPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -66,7 +49,7 @@ const ReportPrintPage: React.FC = () => {
     useEffect(() => {
         if (id) {
             setError(null);
-            apiClient.get(`/report/${id}`)
+            apiClient.get(`/api/reports/${id}`)
                 .then(res => setReport(res.data))
                 .catch(err => {
                     logger.error(err, "Erro ao carregar o relatório:");
@@ -345,28 +328,33 @@ const ReportPrintPage: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {report.timeBlocks && report.timeBlocks.length > 0 ? (
-                                        report.timeBlocks.map((block, idx) => {
-                                            const start = new Date(block.start);
-                                            const end = new Date(block.end);
-                                            const hours = calculateHours(start, end);
+                                    {(() => {
+                                        const blocks = report.timeBlocks || (report as any).time_blocks || [];
+                                        if (blocks.length > 0) {
+                                            return blocks.map((block: any, idx: number) => {
+                                                const start = new Date(block.start || block.start_time);
+                                                const end = new Date(block.end || block.end_time);
+                                                const hours = calculateHours(start, end);
+                                                return (
+                                                    <tr key={idx}>
+                                                        <td>{start.toLocaleDateString('pt-PT')}</td>
+                                                        <td>{start.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</td>
+                                                        <td>{end.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</td>
+                                                        <td className="hours-total">{hours}h</td>
+                                                    </tr>
+                                                );
+                                            });
+                                        } else {
                                             return (
-                                                <tr key={idx}>
-                                                    <td>{start.toLocaleDateString('pt-PT')}</td>
-                                                    <td>{start.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</td>
-                                                    <td>{end.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</td>
-                                                    <td className="hours-total">{hours}h</td>
+                                                <tr>
+                                                    <td>{new Date(report.serviceDate).toLocaleDateString('pt-PT')}</td>
+                                                    <td>-</td>
+                                                    <td>-</td>
+                                                    <td className="hours-total">{report.hours}h</td>
                                                 </tr>
                                             );
-                                        })
-                                    ) : (
-                                        <tr>
-                                            <td>{new Date(report.serviceDate).toLocaleDateString('pt-PT')}</td>
-                                            <td>-</td>
-                                            <td>-</td>
-                                            <td className="hours-total">{report.hours}h</td>
-                                        </tr>
-                                    )}
+                                        }
+                                    })()}
                                 </tbody>
                             </table>
                         </div>
@@ -428,7 +416,20 @@ const ReportPrintPage: React.FC = () => {
                         <div className="total-hours-value">{report.hours}h</div>
                     </div>
                 </div>
+
+                {/* Company Info Footer */}
+                <div className="company-info-footer">
+                    <div className="company-info-content">
+                        <div className="company-name-legal">Micro Átomo – Tecnologia Electrónica, Unipessoal, Lda</div>
+                        <div className="company-details-text">NIF 504 198 882</div>
+                        <div className="company-details-text">Rua das Salemas, 6 | 2630-361 Arruda dos Vinhos</div>
+                        <div className="company-details-text">
+                            Tel: +351 263 976 016 | geral@microatomo.pt | www.microatomo.pt
+                        </div>
+                    </div>
+                </div>
             </div>
+
 
             {/* Print Button - Keep outside de reportRef to avoid being in the PDF */}
             <div className="print-button-container">

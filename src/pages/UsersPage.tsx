@@ -24,7 +24,7 @@ const UserList: React.FC<{ users: AppUser[], onSelectUser: (user: AppUser) => vo
           {users.map(user => {
              // extract client logic if any, currently we send 'client_users' object
              const clientUsers = (user as any).client_users || [];
-             const companyName = clientUsers.length > 0 ? clientUsers[0].clients?.name : '-';
+             const companyName = clientUsers.length > 0 ? clientUsers[0].name : '-';
              
              return (
                 <tr key={user.id} onClick={() => onSelectUser(user)} style={{ cursor: 'pointer' }}>
@@ -62,7 +62,7 @@ const UsersPage: React.FC = () => {
   const { confirm, alert } = useConfirm();
 
   const fetchUsers = () => {
-    apiClient.get('/api/users').then(response => {
+    apiClient.get('/api/auth/users').then(response => {
       setUsers(response.data);
     })
       .catch((error: any) => {
@@ -83,7 +83,7 @@ const UsersPage: React.FC = () => {
           confirmText: 'Simular'
         })) {
             try {
-                const resp = await apiClient.get(`/admin/impersonate/${targetUser.id}`);
+                const resp = await apiClient.get(`/api/auth/admin/impersonate/${targetUser.id}`);
                 if (startImpersonation) {
                    startImpersonation(resp.data);
                 } else {

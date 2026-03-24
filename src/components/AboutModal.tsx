@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Info, Cpu, Database, Activity, Clock, Globe } from 'lucide-react';
 import apiClient from '../apiClient';
+import { logger } from '../utils/logger';
 
 interface SystemStatus {
     version: string;
@@ -39,7 +40,7 @@ const AboutModal: React.FC<AboutModalProps> = ({ show, onClose }) => {
             setStatus(response.data.data);
         } catch (err) {
             setError('Erro ao obter estado do sistema');
-            console.error(err);
+            logger.error({ err }, 'Error in AboutModal fetchStatus');
         } finally {
             setLoading(false);
         }

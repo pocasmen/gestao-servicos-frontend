@@ -29,8 +29,8 @@ const ClientSchedulesListPage: React.FC = () => {
       try {
         setLoading(true);
         const [schedulesRes, ticketsRes] = await Promise.all([
-          apiClient.get('/api/my-schedules?page=1&limit=50'),
-          apiClient.get('/api/my-tickets?page=1&limit=50')
+          apiClient.get('/api/client-portal/my-schedules?page=1&limit=50'),
+          apiClient.get('/api/client-portal/my-tickets?page=1&limit=50')
         ]);
 
         // Handle paginated response structure

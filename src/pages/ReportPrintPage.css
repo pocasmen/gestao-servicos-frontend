@@ -1169,3 +1169,60 @@
         page-break-inside: avoid;
     }
 }
+
+/* Company Info Footer */
+.company-info-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e2e8f0;
+    background-color: #f8fafc;
+    text-align: center;
+    color: #64748b;
+}
+
+.company-info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.company-name-legal {
+    font-weight: 700;
+    color: #334155;
+    font-size: 0.875rem;
+    margin-bottom: 0.1rem;
+}
+
+.company-details-text {
+    font-size: 0.75rem;
+    line-height: 1.4;
+}
+
+/* PDF Rendering Adjustments */
+.pdf-rendering .company-info-footer {
+    padding: 0.5rem 1rem !important;
+}
+
+.pdf-rendering .company-name-legal {
+    font-size: 0.75rem !important;
+}
+
+.pdf-rendering .company-details-text {
+    font-size: 0.65rem !important;
+}
+
+/* Print Adjustments */
+@media print {
+    .company-info-footer {
+        padding: 0.5rem 1rem !important;
+        border-top: 1px solid #e2e8f0 !important;
+        background-color: transparent !important;
+    }
+
+    .company-name-legal {
+        font-size: 0.7rem !important;
+    }
+
+    .company-details-text {
+        font-size: 0.625rem !important;
+    }
+}

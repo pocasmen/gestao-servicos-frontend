@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import apiClient from '../apiClient';
 import { ActiveClientContext, ClientCompany } from '../contexts/ActiveClientContext';
 import { Briefcase, Building2, ChevronRight, Construction, Building } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 const ClientPortalDashboardPage: React.FC = () => {
     const [companies, setCompanies] = useState<ClientCompany[]>([]);
@@ -13,7 +14,7 @@ const ClientPortalDashboardPage: React.FC = () => {
     useEffect(() => {
         const fetchCompanies = async () => {
             try {
-                const response = await apiClient.get('/api/my-companies');
+                const response = await apiClient.get('/api/client-portal/my-companies');
                 const data = response.data || [];
                 setCompanies(data);
 
@@ -22,7 +23,7 @@ const ClientPortalDashboardPage: React.FC = () => {
                     navigate('/portal/dashboard');
                 }
             } catch (error) {
-                console.error('Failed to load companies:', error);
+                logger.error({ error }, 'Failed to load companies');
             } finally {
                 setLoading(false);
             }

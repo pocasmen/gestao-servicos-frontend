@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
 import { addHours } from 'date-fns';
 import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 import apiClient from '../apiClient';
@@ -122,8 +122,12 @@ const ReportModal: React.FC<ReportModalProps> = ({
         setIsBillingPending(fullReport.billing_status === BillingStatus.PENDING_COMPLETION);
         setClientSignerName(fullReport.client_signer_name || '');
 
-        if (fullReport.timeBlocks && fullReport.timeBlocks.length > 0) {
-          setTimeBlocks(fullReport.timeBlocks.map((tb: any) => ({ start: new Date(tb.start), end: new Date(tb.end) })));
+        const blocks = fullReport.timeBlocks || fullReport.time_blocks || [];
+        if (blocks.length > 0) {
+          setTimeBlocks(blocks.map((tb: any) => ({ 
+            start: new Date(tb.start || tb.start_time), 
+            end: new Date(tb.end || tb.end_time) 
+          })));
         } else {
           setTimeBlocks([]);
         }
@@ -156,10 +160,11 @@ const ReportModal: React.FC<ReportModalProps> = ({
       let serviceStartDate: Date;
       let totalCalculatedHours = 0;
 
-      if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
-        serviceStartDate = new Date(schedule.timeBlocks[0].start);
-        schedule.timeBlocks.forEach(block => {
-          totalCalculatedHours += calculateHours(new Date(block.start), new Date(block.end));
+      const blocksFromSchedule = schedule.timeBlocks || (schedule as any).time_blocks || [];
+      if (blocksFromSchedule.length > 0) {
+        serviceStartDate = new Date(blocksFromSchedule[0].start || blocksFromSchedule[0].start_time);
+        blocksFromSchedule.forEach((block: any) => {
+          totalCalculatedHours += calculateHours(new Date(block.start || block.start_time), new Date(block.end || block.end_time));
         });
       } else if (schedule.start && schedule.end) {
         serviceStartDate = new Date(schedule.start);
@@ -175,8 +180,11 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
       setServiceDate(serviceStartDate.toISOString().slice(0, 16));
       setHours(totalCalculatedHours);
-      if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
-        setTimeBlocks(schedule.timeBlocks.map(tb => ({ start: new Date(tb.start), end: new Date(tb.end) })));
+      if (blocksFromSchedule.length > 0) {
+        setTimeBlocks(blocksFromSchedule.map((tb: any) => ({ 
+          start: new Date(tb.start || tb.start_time), 
+          end: new Date(tb.end || tb.end_time) 
+        })));
       } else if (schedule.start && schedule.end) {
         setTimeBlocks([{ start: new Date(schedule.start), end: new Date(schedule.end) }]);
       } else {
@@ -231,44 +239,61 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handlePartChange = (index: number, field: keyof PartItem, value: any) => {
-    const newParts = [...parts];
-    newParts[index] = { ...newParts[index], [field]: value };
-    if (field === 'reference') {
-      newParts[index].isDesignationLocked = false;
-    }
-    setParts(newParts);
-    if (index === parts.length - 1 && (newParts[index].reference || newParts[index].designation)) {
-      setParts([...newParts, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }]);
-    }
-  };
+  const handlePartChange = useCallback((index: number, fieldOrUpdates: keyof PartItem | Partial<PartItem>, value?: any) => {
+    setParts(prev => {
+      const newParts = [...prev];
+      if (typeof fieldOrUpdates === 'string') {
+        newParts[index] = { ...newParts[index], [fieldOrUpdates]: value };
+        if (fieldOrUpdates === 'reference') {
+          newParts[index].isDesignationLocked = false;
+        }
+      } else {
+        newParts[index] = { ...newParts[index], ...fieldOrUpdates };
+        // If reference is explicitly updated in the object, unlock designation
+        if ('reference' in fieldOrUpdates) {
+          newParts[index].isDesignationLocked = false;
+        }
+      }
+      
+      // Auto-add new row if last row is being filled
+      if (index === newParts.length - 1 && (newParts[index].reference || newParts[index].designation)) {
+        return [...newParts, { quantity: 1, reference: '', designation: '', isDesignationLocked: false }];
+      }
+      return newParts;
+    });
+  }, []);
 
-  const handleReferenceBlur = async (index: number) => {
+  const handleReferenceBlur = useCallback(async (index: number) => {
     const part = parts[index];
     if (part.reference) {
       try {
-        const response = await apiClient.get(`/api/parts/${part.reference}`);
-        const newParts = [...parts];
-        newParts[index] = {
-          ...newParts[index],
-          id: response.data.id,
-          designation: response.data.designation,
-          isDesignationLocked: true,
-          stock_quantity: response.data.stock_quantity,
-          reserved_quantity: response.data.reserved_quantity,
-          stock_quantity_foss: response.data.stock_quantity_foss,
-          reserved_quantity_foss: response.data.reserved_quantity_foss
-        };
-        setParts(newParts);
+        const response = await apiClient.get(`/api/inventory/parts/${part.reference}`);
+        setParts(prev => {
+          const newParts = [...prev];
+          newParts[index] = {
+            ...newParts[index],
+            id: response.data.id,
+            designation: response.data.designation,
+            isDesignationLocked: true,
+            stock_quantity: response.data.stock_quantity,
+            reserved_quantity: response.data.reserved_quantity,
+            stock_quantity_foss: response.data.stock_quantity_foss,
+            reserved_quantity_foss: response.data.reserved_quantity_foss,
+            image_path: response.data.image_path
+          };
+          return newParts;
+        });
       } catch (error: any) {
         if (error.response && error.response.status === 404) {
-          const newParts = [...parts];
-          newParts[index] = { ...newParts[index], designation: '', isDesignationLocked: false };
-          setParts(newParts);
+          setParts(prev => {
+            const newParts = [...prev];
+            newParts[index] = { ...newParts[index], designation: '', isDesignationLocked: false };
+            return newParts;
+          });
         }
       }
     }
-  };
+  }, [parts]);
 
   const handleTechnicianChange = (technicianId: string) => {
     setTechnicianIds(prevIds => {
@@ -372,6 +397,38 @@ const ReportModal: React.FC<ReportModalProps> = ({
       const proceed = await confirm({
         title: 'Aviso de Stock Insuficiente',
         message: `As seguintes peças ficarão com stock negativo: ${partNames}. Gostaria de continuar?`,
+        variant: 'warning',
+        confirmText: 'Continuar',
+        cancelText: 'Cancelar'
+      } as ConfirmOptions);
+      if (!proceed) return;
+    }
+
+    // Validação de stock baixo (Abaixo do mínimo)
+    const lowStockParts = finalPartsToSubmit.filter(p => {
+      if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
+      const type = p.stockType || StockType.GENERAL;
+      const currentQtyInReport = isEditing ? (reportToEdit?.parts?.find(op => Number(op.id) === Number(p.id))?.quantity || 0) : 0;
+      const currentQtyInSchedule = !isEditing && schedule ? (schedule.parts?.find(sp => Number(sp.id) === Number(p.id))?.quantity || 0) : 0;
+
+      const totalCompensated = currentQtyInReport + currentQtyInSchedule;
+
+      if (type === StockType.FOSS) {
+        const available = (p.stock_quantity_foss || 0) - (p.reserved_quantity_foss || 0) - p.quantity + totalCompensated;
+        return available < (p.min_stock_foss || 0);
+      } else if (type === StockType.GENERAL || type === StockType.CONTRACT || type === StockType.MSD) {
+        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0) - p.quantity + totalCompensated;
+        return available < (p.min_stock || 0);
+      }
+      return false;
+    });
+
+    const uniqueLowStockParts = lowStockParts.filter(lp => !negativeStockParts.some(np => np.id === lp.id));
+    if (uniqueLowStockParts.length > 0) {
+      const partNames = uniqueLowStockParts.map(p => p.designation || p.reference).join(', ');
+      const proceed = await confirm({
+        title: 'Aviso de Stock Baixo',
+        message: `As seguintes peças ficarão abaixo do nível mínimo: ${partNames}. Deve providenciar nova encomenda. Deseja continuar?`,
         variant: 'warning',
         confirmText: 'Continuar',
         cancelText: 'Cancelar'

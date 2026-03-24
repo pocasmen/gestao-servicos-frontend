@@ -31,7 +31,7 @@ const PendingUsersPage: React.FC = () => {
     const fetchData = () => {
         setLoading(true);
         Promise.all([
-            apiClient.get('/admin/pending-users'),
+            apiClient.get('/api/auth/admin/pending-users'),
             apiClient.get('/api/clients')
         ]).then(([pendingUsersResponse, clientsResponse]) => {
             setPendingUsers(pendingUsersResponse.data);
@@ -86,7 +86,7 @@ const PendingUsersPage: React.FC = () => {
             return;
         }
 
-        apiClient.post('/admin/approve-user', { userId, client_ids })
+        apiClient.post('/api/auth/admin/approve-user', { userId, client_ids })
             .then(async () => {
                 await alert('Utilizador aprovado com sucesso!', 'Sucesso');
                 fetchData();

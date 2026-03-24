@@ -275,6 +275,7 @@ export interface Ticket {
   endDate?: string;
   internalNotes?: string;
   hasReport?: boolean;
+  isSigned?: boolean;
 }
 
 
@@ -306,6 +307,11 @@ export interface Part {
   raw_stock_foss?: number;
   available_quantity?: number;
   available_quantity_foss?: number;
+  min_stock?: number;
+  min_stock_foss?: number;
+  image_path?: string;
+  price?: number;
+  notes?: string;
 }
 
 
@@ -330,6 +336,11 @@ export interface PartItem {
   raw_stock_foss?: number;
   available_quantity?: number;
   available_quantity_foss?: number;
+  min_stock?: number;
+  min_stock_foss?: number;
+  image_path?: string;
+  price?: number;
+  notes?: string;
 }
 
 

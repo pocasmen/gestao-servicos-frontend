@@ -88,7 +88,7 @@ const CalendarPage: React.FC = () => {
   const { data: rawSchedules = [], refetch: fetchSchedules } = useQuery({
     queryKey: ['schedules'],
     queryFn: async () => {
-      const response = await apiClient.get('/api/schedules');
+      const response = await apiClient.get('/api/schedules', { params: { includeCompleted: true, limit: 1000 } });
       return response.data.data || [];
     }
   });
@@ -109,12 +109,12 @@ const CalendarPage: React.FC = () => {
       const serviceLabel = stArray.map(t => SERVICE_TYPE_LABELS[t] || t).join(', ') || 'Serviço';
       const equipLabel = schedule.equipmentInfo || 'Mod. Desconhecido';
       const clientLabel = schedule.clientName || 'Cliente Desconhecido';
-      const isTask = String(schedule.id).startsWith('task_');
+      const isTask = String(schedule.id).startsWith('task_') || schedule.isTask;
       const title = isTask ? (schedule.title || 'Tarefa') : `${serviceLabel} - ${equipLabel} - ${clientLabel}`;
 
       const baseEvent: ScheduleEvent = {
         ...schedule,
-        isTask: isTask || schedule.isTask,
+        isTask: isTask,
         id: schedule.id,
         scheduleId: schedule.scheduleId || (typeof schedule.id === 'number' ? schedule.id : undefined),
         title,
@@ -125,7 +125,7 @@ const CalendarPage: React.FC = () => {
 
       const isUnscheduled = schedule.acknowledgementState === ScheduleStatus.PENDING_SCHEDULING || !schedule.startDate;
 
-      if (isUnscheduled) {
+      if (isUnscheduled && !isTask) {
         fetchedBacklog.push(baseEvent);
       } else if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
         schedule.timeBlocks.forEach((tb, index: number) => {
@@ -257,13 +257,16 @@ const CalendarPage: React.FC = () => {
 
   // Efeito para lidar com EDIÇÃO ou RELATÓRIO de um agendamento existente
   useEffect(() => {
-    // Não fazer nada se os eventos ainda não foram carregados
-    if (events.length === 0) return;
-
     const { scheduleToEditId, ticketToReport } = location.state || {};
+    if (!scheduleToEditId && !ticketToReport) return;
+
+    // Aguardar carregamento (verificar se rawSchedules traz dados)
+    if (rawSchedules.length === 0) return;
 
     if (scheduleToEditId) {
-      const eventToEdit = events.find(e => e.id === scheduleToEditId || e.scheduleId === scheduleToEditId);
+      const allPossibleItems = [...events, ...backlog];
+      const eventToEdit = allPossibleItems.find(e => e.id === scheduleToEditId || e.scheduleId === scheduleToEditId);
+      
       if (eventToEdit) {
         setSelectedEvent(eventToEdit);
         setIsModalOpen(true);
@@ -278,7 +281,7 @@ const CalendarPage: React.FC = () => {
         navigate(location.pathname, { replace: true, state: {} });
       }
     }
-  }, [location, navigate, events, handleManageReport]);
+  }, [location, navigate, events, backlog, rawSchedules, handleManageReport]);
 
   const handleEventDrop = useCallback(({ event, start, end }: { event: ScheduleEvent, start: string | Date, end: string | Date }) => {
     const s = typeof start === 'string' ? new Date(start) : start;
@@ -422,21 +425,27 @@ const CalendarPage: React.FC = () => {
     }
 
     // 1. Identify distinct items that need update
-    const dirtyScheduleIds = new Set<string | number>();
+    const dirtyScheduleIds = new Set<string>();
     dirtyEventIds.forEach(id => {
       const ev = events.find(e => e.id === id);
       if (ev) {
-        const identifier = String(ev.id).startsWith('task_') ? ev.id : (ev.scheduleId !== undefined ? ev.scheduleId : (typeof ev.id === 'number' ? ev.id : Number(ev.id)));
+        const identifier = ev.isTask ? `task_${ev.scheduleId !== undefined ? ev.scheduleId : ev.id}` : String(ev.scheduleId !== undefined ? ev.scheduleId : ev.id);
         dirtyScheduleIds.add(identifier);
       }
     });
 
-    const updatePromises = Array.from(dirtyScheduleIds).map(async schId => {
-      const isTask = String(schId).startsWith('task_');
-      const taskId = isTask ? parseInt(String(schId).replace('task_', '')) : null;
+    const updatePromises = Array.from(dirtyScheduleIds).map(async schIdStr => {
+      const isTask = schIdStr.startsWith('task_');
+      const extractedId = isTask ? schIdStr.replace('task_', '') : schIdStr;
+      const schId = parseInt(extractedId);
+      const taskId = isTask ? schId : null;
 
       // 2. Gather all blocks for this item
-      const itemEvents = events.filter(e => (e.id === schId) || (e.scheduleId === (isTask ? taskId : schId)) || (String(e.id).startsWith(`task_${taskId}_`)) || (String(e.id).startsWith(`blk_`) && e.scheduleId === (isTask ? taskId : schId)));
+      const itemEvents = events.filter(e => {
+        const matchId = e.scheduleId !== undefined ? e.scheduleId : e.id;
+        if (isTask) return e.isTask && String(matchId) === String(taskId);
+        return !e.isTask && String(matchId) === String(schId);
+      });
 
       if (itemEvents.length === 0) return Promise.resolve();
 

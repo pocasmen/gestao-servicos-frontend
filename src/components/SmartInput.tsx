@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { analyzeInput, ValidationOptions, ValidationResult } from '../utils/inputValidation';
 import styles from './SmartInput.module.css';
+import { logger } from '../utils/logger';
 
 interface SmartInputProps {
     label: string;
@@ -122,7 +123,7 @@ export const SmartInput: React.FC<SmartInputProps> = ({
 
         const details = { original: internalValue, warnings: validationResult?.warnings };
         // Optionally log this override action
-        console.info('User overrode validation warning', details);
+        logger.info({ details }, 'User overrode validation warning');
         onAudit?.('override', details);
     };
 

@@ -3,10 +3,11 @@ import { Trash2, Copy, Clipboard } from 'lucide-react';
 import { PartItem } from '../../types';
 import { StockType } from '../../constants/enums';
 import { STOCK_TYPE_LABELS } from '../../constants';
+import { usePartSearch } from '../../hooks/usePartSearch';
 
 interface SchedulePartsProps {
     parts: PartItem[];
-    handlePartChange: (index: number, field: keyof PartItem, value: any) => void;
+    handlePartChange: (index: number, fieldOrUpdates: keyof PartItem | Partial<PartItem>, value?: any) => void;
     handleReferenceBlur: (index: number) => void;
     handleRemovePart: (index: number) => void;
     handleAddPart: () => void;
@@ -27,6 +28,11 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
     isPastOrCompleted,
     isTicketScheduling
 }) => {
+    const { searchResults, searchParts } = usePartSearch();
+
+    // Removed auto-fill useEffect to avoid ambiguity issues with duplicate designations.
+    // Explicit selection via datalist and onChange is now the primary mechanism.
+
     if (isTicketScheduling) return null;
 
     return (
@@ -60,10 +66,11 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
                 )}
             </div>
 
-            <div className="table-responsive bg-white rounded shadow-sm">
+            <div className="bg-white rounded shadow-sm" style={{ overflow: 'visible' }}>
                 <table className="table table-bordered table-sm mb-0">
                     <thead className="table-light">
                         <tr className="align-middle">
+                            <th style={{ width: '40px' }} className="py-1"></th>
                             <th style={{ width: '60px' }} className="small text-center py-1">Qt</th>
                             <th style={{ width: '140px' }} className="small py-1">Referência</th>
                             <th className="small py-1">Designação</th>
@@ -75,6 +82,33 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
                     <tbody>
                         {parts.map((part, index) => (
                             <tr key={index}>
+                                <td className="align-middle text-center p-0">
+                                    {part.image_path ? (
+                                        <div className="inventory-photo-container d-inline-block">
+                                            <img 
+                                                src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${part.image_path}`} 
+                                                alt={part.reference}
+                                                className="inventory-photo-thumbnail rounded shadow-sm border p-1 bg-white"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'https://placehold.co/40x40?text=?';
+                                                }}
+                                            />
+                                            <div className="inventory-photo-large shadow-lg rounded overflow-hidden">
+                                                <img 
+                                                    src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${part.image_path}`} 
+                                                    alt={`${part.reference} - Grande`}
+                                                    className="w-100 h-100"
+                                                    style={{ objectFit: 'contain', backgroundColor: '#fff' }}
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="bg-light text-muted border p-1 rounded" style={{ width: '30px', height: '30px', margin: 'auto', fontSize: '8px', lineHeight: '20px' }}>?</div>
+                                    )}
+                                </td>
                                 <td className="align-middle">
                                     <input
                                         type="number"
@@ -93,8 +127,22 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
                                         type="text"
                                         className="form-control form-control-sm border-0 p-1"
                                         placeholder="Referência"
+                                        list="partRefSuggestions"
                                         value={part.reference}
-                                        onChange={e => handlePartChange(index, 'reference', e.target.value)}
+                                        onChange={e => {
+                                            const val = e.target.value;
+
+                                            const match = searchResults.find((p, i) => 
+                                                (p.reference + '\u200B'.repeat(i)) === val
+                                            );
+
+                                            if (match) {
+                                                handlePartChange(index, { reference: match.reference, designation: match.designation, image_path: match.image_path });
+                                            } else {
+                                                handlePartChange(index, 'reference', val);
+                                            }
+                                            searchParts(val);
+                                        }}
                                         onBlur={() => handleReferenceBlur(index)}
                                         disabled={isPastOrCompleted}
                                         style={{ fontSize: '0.8rem' }}
@@ -105,8 +153,22 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
                                         type="text"
                                         className="form-control form-control-sm border-0 p-1"
                                         placeholder="Designação"
+                                        list="partDesigSuggestions"
                                         value={part.designation}
-                                        onChange={e => handlePartChange(index, 'designation', e.target.value)}
+                                        onChange={e => {
+                                            const val = e.target.value;
+
+                                            const match = searchResults.find((p, i) => 
+                                                (p.designation + '\u200B'.repeat(i)) === val
+                                            );
+
+                                            if (match) {
+                                                handlePartChange(index, { reference: match.reference, designation: match.designation, image_path: match.image_path });
+                                            } else {
+                                                handlePartChange(index, 'designation', val);
+                                            }
+                                            searchParts(val);
+                                        }}
                                         disabled={part.isDesignationLocked || isPastOrCompleted}
                                         style={{ fontSize: '0.8rem' }}
                                     />
@@ -165,6 +227,17 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
                     </button>
                 </div>
             )}
+
+            <datalist id="partRefSuggestions">
+                {searchResults.map((p, i) => (
+                    <option key={i} value={p.reference + '\u200B'.repeat(i)}>{p.designation}</option>
+                ))}
+            </datalist>
+            <datalist id="partDesigSuggestions">
+                {searchResults.map((p, i) => (
+                    <option key={i} value={p.designation + '\u200B'.repeat(i)}>{p.reference}</option>
+                ))}
+            </datalist>
         </div>
     );
 };

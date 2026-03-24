@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { pt } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Trash2, Plus, Clock, Lock, Globe, Calendar as CalendarIcon, User as UserIcon, Building2, Wrench, CheckCircle } from 'lucide-react';
+import { Trash2, Plus, Clock, Lock, Globe, Calendar as CalendarIcon, User as UserIcon, Building2, Wrench, CheckCircle, Check } from 'lucide-react';
 import apiClient from '../apiClient';
 import logger from '../utils/logger';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -29,10 +29,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
     const [clientId, setClientId] = useState<number | null>(null);
     const [equipmentId, setEquipmentId] = useState<number | null>(null);
     const [assignedUserId, setAssignedUserId] = useState<string>('');
-    const [isPrivate, setIsPrivate] = useState(true);
+    const [isPrivate, setIsPrivate] = useState(false);
     const [showOnCalendar, setShowOnCalendar] = useState(false);
     const [timeBlocks, setTimeBlocks] = useState<{ start_time: Date; end_time: Date }[]>([]);
     const [estimatedHours, setEstimatedHours] = useState<number | null>(null);
+    const [isCompleted, setIsCompleted] = useState(false);
+    const [completedAt, setCompletedAt] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [clients, setClients] = useState<Client[]>([]);
@@ -87,9 +89,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
             setClientId(task.client_id || null);
             setEquipmentId(task.equipment_id || null);
             setAssignedUserId(task.user_id || '');
-            setIsPrivate(task.is_private !== undefined ? task.is_private : true);
+            setIsPrivate(task.is_private !== undefined ? task.is_private : false);
             setShowOnCalendar(task.show_on_calendar || false);
             setEstimatedHours(task.estimated_hours || null);
+            setIsCompleted(task.completed || false);
+            setCompletedAt(task.completed_at || null);
 
             if (task.client_id) {
                 setShowClientSearch(true);
@@ -108,10 +112,16 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                 setShowEquipmentSelect(false);
             }
 
-            if (task.internal_task_time_blocks && task.internal_task_time_blocks.length > 0) {
-                setTimeBlocks(task.internal_task_time_blocks.map((tb: any) => ({
+            if (task.time_blocks && task.time_blocks.length > 0) {
+                setTimeBlocks(task.time_blocks.map((tb: any) => ({
                     start_time: new Date(tb.start_time),
                     end_time: new Date(tb.end_time)
+                })));
+            } else if (task.timeBlocks && task.timeBlocks.length > 0) {
+                // Fallback for when it comes via the schedule mapper
+                setTimeBlocks(task.timeBlocks.map((tb: any) => ({
+                    start_time: new Date(tb.start),
+                    end_time: new Date(tb.end)
                 })));
             } else {
                 setTimeBlocks([]);
@@ -155,10 +165,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
         setClientId(null);
         setEquipmentId(null);
         setAssignedUserId(currentUser?.id || '');
-        setIsPrivate(true);
+        setIsPrivate(false);
         setShowOnCalendar(false);
         setTimeBlocks([]);
         setEstimatedHours(null);
+        setIsCompleted(false);
+        setCompletedAt(null);
         setShowClientSearch(false);
         setShowEquipmentSelect(false);
         setClientSearch('');
@@ -202,7 +214,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                 start_time: tb.start_time.toISOString(),
                 end_time: tb.end_time.toISOString()
             })),
-            ...(task && { completed: task.completed, completed_at: task.completed_at })
+            completed: isCompleted,
+            completed_at: isCompleted && !completedAt ? new Date().toISOString() : (!isCompleted ? null : completedAt)
         };
 
         setIsSubmitting(true);
@@ -400,7 +413,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                             onChange={(e) => setIsPrivate(e.target.checked)}
                                         />
                                         <label className="form-check-label fw-bold" htmlFor="isPrivateSwitch">
-                                            {isPrivate ? 'Tarefa Privada' : 'Tarefa Pública'}
+                                            {isPrivate ? 'Privada' : 'Pública'}
                                         </label>
                                     </div>
                                 </div>
@@ -414,7 +427,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                             onChange={(e) => setShowOnCalendar(e.target.checked)}
                                         />
                                         <label className="form-check-label fw-bold" htmlFor="calendarSwitch">
-                                            Mostrar no Calendário
+                                            No Calendário
                                         </label>
                                     </div>
                                 </div>
@@ -478,10 +491,26 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                 </div>
                             )}
                         </div>
-                        <div className="modal-footer d-flex justify-content-between">
+                        <div className="modal-footer d-flex justify-content-between align-items-center">
                             <div>
                                 {task && (
-                                    <button type="button" className="btn btn-link text-muted" onClick={onClose} disabled={isSubmitting}>Sair</button>
+                                    <button
+                                        type="button"
+                                        className={`btn ${isCompleted ? 'btn-success' : 'btn-outline-success'} d-flex align-items-center gap-2`}
+                                        onClick={() => {
+                                            const checked = !isCompleted;
+                                            setIsCompleted(checked);
+                                            if (checked && !completedAt) {
+                                                setCompletedAt(new Date().toISOString());
+                                            } else if (!checked) {
+                                                setCompletedAt(null);
+                                            }
+                                        }}
+                                        title={isCompleted ? "Marcar como pendente" : "Marcar como concluída"}
+                                    >
+                                        <Check size={18} />
+                                        {isCompleted ? 'Concluída' : 'Concluir'}
+                                    </button>
                                 )}
                             </div>
                             <div>

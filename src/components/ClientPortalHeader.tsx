@@ -19,7 +19,7 @@ const ClientPortalHeader: React.FC = () => {
   React.useEffect(() => {
     const checkCompanies = async () => {
       try {
-        const res = await apiClient.get('/api/my-companies');
+        const res = await apiClient.get('/api/client-portal/my-companies');
         setHasMultipleCompanies((res.data || []).length > 1);
       } catch (e) {
         // ignore

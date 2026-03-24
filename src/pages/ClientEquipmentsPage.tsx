@@ -24,7 +24,7 @@ const ClientEquipmentsPage: React.FC = () => {
         const fetchEquipments = async () => {
             setLoading(true);
             try {
-                const res = await apiClient.get('/api/my-equipments');
+                const res = await apiClient.get('/api/client-portal/my-equipments');
                 setEquipments(res.data || []);
             } catch (error) {
                 logger.error(error, "Failed to load client equipments:");

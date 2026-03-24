@@ -44,7 +44,7 @@ const ClientProfilePage: React.FC = () => {
     }, []);
 
     const fetchUserProfile = () => {
-        apiClient.get('/api/users/me').then(response => {
+    apiClient.get('/api/technicians/me').then(response => {
             const currentUser = response.data;
             if (currentUser) {
                 setUser(currentUser);

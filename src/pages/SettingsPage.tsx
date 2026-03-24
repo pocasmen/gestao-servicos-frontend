@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import DOMPurify from 'dompurify';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
@@ -26,7 +27,7 @@ const SettingsPage: React.FC = () => {
       const response = await apiClient.get('/api/settings');
       setSettings(response.data);
 
-      const templatesResponse = await apiClient.get('/api/admin/email-templates');
+      const templatesResponse = await apiClient.get('/api/email-templates');
       setEmailTemplates(templatesResponse.data);
       if (Object.keys(templatesResponse.data).length > 0) {
         setSelectedTemplateKey(Object.keys(templatesResponse.data)[0]);
@@ -70,7 +71,7 @@ const SettingsPage: React.FC = () => {
       await apiClient.put('/api/settings', settings);
 
       // Save templates
-      await apiClient.put('/api/admin/email-templates', emailTemplates);
+      await apiClient.put('/api/email-templates', emailTemplates);
 
       alert('Configurações guardadas com sucesso!', 'Sucesso');
     } catch (err) {
@@ -87,7 +88,7 @@ const SettingsPage: React.FC = () => {
     })) return;
 
     try {
-      const response = await apiClient.post('/api/admin/sync-google-calendar');
+      const response = await apiClient.post('/api/google/calendar/sync');
       setSyncResult(response.data);
       alert(`Sincronização concluída: ${response.data.success} sucesso(s), ${response.data.fail} falha(s).`, 'Sucesso');
     } catch (err: any) {
@@ -107,7 +108,7 @@ const SettingsPage: React.FC = () => {
     })) return;
 
     try {
-      const response = await apiClient.post('/api/admin/clear-google-calendar');
+      const response = await apiClient.post('/api/google/calendar/clear');
       alert(`Limpeza concluída: ${response.data.success} removido(s), ${response.data.fail} falha(s).`, 'Sucesso');
     } catch (err: any) {
       logger.error(err, "Erro na limpeza:");
@@ -220,7 +221,9 @@ const SettingsPage: React.FC = () => {
                 <label className="form-label">Pré-visualização</label>
                 <div
                   style={{ border: '1px solid #ced4da', padding: '15px', borderRadius: '4px', backgroundColor: '#fff', minHeight: '150px' }}
-                  dangerouslySetInnerHTML={{ __html: selectedTemplate.body?.replace(/{{login_url}}/g, '#') || '' }}
+                  dangerouslySetInnerHTML={{ 
+                    __html: DOMPurify.sanitize(selectedTemplate.body?.replace(/{{login_url}}/g, '#') || '') 
+                  }}
                 />
               </div>
             </>

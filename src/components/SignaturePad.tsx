@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState } from 'react';
 import logger from '../utils/logger';
 import './SignaturePad.css';
 import { Maximize2, Minimize2, Trash2, CheckCircle } from 'lucide-react';
+import { processSignature } from '../utils/imageUtils';
 
 interface SignaturePadProps {
     onConfirm: (signatureDataUrl: string) => void;
@@ -109,9 +110,9 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClear, initial
         if (isEmpty) return;
         const canvas = canvasRef.current;
         if (canvas) {
-            // Usar JPEG com compressão (0.5 é excelente para assinaturas e muito leve)
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.5);
-            onConfirm(dataUrl);
+            // Aplicar o algoritmo para recortar e maximizar o tamanho da assinatura
+            const processedDataUrl = processSignature(canvas);
+            onConfirm(processedDataUrl);
         }
     };
 

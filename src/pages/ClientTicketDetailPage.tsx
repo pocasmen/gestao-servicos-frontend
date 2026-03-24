@@ -14,6 +14,7 @@ import logger from '../utils/logger';
 
 // Local interfaces removed, using definitions from schemas/types
 import { Attachment, DetailedTicket, TicketResponse } from '../types';
+import { compressIfImage } from '../utils/imageUtils';
 
 interface PresenceMessage {
   text: string;
@@ -45,6 +46,23 @@ const ClientTicketDetailPage: React.FC = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const isPopupActiveRef = useRef(false);
   const { alert } = useConfirm();
+  const [compressionSettings, setCompressionSettings] = useState({ quality: 0.7, maxWidth: 1280 });
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data } = await apiClient.get('/api/settings');
+      setCompressionSettings({
+        quality: parseFloat(data.img_compression_quality || '0.7'),
+        maxWidth: parseInt(data.img_compression_max_width || '1280')
+      });
+    } catch (err) {
+      logger.error(err, "Erro ao carregar definições de compressão");
+    }
+  };
 
   useEffect(() => {
     if (presenceQueue.length === 0 || isPopupActiveRef.current) return;
@@ -82,7 +100,7 @@ const ClientTicketDetailPage: React.FC = () => {
 
       logger.debug({ isSilent, isFromRealtime }, `[DEBUG:FETCH] Fetching client ticket details`);
       const [ticketRes, attachmentsRes] = await Promise.all([
-        apiClient.get(`/api/my-tickets/${id}`),
+        apiClient.get(`/api/client-portal/my-tickets/${id}`),
         apiClient.get(`/api/tickets/${id}/attachments`)
       ]);
 
@@ -110,9 +128,14 @@ const ClientTicketDetailPage: React.FC = () => {
   const handleFileUpload = async () => {
     if (!selectedFile || !id) return;
     setIsUploading(true);
-    const fd = new FormData();
-    fd.append('file', selectedFile);
     try {
+      const fileToUpload = await compressIfImage(selectedFile, {
+        quality: compressionSettings.quality,
+        maxWidth: compressionSettings.maxWidth
+      });
+
+      const fd = new FormData();
+      fd.append('file', fileToUpload);
       await apiClient.post(`/api/tickets/${id}/attachments`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       await alert('Anexo enviado com sucesso!', 'Sucesso');
       await fetchTicketDetails();
@@ -132,7 +155,7 @@ const ClientTicketDetailPage: React.FC = () => {
       if (!hasUnreadFromOthers) return;
 
       try {
-        await apiClient.put(`/api/my-tickets/${id}/mark-as-read`);
+        await apiClient.put(`/api/client-portal/my-tickets/${id}/mark-as-read`);
       } catch (error) {
         logger.error(error, 'Failed to mark messages as read:');
       }
@@ -145,8 +168,8 @@ const ClientTicketDetailPage: React.FC = () => {
       if (!ticket?.equipmentId) return;
       try {
         const [schedulesRes, ticketsRes] = await Promise.all([
-          apiClient.get('/api/my-schedules?page=1&limit=50'),
-          apiClient.get('/api/my-tickets?page=1&limit=50')
+          apiClient.get('/api/client-portal/my-schedules?page=1&limit=50'),
+          apiClient.get('/api/client-portal/my-tickets?page=1&limit=50')
         ]);
 
         const schedulesData = schedulesRes.data.data || schedulesRes.data;
@@ -307,7 +330,7 @@ const ClientTicketDetailPage: React.FC = () => {
 
     setIsReplying(true);
     try {
-      await apiClient.post(`/api/my-tickets/${id}/reply`, { message: replyContent });
+      await apiClient.post(`/api/client-portal/my-tickets/${id}/reply`, { message: replyContent });
       setReplyContent('');
       await fetchTicketDetails(); // Re-fetch the entire ticket to show updated faultDescription
     } catch (err) {

@@ -36,7 +36,7 @@ const RegisterPage: React.FC = () => {
     }
 
     try {
-      await apiClient.post('/auth/register', { token, password, firstName, lastName, phoneNumber });
+      await apiClient.post('/api/auth/register', { token, password, firstName, lastName, phoneNumber });
       alert('Conta criada com sucesso! Será redirecionado para a página de login em 3 segundos...', 'Sucesso');
       setTimeout(() => {
         navigate('/login');

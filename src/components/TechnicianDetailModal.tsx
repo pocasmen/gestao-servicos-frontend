@@ -55,7 +55,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
     setIsSyncing(true);
     setSyncStatus('A verificar atualizações...');
 
-    apiClient.post('/api/admin/sync-telegram-updates')
+    apiClient.post('/api/telegram/sync-updates')
       .then((res) => {
         if (res.data.success) {
           // Refetch user data to see the new ID if associated

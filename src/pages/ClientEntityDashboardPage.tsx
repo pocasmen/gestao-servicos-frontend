@@ -44,7 +44,7 @@ const ClientEntityDashboardPage: React.FC = () => {
         const fetchStats = async () => {
             setLoading(true);
             try {
-                const res = await apiClient.get('/api/my-stats');
+                const res = await apiClient.get('/api/client-portal/my-stats');
                 setStats(res.data);
             } catch (error) {
                 logger.error(error, "Failed to load client stats:");

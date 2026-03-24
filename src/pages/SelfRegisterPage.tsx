@@ -22,7 +22,7 @@ const SelfRegisterPage: React.FC = () => {
             companyName
         };
 
-        apiClient.post('/auth/self-register', registrationData)
+        apiClient.post('/api/auth/self-register', registrationData)
             .then(response => {
                 alert(`${response.data.message}\n\nApós validar o seu email, a sua conta ficará a aguardar aprovação de um administrador.`, 'Sucesso');
                 // Clear form

@@ -38,22 +38,27 @@ export const PartItemSchema = z.object({
     raw_stock_foss: z.number().optional(),
     available_quantity: z.number().optional(),
     available_quantity_foss: z.number().optional(),
+    min_stock: z.number().optional(),
+    min_stock_foss: z.number().optional(),
+    image_path: z.string().optional().nullable(),
+    price: z.number().optional().nullable().transform(v => v ?? 0),
+    notes: z.string().optional().nullable().transform(v => v ?? ''),
 });
 
 export const ScheduleEventSchema = z.object({
     id: z.union([z.number(), z.string()]),
     scheduleId: z.number().optional(),
     title: z.string().optional().nullable().transform(v => v ?? undefined),
-    startDate: z.string().optional().nullable().transform(v => v ?? undefined),
-    endDate: z.string().optional().nullable().transform(v => v ?? undefined),
+    startDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : undefined),
+    endDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : undefined),
     clientId: z.number().optional().nullable().transform(v => v ?? undefined),
     equipmentId: z.number().optional().nullable().transform(v => v ?? undefined),
     status: ScheduleStatusSchema.optional(),
     technicians: z.array(z.union([z.string(), TechnicianSchema])).default([]).transform(val =>
         val.map(t => typeof t === 'string' ? { id: '', name: t } : t)
     ),
-    isCompleted: z.boolean().default(false),
-    hasReport: z.boolean().default(false),
+    isCompleted: z.boolean().optional().nullable().transform(v => v ?? false),
+    hasReport: z.boolean().optional().nullable().transform(v => v ?? false),
     ticketId: z.number().optional().nullable().transform(v => v ?? undefined),
     internalNotes: z.string().optional().nullable().transform(v => v ?? undefined),
     serviceType: z.union([z.string(), z.array(z.string())]).optional().nullable().transform(v => v ?? undefined),
@@ -83,6 +88,11 @@ export const PartSchema = z.object({
     raw_stock_foss: z.number().optional(),
     available_quantity: z.number().optional(),
     available_quantity_foss: z.number().optional(),
+    min_stock: z.number().optional(),
+    min_stock_foss: z.number().optional(),
+    image_path: z.string().optional().nullable(),
+    price: z.number().optional().nullable().transform(v => v ?? 0),
+    notes: z.string().optional().nullable().transform(v => v ?? ''),
 });
 
 export const ClientSchema = z.object({
@@ -115,15 +125,15 @@ export const TicketSchema = z.object({
     faultDescription: z.string().optional().nullable().transform(v => v ?? ''),
     status: z.nativeEnum(TicketStatus),
     scheduleId: z.number().optional().nullable().transform(v => v ?? undefined),
-    createdAt: z.string(),
-    updatedAt: z.string(),
+    createdAt: z.union([z.string(), z.date()]).transform(v => new Date(v).toISOString()),
+    updatedAt: z.union([z.string(), z.date()]).transform(v => new Date(v).toISOString()),
     created_by_user_id: z.string().optional().nullable().transform(v => v ?? undefined),
     clientName: z.string().optional().nullable().transform(v => v ?? undefined),
     equipmentInfo: z.string().optional().nullable().transform(v => v ?? undefined),
     userFirstName: z.string().optional().nullable().transform(v => v ?? undefined),
     userLastName: z.string().optional().nullable().transform(v => v ?? undefined),
-    startDate: z.string().optional().nullable().transform(v => v ?? undefined),
-    endDate: z.string().optional().nullable().transform(v => v ?? undefined),
+    startDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : undefined),
+    endDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : undefined),
     internalNotes: z.string().optional().nullable().transform(v => v ?? undefined),
     hasReport: z.boolean().optional().nullable().transform(v => v ?? undefined),
 });
@@ -137,7 +147,7 @@ export const ReportSchema = z.object({
     technicians: z.array(z.union([z.string(), TechnicianSchema])).default([]).transform(val =>
         val.map(t => typeof t === 'string' ? { id: '', name: t } : t)
     ),
-    serviceDate: z.string().optional().nullable().transform(v => v ?? ''),
+    serviceDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : ''),
     hours: z.number().optional().nullable().transform(v => v ?? 0),
     parts: z.array(PartItemSchema).default([]),
     description: z.string().optional().nullable().transform(v => v ?? ''),
@@ -167,8 +177,8 @@ export const BillingTaskSchema = z.object({
     billing_notes: z.string().optional().nullable().transform(v => v ?? undefined),
     invoice_number: z.string().optional().nullable().transform(v => v ?? undefined),
     billed_at: z.string().optional().nullable().transform(v => v ?? undefined),
-    created_at: z.string(),
-    updated_at: z.string(),
+    created_at: z.union([z.string(), z.date()]).transform(v => new Date(v).toISOString()),
+    updated_at: z.union([z.string(), z.date()]).transform(v => new Date(v).toISOString()),
     reports: ReportSchema.optional().nullable().transform(v => v ?? undefined),
 });
 
@@ -204,7 +214,7 @@ export const AttachmentSchema = z.object({
     mime_type: z.string(),
     storage_path: z.string(),
     uploaded_by_user_id: z.string(),
-    created_at: z.string(),
+    created_at: z.union([z.string(), z.date()]).transform(v => new Date(v).toISOString()),
     url: z.string(),
 });
 

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useContext } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -6,6 +6,7 @@ import { Plus, Clock, Lock, Globe, Filter, AlertTriangle, Calendar as CalendarIc
 import TaskModal from '../components/TaskModal';
 import logger from '../utils/logger';
 import { InternalTask } from '../types';
+import { AuthContext } from '../contexts/AuthContext';
 
 const TasksPage: React.FC = () => {
     const queryClient = useQueryClient();
@@ -14,6 +15,8 @@ const TasksPage: React.FC = () => {
     const [selectedTask, setSelectedTask] = useState<InternalTask | null>(null);
     const [filterType, setFilterType] = useState<string>('all');
     const [statusFilter, setStatusFilter] = useState<string>('pending');
+    const { user: currentUser } = useContext(AuthContext);
+    const [showOnlyMine, setShowOnlyMine] = useState(false);
 
     // Navegação Temporal (Igual ao Billing/Dashboard)
     const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
@@ -149,6 +152,9 @@ const TasksPage: React.FC = () => {
             if (statusFilter === 'pending' && t.completed) return false;
             if (statusFilter === 'completed' && !t.completed) return false;
 
+            // Filtro "Apenas as minhas"
+            if (showOnlyMine && t.user_id !== currentUser?.id) return false;
+
             // Filtro de Tipo (Existente)
             if (filterType !== 'all' && t.type !== filterType) return false;
 
@@ -169,13 +175,14 @@ const TasksPage: React.FC = () => {
                 return createdAt >= start && createdAt <= end;
             }
         });
-    }, [tasks, statusFilter, filterType, dateRange]);
+    }, [tasks, statusFilter, filterType, dateRange, showOnlyMine, currentUser?.id]);
 
     const stats = useMemo(() => {
         if (!tasks) return { total: 0, pending: 0, completed: 0 };
 
         // As estatísticas consideram apenas tarefas No Intervalo de Datas
         const inRangeTasks = tasks.filter((t: InternalTask) => {
+            if (showOnlyMine && t.user_id !== currentUser?.id) return false;
             const start = dateRange.start;
             const end = dateRange.end;
             const createdAt = new Date(t.created_at);
@@ -195,7 +202,7 @@ const TasksPage: React.FC = () => {
             pending: inRangeTasks.filter((t: any) => !t.completed).length,
             completed: inRangeTasks.filter((t: any) => t.completed).length
         };
-    }, [tasks, dateRange]);
+    }, [tasks, dateRange, showOnlyMine, currentUser?.id]);
 
     return (
         <div className="container-fluid mt-4">
@@ -275,6 +282,18 @@ const TasksPage: React.FC = () => {
                                 <option value="completed">Concluídas</option>
                                 <option value="all">Todos os Estados</option>
                             </select>
+                        </div>
+                        <div className="form-check form-switch ms-3 mt-1">
+                            <input
+                                className="form-check-input"
+                                type="checkbox"
+                                id="filterMyTasks"
+                                checked={showOnlyMine}
+                                onChange={(e) => setShowOnlyMine(e.target.checked)}
+                            />
+                            <label className="form-check-label small fw-bold text-muted cursor-pointer" htmlFor="filterMyTasks" style={{ cursor: 'pointer' }}>
+                                Apenas as minhas tarefas
+                            </label>
                         </div>
                     </div>
                     <button

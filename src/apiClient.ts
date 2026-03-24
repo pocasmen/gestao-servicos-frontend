@@ -7,6 +7,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 30000, // 30 seconds
 });
 
 // Adicionar um interceptor para incluir o token do Supabase em cada pedido
@@ -30,7 +31,7 @@ apiClient.interceptors.request.use(
       }
     }
 
-    if (config.url?.includes('/api/my-') && !config.url.includes('companies')) {
+    if (config.url?.includes('/api/client-portal/my-') && !config.url.includes('companies')) {
       const savedClient = localStorage.getItem('activeClient');
       if (savedClient) {
         try {
@@ -78,7 +79,7 @@ export const searchPartByReference = async (reference: string) => {
     if (import.meta.env.DEV) {
       logger.debug({ reference }, '[DEBUG] Searching for part with reference');
     }
-    const response = await apiClient.get(`/api/parts/${reference}`);
+    const response = await apiClient.get(`/api/inventory/parts/${reference}`);
     if (import.meta.env.DEV) {
       logger.debug(response.data, '[DEBUG] Part found:');
     }
@@ -96,7 +97,7 @@ export const searchPartByReference = async (reference: string) => {
 };
 
 export const createPart = async (partData: { reference: string; designation: string }) => {
-  const response = await apiClient.post('/api/parts', partData);
+  const response = await apiClient.post('/api/inventory', partData);
   return response.data;
 };
 

@@ -37,14 +37,18 @@ const InventoryPage: React.FC = () => {
     ordered_quantity: 0,
     stock_quantity_foss: 0,
     reserved_quantity_foss: 0,
-    ordered_quantity_foss: 0
+    ordered_quantity_foss: 0,
+    min_stock: 0,
+    min_stock_foss: 0,
+    price: 0,
+    notes: ''
   });
 
   // Queries
   const { data: inventoryData, isLoading: loading } = useQuery({
-    queryKey: ['inventory', page, search],
+    queryKey: ['inventory', page, search, view],
     queryFn: async () => {
-      const response = await apiClient.get(`/api/inventory?page=${page}&limit=100&search=${encodeURIComponent(search)}`);
+      const response = await apiClient.get(`/api/inventory?page=${page}&limit=100&search=${encodeURIComponent(search)}&view=${view}`);
       let rawData: unknown[] = [];
       let pagination = { page: 1, limit: 100, total: 0, totalPages: 1 };
 
@@ -138,13 +142,29 @@ const InventoryPage: React.FC = () => {
   const [showCompResults, setShowCompResults] = useState(false);
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
 
+  // Reset/Cap receiveQuantity when targetStock changes during receiving
+  useEffect(() => {
+    if (modalType === 'receive' && selectedPart) {
+      const currentOrdered = targetStock === StockType.FOSS ? (selectedPart.ordered_quantity_foss || 0) : (selectedPart.ordered_quantity || 0);
+      if (receiveQuantity > currentOrdered) {
+        setReceiveQuantity(currentOrdered);
+      }
+    }
+  }, [targetStock, modalType, selectedPart, receiveQuantity]);
+
   const openModal = (part: Part, type: 'stock' | 'order' | 'receive') => {
     setSelectedPart(part);
     setModalType(type);
     setStockChange(0);
     setOrderChange(0);
     setReceiveQuantity(0);
-    setTargetStock(StockType.GENERAL);
+    
+    // Default to FOSS if we are receiving and only FOSS has pending orders
+    const defaultStock = type === 'receive' && (part.ordered_quantity || 0) <= 0 && (part.ordered_quantity_foss || 0) > 0
+      ? StockType.FOSS 
+      : StockType.GENERAL;
+      
+    setTargetStock(defaultStock);
   };
 
   const closeModal = () => {
@@ -158,7 +178,11 @@ const InventoryPage: React.FC = () => {
       ordered_quantity: 0,
       stock_quantity_foss: 0,
       reserved_quantity_foss: 0,
-      ordered_quantity_foss: 0
+      ordered_quantity_foss: 0,
+      min_stock: 0,
+      min_stock_foss: 0,
+      price: 0,
+      notes: ''
     });
     setReservations([]);
     setIsComposed(false);
@@ -170,11 +194,19 @@ const InventoryPage: React.FC = () => {
     try {
       const response = await apiClient.get(`/api/schedules/${scheduleId}`);
       const schedule = response.data;
+      
+      // Process schedule just like CalendarPage does to ensure compatibility
       const event: ScheduleEvent = {
         ...schedule,
-        start: new Date(schedule.startDate),
-        end: new Date(schedule.endDate)
+        start: schedule.startDate ? new Date(schedule.startDate) : undefined,
+        end: schedule.endDate ? new Date(schedule.endDate) : undefined,
+        timeBlocks: (schedule.timeBlocks || []).map((tb: any) => ({
+          ...tb,
+          start: new Date(tb.start || tb.start_time),
+          end: new Date(tb.end || tb.end_time)
+        }))
       };
+      
       setSelectedEvent(event);
       setIsScheduleModalOpen(true);
     } catch (err) {
@@ -297,6 +329,10 @@ const InventoryPage: React.FC = () => {
       stock_quantity_foss: part.stock_quantity_foss,
       reserved_quantity_foss: part.reserved_quantity_foss,
       ordered_quantity_foss: part.ordered_quantity_foss,
+      min_stock: part.min_stock,
+      min_stock_foss: part.min_stock_foss,
+      price: part.price,
+      notes: part.notes,
       id: part.id
     });
 
@@ -385,8 +421,9 @@ const InventoryPage: React.FC = () => {
     }
   };
 
-  const handleReceiveOrder = async () => {
-    if (!selectedPart || receiveQuantity <= 0 || isSubmittingManual) return;
+   const handleReceiveOrder = async () => {
+     const currentOrdered = targetStock === StockType.FOSS ? (selectedPart?.ordered_quantity_foss || 0) : (selectedPart?.ordered_quantity || 0);
+     if (!selectedPart || receiveQuantity <= 0 || receiveQuantity > currentOrdered || isSubmittingManual) return;
     setIsSubmittingManual(true);
     try {
       const response = await apiClient.put<Part>(`/api/inventory/${selectedPart.id}/stock`, {
@@ -460,13 +497,8 @@ const InventoryPage: React.FC = () => {
   };
 
   const filteredInventory = useMemo(() => {
-    let items = inventory;
-    if (view === 'low_stock') {
-      items = items.filter(p => (p.available_quantity ?? 0) <= 5);
-    } else if (view === 'reserved') {
-      items = items.filter(p => (p.reserved_quantity || 0) > 0 || (p.reserved_quantity_foss || 0) > 0);
-    }
-    return items;
+    // We already filter by view on the backend and get exactly the needed items.
+    return inventory;
   }, [inventory, view]);
 
   if (loading && !inventory.length) {
@@ -547,7 +579,10 @@ const InventoryPage: React.FC = () => {
           setPage(1);
         }}
         view={view}
-        setView={setView}
+        setView={(v) => {
+          setView(v);
+          setPage(1);
+        }}
       />
 
       {filteredInventory.length === 0 ? (

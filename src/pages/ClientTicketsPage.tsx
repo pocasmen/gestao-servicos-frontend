@@ -25,10 +25,10 @@ const ClientTicketsPage: React.FC = () => {
 
   const fetchClientData = useCallback(async (pageToFetch = 1) => {
     try {
-      const equipmentsRes = await apiClient.get('/api/my-equipments');
+      const equipmentsRes = await apiClient.get('/api/client-portal/my-equipments');
       setEquipments(equipmentsRes.data);
 
-      const ticketsRes = await apiClient.get(`/api/my-tickets?page=${pageToFetch}&limit=10`);
+      const ticketsRes = await apiClient.get(`/api/client-portal/my-tickets?page=${pageToFetch}&limit=10`);
       if (ticketsRes.data && ticketsRes.data.data) {
         if (pageToFetch === 1) {
           setTickets(ticketsRes.data.data);
@@ -75,7 +75,7 @@ const ClientTicketsPage: React.FC = () => {
     }
 
     try {
-      await apiClient.post('/api/my-tickets', {
+      await apiClient.post('/api/client-portal/my-tickets', {
         equipmentId: Number(selectedEquipmentId),
         title: title.trim(),
         faultDescription,
@@ -94,7 +94,7 @@ const ClientTicketsPage: React.FC = () => {
   const handleViewReport = async (ticket: Ticket) => {
     if (!ticket.scheduleId) return;
     try {
-      const response = await apiClient.get(`/api/my-report/by-schedule/${ticket.scheduleId}`);
+      const response = await apiClient.get(`/api/client-portal/my-report/by-schedule/${ticket.scheduleId}`);
       if (response.data && response.data.id) {
         navigate(`/report/print/${response.data.id}`);
       } else {
