@@ -9,7 +9,7 @@ export const SchedulePrioritySchema = z.nativeEnum(SchedulePriority);
 export const StockTypeSchema = z.nativeEnum(StockType);
 
 export const TechnicianSchema = z.object({
-    id: z.string().optional().nullable().transform(v => v ?? undefined),
+    id: z.string().default(''),
     name: z.string(),
     role: UserRoleSchema.optional(),
     color: z.string().optional().nullable().transform(v => v ?? undefined),

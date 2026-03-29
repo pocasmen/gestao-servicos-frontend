@@ -13,6 +13,7 @@ import InventoryTable from '../components/Inventory/InventoryTable';
 import InventoryItemForm, { ComponentItem } from '../components/Inventory/InventoryItemForm';
 import InventoryStockModals from '../components/Inventory/InventoryStockModals';
 import InventoryReservationsModal from '../components/Inventory/InventoryReservationsModal';
+import OrderDetailsModal from '../components/Inventory/OrderDetailsModal';
 import { supabase } from '../supabase';
 import logger from '../utils/logger';
 import { Plus, X } from 'lucide-react';
@@ -43,6 +44,28 @@ const InventoryPage: React.FC = () => {
     price: 0,
     notes: ''
   });
+
+  // Modals for history links
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
+  const [reportToEdit, setReportToEdit] = useState<Report | null>(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+
+  // States for Modals
+  const [stockChange, setStockChange] = useState<number>(0);
+  const [orderChange, setOrderChange] = useState<number>(0);
+  const [receiveQuantity, setReceiveQuantity] = useState<number>(0);
+  const [targetStock, setTargetStock] = useState<StockType>(StockType.GENERAL);
+
+  // States for Composed Parts
+  const [isComposed, setIsComposed] = useState(false);
+  const [components, setComponents] = useState<ComponentItem[]>([]);
+  const [compSearch, setCompSearch] = useState('');
+  const [compSearchResults, setCompSearchResults] = useState<Part[]>([]);
+  const [showCompResults, setShowCompResults] = useState(false);
+  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
 
   // Queries
   const { data: inventoryData, isLoading: loading } = useQuery({
@@ -122,26 +145,6 @@ const InventoryPage: React.FC = () => {
     }
   });
 
-
-  // States for Modals
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [reportToEdit, setReportToEdit] = useState<Report | null>(null);
-
-  const [stockChange, setStockChange] = useState<number>(0);
-  const [orderChange, setOrderChange] = useState<number>(0);
-  const [receiveQuantity, setReceiveQuantity] = useState<number>(0);
-  const [targetStock, setTargetStock] = useState<StockType>(StockType.GENERAL);
-
-  // States for Composed Parts
-  const [isComposed, setIsComposed] = useState(false);
-  const [components, setComponents] = useState<ComponentItem[]>([]);
-  const [compSearch, setCompSearch] = useState('');
-  const [compSearchResults, setCompSearchResults] = useState<Part[]>([]);
-  const [showCompResults, setShowCompResults] = useState(false);
-  const [isSubmittingManual, setIsSubmittingManual] = useState(false);
-
   // Reset/Cap receiveQuantity when targetStock changes during receiving
   useEffect(() => {
     if (modalType === 'receive' && selectedPart) {
@@ -195,7 +198,6 @@ const InventoryPage: React.FC = () => {
       const response = await apiClient.get(`/api/schedules/${scheduleId}`);
       const schedule = response.data;
       
-      // Process schedule just like CalendarPage does to ensure compatibility
       const event: ScheduleEvent = {
         ...schedule,
         start: schedule.startDate ? new Date(schedule.startDate) : undefined,
@@ -230,18 +232,25 @@ const InventoryPage: React.FC = () => {
     handleCloseScheduleModal();
     setSelectedEvent(event);
     try {
-      const response = await apiClient.get<Report>(`/reports/by-schedule/${event.id}`);
+      const response = await apiClient.get<Report>(`/api/reports/by-schedule/${event.id}`);
       setReportToEdit(response.data);
-    } catch (error: unknown) {
-      if (error && typeof error === 'object' && 'response' in error) {
-        const axiosError = error as { response: { status: number } };
-        if (axiosError.response.status === 404) {
-          setReportToEdit(null);
-          return;
-        }
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        setReportToEdit({ 
+          scheduleId: Number(event.id), 
+          clientId: event.clientId as number,
+          equipmentId: event.equipmentId as number,
+          technicians: event.technicians || [],
+          serviceDate: new Date().toISOString(),
+          hours: 0,
+          parts: [],
+          description: '',
+          serviceType: []
+        } as Report);
+      } else {
+        logger.error(error, "Erro ao verificar relatório existente:");
+        await alert("Não foi possível verificar o relatório do serviço.");
       }
-      logger.error(error, "Erro ao verificar relatório existente:");
-      await alert("Não foi possível verificar o relatório do serviço.");
     }
     setIsReportModalOpen(true);
   }, [handleCloseScheduleModal, alert]);
@@ -257,6 +266,46 @@ const InventoryPage: React.FC = () => {
     handleCloseReportModal();
     if (selectedPart) handleViewReservations(selectedPart);
   }, [queryClient, handleCloseReportModal, selectedPart]);
+
+  const handleOpenDoc = async (tx: any) => {
+    if (!tx.reference_id) return;
+
+    if (tx.type === 'SERVICE_REPORT' || tx.type === 'SERVICE') {
+      try {
+        const res = await apiClient.get(`/api/reports/${tx.reference_id}`);
+        const report = res.data;
+        const schedRes = await apiClient.get(`/api/schedules/${report.scheduleId}`);
+        const schedule = schedRes.data;
+        
+        const event: ScheduleEvent = {
+          ...schedule,
+          start: schedule.startDate ? new Date(schedule.startDate) : undefined,
+          end: schedule.endDate ? new Date(schedule.endDate) : undefined,
+          timeBlocks: (schedule.timeBlocks || []).map((tb: any) => ({
+            ...tb,
+            start: new Date(tb.start || tb.start_time),
+            end: new Date(tb.end || tb.end_time)
+          }))
+        };
+
+        setSelectedEvent(event);
+        setReportToEdit(report);
+        setIsReportModalOpen(true);
+      } catch (err: any) {
+        if (err.response?.status === 404) alert('Este relatório já não existe.');
+        else alert('Erro ao carregar documento.');
+      }
+    } else if (tx.type === 'PURCHASE_ORDER') {
+      try {
+        await apiClient.get(`/api/inventory/orders/${tx.reference_id}`);
+        setSelectedOrderId(parseInt(tx.reference_id));
+        setIsOrderModalOpen(true);
+      } catch (err: any) {
+        if (err.response?.status === 404) alert('Esta encomenda já não existe.');
+        else alert('Erro ao carregar documento.');
+      }
+    }
+  };
 
   const handleAddItem = async () => {
     if (addItemMutation.isPending) return;
@@ -279,7 +328,6 @@ const InventoryPage: React.FC = () => {
   const executeCompSearch = async (query: string) => {
     if (query.trim().length > 1) {
       try {
-        // Search server-side for components to ensure we find everything
         const response = await apiClient.get(`/api/inventory?page=1&limit=20&search=${encodeURIComponent(query)}`);
         const results = (response.data.data || response.data || []).filter((p: Part) => !p.is_composed);
         setCompSearchResults(results);
@@ -373,17 +421,7 @@ const InventoryPage: React.FC = () => {
       });
 
       const updatedItem = response.data;
-
-      // Update local cache immediately
-      queryClient.setQueryData(['inventory', page], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          items: old.items.map((item: Part) => item.id === updatedItem.id ? updatedItem : item)
-        };
-      });
-
-      await queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
       closeModal();
     } catch (err: any) {
       await alert('Erro ao ajustar o stock.');
@@ -396,23 +434,11 @@ const InventoryPage: React.FC = () => {
     if (!selectedPart || orderChange <= 0 || isSubmittingManual) return;
     setIsSubmittingManual(true);
     try {
-      const response = await apiClient.put<Part>(`/api/inventory/${selectedPart.id}/order`, {
+      await apiClient.put<Part>(`/api/inventory/${selectedPart.id}/order`, {
         quantity: orderChange,
         targetStock: targetStock
       });
-
-      const updatedItem = response.data;
-
-      // Update local cache immediately
-      queryClient.setQueryData(['inventory', page], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          items: old.items.map((item: Part) => item.id === updatedItem.id ? updatedItem : item)
-        };
-      });
-
-      await queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
       closeModal();
     } catch (err: any) {
       await alert('Erro ao registar a encomenda.');
@@ -426,24 +452,12 @@ const InventoryPage: React.FC = () => {
      if (!selectedPart || receiveQuantity <= 0 || receiveQuantity > currentOrdered || isSubmittingManual) return;
     setIsSubmittingManual(true);
     try {
-      const response = await apiClient.put<Part>(`/api/inventory/${selectedPart.id}/stock`, {
+      await apiClient.put<Part>(`/api/inventory/${selectedPart.id}/stock`, {
         quantity: receiveQuantity,
         fromOrder: true,
         targetStock: targetStock
       });
-
-      const updatedItem = response.data;
-
-      // Update local cache immediately
-      queryClient.setQueryData(['inventory', page], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          items: old.items.map((item: Part) => item.id === updatedItem.id ? updatedItem : item)
-        };
-      });
-
-      await queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
       closeModal();
     } catch (err: any) {
       await alert('Erro ao receber a encomenda.');
@@ -496,30 +510,13 @@ const InventoryPage: React.FC = () => {
     }
   };
 
-  const filteredInventory = useMemo(() => {
-    // We already filter by view on the backend and get exactly the needed items.
-    return inventory;
-  }, [inventory, view]);
+  const filteredInventory = useMemo(() => inventory, [inventory]);
 
   if (loading && !inventory.length) {
     return (
       <div className="container-fluid mt-4">
         <div className="skeleton skeleton-title" style={{ width: '300px' }}></div>
         <div className="skeleton mb-4" style={{ height: '60px', borderRadius: '12px' }}></div>
-        <div className="card border-0 shadow-sm p-0 overflow-hidden" style={{ borderRadius: '16px' }}>
-          <div className="p-3 bg-light border-bottom">
-            <div className="skeleton skeleton-text" style={{ width: '100%' }}></div>
-          </div>
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="p-4 border-bottom d-flex gap-3">
-              <div className="skeleton skeleton-text" style={{ width: '40%' }}></div>
-              <div className="skeleton skeleton-text" style={{ width: '20%' }}></div>
-              <div className="skeleton skeleton-text" style={{ width: '10%' }}></div>
-              <div className="skeleton skeleton-text" style={{ width: '10%' }}></div>
-              <div className="skeleton skeleton-text ms-auto" style={{ width: '15%' }}></div>
-            </div>
-          ))}
-        </div>
       </div>
     );
   }
@@ -531,14 +528,9 @@ const InventoryPage: React.FC = () => {
         <button
           className={`btn ${modalType === 'add_item' ? 'btn-secondary' : 'btn-success'}`}
           onClick={() => {
-            if (modalType === 'add_item') {
-              closeModal();
-            } else {
-              closeModal();
-              setModalType('add_item');
-            }
+            if (modalType === 'add_item') closeModal();
+            else { closeModal(); setModalType('add_item'); }
           }}
-          title={modalType === 'add_item' ? 'Cancelar' : 'Novo Item'}
         >
           {modalType === 'add_item' ? <X size={20} /> : <Plus size={20} />}
         </button>
@@ -569,20 +561,10 @@ const InventoryPage: React.FC = () => {
       <InventoryToolbar
         filter={filter}
         setFilter={setFilter}
-        onSearch={() => {
-          setSearch(filter);
-          setPage(1);
-        }}
-        onReset={() => {
-          setFilter('');
-          setSearch('');
-          setPage(1);
-        }}
+        onSearch={() => { setSearch(filter); setPage(1); }}
+        onReset={() => { setFilter(''); setSearch(''); setPage(1); }}
         view={view}
-        setView={(v) => {
-          setView(v);
-          setPage(1);
-        }}
+        setView={(v) => { setView(v); setPage(1); }}
       />
 
       {filteredInventory.length === 0 ? (
@@ -594,23 +576,20 @@ const InventoryPage: React.FC = () => {
           onEditItem={handleEditItem}
           onViewReservations={handleViewReservations}
           onDelete={handleDelete}
+          onOpenDoc={handleOpenDoc}
         />
       )}
 
       {/* Pagination Controls */}
-      {!loading && inventory.length > 0 && pagination.totalPages > 1 && (
+      {pagination.totalPages > 1 && (
         <div className="d-flex justify-content-between align-items-center mt-3 mb-5">
-          <span className="text-muted">
-            Página {pagination.page} de {pagination.totalPages} ({pagination.total} itens)
-          </span>
+          <span className="text-muted">Página {pagination.page} de {pagination.totalPages}</span>
           <nav>
             <ul className="pagination mb-0">
               <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
                 <button className="page-link" onClick={() => setPage(pagination.page - 1)}>Anterior</button>
               </li>
-              <li className="page-item active">
-                <span className="page-link">{pagination.page}</span>
-              </li>
+              <li className="page-item active"><span className="page-link">{pagination.page}</span></li>
               <li className={`page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}>
                 <button className="page-link" onClick={() => setPage(pagination.page + 1)}>Próximo</button>
               </li>
@@ -692,9 +671,17 @@ const InventoryPage: React.FC = () => {
           onReportSaved={handleReportSaved}
         />
       )}
+
+      {isOrderModalOpen && selectedOrderId && (
+        <OrderDetailsModal
+          isOpen={isOrderModalOpen}
+          onClose={() => setIsOrderModalOpen(false)}
+          orderId={selectedOrderId}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['inventory'] })}
+        />
+      )}
     </div>
   );
 };
 
 export default InventoryPage;
-

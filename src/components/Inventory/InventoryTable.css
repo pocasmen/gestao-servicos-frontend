@@ -42,3 +42,25 @@
         transform: translateY(0);
     }
 }
+
+/* History panel row */
+.history-panel-row td {
+    animation: historySlideIn 0.2s ease-out;
+    border-left: 3px solid #4f46e5 !important;
+}
+
+@keyframes historySlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* History table inner rows */
+.history-panel-row .table tbody tr:last-child {
+    border-bottom: none !important;
+}

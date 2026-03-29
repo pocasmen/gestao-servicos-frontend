@@ -123,6 +123,7 @@ const ReportPrintPage: React.FC = () => {
     const serviceTypeLabels = SERVICE_TYPE_LABELS;
 
     const reportLines = report.description?.split('\n') || [];
+    const damageLines = report.damage?.split('\n') || [];
 
     return (
         <div className="modern-report-container">
@@ -242,7 +243,12 @@ const ReportPrintPage: React.FC = () => {
                                 </h3>
                             </div>
                             <div className="damage-content">
-                                <p>{report.damage}</p>
+                                {damageLines.map((line, index) => (
+                                    <div key={index} className="description-line">
+                                        <div className="damage-bullet"></div>
+                                        <p>{line}</p>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

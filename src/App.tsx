@@ -19,6 +19,8 @@ const ClientsPage = React.lazy(() => import('./pages/ClientsPage'));
 const EquipmentsPage = React.lazy(() => import('./pages/EquipmentsPage'));
 const EquipmentHistoryPage = React.lazy(() => import('./pages/EquipmentHistoryPage'));
 const InventoryPage = React.lazy(() => import('./pages/InventoryPage'));
+const OrdersPage = React.lazy(() => import('./pages/OrdersPage'));
+const MovementsPage = React.lazy(() => import('./pages/MovementsPage'));
 const TechniciansPage = React.lazy(() => import('./pages/TechniciansPage'));
 const UsersPage = React.lazy(() => import('./pages/UsersPage'));
 const ReportsPage = React.lazy(() => import('./pages/ReportsPage'));
@@ -298,6 +300,8 @@ const AppRoutes: React.FC = () => {
             <Route path="/equipments" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><EquipmentsPage /></ProtectedRoute>} />
             <Route path="/equipments/:id/history" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><EquipmentHistoryPage /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><InventoryPage /></ProtectedRoute>} />
+            <Route path="/inventory/orders" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><OrdersPage /></ProtectedRoute>} />
+            <Route path="/inventory/movements" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><MovementsPage /></ProtectedRoute>} />
             <Route path="/technicians" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><TechniciansPage /></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><UsersPage /></ProtectedRoute>} />
             <Route path="/admin/pending-users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN]}><PendingUsersPage /></ProtectedRoute>} />
