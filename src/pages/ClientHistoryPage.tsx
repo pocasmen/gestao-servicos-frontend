@@ -18,6 +18,8 @@ interface ClientSchedule {
     technicians: any[];
     equipmentInfo: string;
     equipmentId?: number;
+    isManual?: boolean;
+    realId?: number;
 }
 
 const ClientHistoryPage: React.FC = () => {
@@ -39,22 +41,54 @@ const ClientHistoryPage: React.FC = () => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                const [schedulesRes, ticketsRes] = await Promise.all([
+                const [schedulesRes, ticketsRes, reportsRes] = await Promise.all([
                     apiClient.get('/api/client-portal/my-schedules?page=1&limit=50'),
-                    apiClient.get('/api/client-portal/my-tickets?page=1&limit=50')
+                    apiClient.get('/api/client-portal/my-tickets?page=1&limit=50'),
+                    apiClient.get('/api/client-portal/my-reports')
                 ]);
 
                 // Handle paginated response structure
                 const schedulesData = schedulesRes.data.data ? schedulesRes.data.data : schedulesRes.data;
                 const ticketsData = ticketsRes.data.data ? ticketsRes.data.data : ticketsRes.data;
+                const reportsData = reportsRes.data;
 
-                // Filter for History: Completed Schedules
-                let historySchedules = (Array.isArray(schedulesData) ? schedulesData : []).filter((s: any) => s.isCompleted);
+                // Filter for History: Completed Schedules OR those with reports
+                const historySchedules = (Array.isArray(schedulesData) ? schedulesData : []).filter((s: any) => s.isCompleted || s.hasReport);
 
                 // Filter for History: Closed Tickets
-                let historyTickets = (Array.isArray(ticketsData) ? ticketsData : []).filter((t: any) => t.status === 'closed');
+                const historyTickets = (Array.isArray(ticketsData) ? ticketsData : []).filter((t: any) => t.status === 'closed');
 
-                setSchedules(historySchedules);
+                // Identify Manual Reports (not linked to any current schedule in the list, or literally scheduleId is null)
+                const scheduleIds = new Set(historySchedules.map((h: any) => h.id));
+                const standaloneReports = (Array.isArray(reportsData) ? reportsData : [])
+                    .filter(r => !r.scheduleId || !scheduleIds.has(r.scheduleId))
+                    .map(r => {
+                        const serviceTypes = Array.isArray(r.serviceType) ? r.serviceType : [r.serviceType || 'Serviço'];
+                        const formattedServiceTypes = serviceTypes.map((s: string) => s.charAt(0).toUpperCase() + s.slice(1));
+                        const displayServiceType = formattedServiceTypes.join(', ');
+
+                        return {
+                            id: `manual-${r.id}`, // String ID to avoid conflicts
+                            realId: r.id,
+                            title: displayServiceType + ` - ${r.reportNumber}`,
+                            startDate: r.serviceDate,
+                            endDate: r.serviceDate,
+                            isCompleted: true,
+                            hasReport: true,
+                            isSigned: !!r.isSigned,
+                            serviceType: displayServiceType,
+                            technicians: r.technicians || [], 
+                            equipmentInfo: r.equipmentInfo || 'N/A',
+                            isManual: true 
+                        };
+                    });
+
+                // Combine both into one unified history list
+                const unifiedSchedules = [...historySchedules, ...standaloneReports].sort((a, b) => 
+                    new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+                );
+
+                setSchedules(unifiedSchedules);
                 setTickets(historyTickets);
             } catch (err) {
                 logger.error(err, 'Erro ao carregar histórico:');
@@ -67,44 +101,57 @@ const ClientHistoryPage: React.FC = () => {
         fetchData();
     }, []);
 
-    const handleViewReport = async (ticketOrScheduleId: number, type: 'ticket' | 'schedule') => {
-        let scheduleId = ticketOrScheduleId;
-
-        // If it's a ticket, we need the scheduleId from it. 
-        if (type === 'ticket') {
-            return;
-        }
-
+    const handleViewReport = async (item: ClientSchedule | any) => {
         try {
-            // First we need the report ID. We can fetch it by schedule ID.
-            const response = await apiClient.get(`/api/client-portal/my-report/by-schedule/${scheduleId}`);
-            if (response.data && response.data.id) {
-                navigate(`/report/print/${response.data.id}`);
+            let reportId: number;
+            
+            if (item.isManual) {
+                reportId = item.realId;
             } else {
-                alert("Relatório não encontrado.");
+                // First we need the report ID. We can fetch it by schedule ID.
+                const response = await apiClient.get(`/api/client-portal/my-report/by-schedule/${item.id}`);
+                if (!response.data || !response.data.id) {
+                    alert("Relatório não encontrado.");
+                    return;
+                }
+                reportId = response.data.id;
             }
+
+            navigate(`/report/print/${reportId}`);
         } catch (error) {
             logger.error(error, "Erro ao carregar o relatório:");
             alert("Não foi possível carregar o relatório. Por favor, tente mais tarde.");
         }
     };
 
-    const handleSignReport = async (scheduleId: number) => {
+    const handleSignReport = async (item: ClientSchedule | any) => {
         try {
-            const response = await apiClient.get(`/api/client-portal/my-report/by-schedule/${scheduleId}`);
-            if (!response.data || !response.data.id) {
-                alert("Relatório não encontrado.");
-                return;
-            }
+            let reportId: number;
             
-            const reportId = response.data.id;
+            if (item.isManual) {
+                reportId = item.realId;
+            } else {
+                const response = await apiClient.get(`/api/client-portal/my-report/by-schedule/${item.id}`);
+                if (!response.data || !response.data.id) {
+                    alert("Relatório não encontrado.");
+                    return;
+                }
+                reportId = response.data.id;
+            }
 
             await apiClient.post(`/api/client-portal/my-report/${reportId}/sign`);
             alert("Relatório assinado digitalmente com sucesso!");
 
             // Atualizar o estado local para remover o botão de assinar
-            setSchedules(prev => prev.map(s => s.id === scheduleId ? { ...s, isSigned: true } : s));
-            setTickets(prev => prev.map(t => t.scheduleId === scheduleId ? { ...t, isSigned: true } : t));
+            setSchedules(prev => prev.map(s => {
+                const isMatch = item.isManual ? (s.isManual && s.realId === reportId) : (s.id === item.id);
+                return isMatch ? { ...s, isSigned: true } : s;
+            }));
+            
+            // Também atualizar nos tickets se houver correspondência de scheduleId
+            if (!item.isManual) {
+                setTickets(prev => prev.map(t => t.scheduleId === item.id ? { ...t, isSigned: true } : t));
+            }
         } catch (error: any) {
             logger.error(error, "Erro ao assinar o relatório:");
             
@@ -182,7 +229,7 @@ const ClientHistoryPage: React.FC = () => {
                                                      <div className="d-flex gap-2">
                                                          <button
                                                              className="btn btn-sm btn-outline-primary"
-                                                             onClick={() => handleViewReport(schedule.id, 'schedule')}
+                                                             onClick={() => handleViewReport(schedule)}
                                                              title="Ver Relatório"
                                                          >
                                                              <i className="bi bi-file-earmark-pdf-fill me-1"></i>
@@ -191,7 +238,7 @@ const ClientHistoryPage: React.FC = () => {
                                                          {!schedule.isSigned && (
                                                             <button
                                                                 className="btn btn-sm btn-outline-success"
-                                                                onClick={() => handleSignReport(schedule.id)}
+                                                                onClick={() => handleSignReport(schedule)}
                                                                 title="Assinar Relatório"
                                                             >
                                                                 <i className="bi bi-pencil-fill me-1"></i>
@@ -234,7 +281,7 @@ const ClientHistoryPage: React.FC = () => {
                                                  <div className="d-inline-flex gap-2">
                                                      <button
                                                          className="btn btn-sm btn-outline-primary"
-                                                         onClick={() => handleViewReport(ticket.scheduleId!, 'schedule')}
+                                                         onClick={() => handleViewReport({ id: ticket.scheduleId })}
                                                          title="Ver Relatório"
                                                      >
                                                          <i className="bi bi-file-earmark-pdf-fill me-1"></i>
@@ -243,7 +290,7 @@ const ClientHistoryPage: React.FC = () => {
                                                      {!ticket.isSigned && (
                                                          <button
                                                              className="btn btn-sm btn-outline-success"
-                                                             onClick={() => handleSignReport(ticket.scheduleId!)}
+                                                             onClick={() => handleSignReport({ id: ticket.scheduleId })}
                                                              title="Assinar Relatório Digitalmente"
                                                          >
                                                              <i className="bi bi-pencil-fill me-1"></i>
@@ -260,6 +307,7 @@ const ClientHistoryPage: React.FC = () => {
                             ))}
                         </div>
                     )}
+
                 </div>
             </div>
         </div>

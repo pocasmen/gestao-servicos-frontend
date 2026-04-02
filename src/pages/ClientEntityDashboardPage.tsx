@@ -18,6 +18,7 @@ interface ClientStats {
         completed: number;
         closed: number;
         overdue: number;
+        withReport: number;
         total: number;
     };
     reports: {
@@ -113,7 +114,7 @@ const ClientEntityDashboardPage: React.FC = () => {
                         <div className="col-12 col-md-6 col-xl-3">
                             <StatCard
                                 title="Histórico e Relatórios"
-                                value={stats.reports.total + stats.tickets.closed + stats.schedules.completed}
+                                value={stats.reports.total + stats.tickets.closed + Math.max(0, stats.schedules.completed - stats.schedules.withReport)}
                                 linkTo="/portal/history"
                                 icon="bi bi-file-earmark-text"
                                 color="success"

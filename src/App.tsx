@@ -99,7 +99,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectP
   }
 
   // Redirection for Incomplete Profiles (Client Portal only)
-  if (isProfileIncomplete(user) && !location.pathname.includes('/portal/profile') && userHasRole(user, UserRole.CLIENT)) {
+  if (isProfileIncomplete(user) && !location.pathname.includes('/portal/profile') && !location.pathname.includes('/complete-registration') && userHasRole(user, UserRole.CLIENT)) {
     return <Navigate to="/portal/profile" replace />;
   }
 
@@ -127,7 +127,7 @@ const AppRoutes: React.FC = () => {
 
   useEffect(() => {
     const checkUpgrade = async () => {
-      if (user && !loading && !impersonatedUser && !hasShownUpgrade) {
+      if (user && !loading && !impersonatedUser && !hasShownUpgrade && isInternalUser(user)) {
         try {
           // Fetch full technician profile to ensure first_name is available
           // (Metadata might be stale or incomplete on some sessions)
@@ -213,6 +213,9 @@ const AppRoutes: React.FC = () => {
 
   const renderHeader = () => {
     if (!user) return null;
+    const hidePaths = ['/complete-registration', '/reset-password', '/accept-invite'];
+    if (hidePaths.includes(location.pathname)) return null;
+    
     if (isInternalUser(user)) {
       return <Header />;
     }

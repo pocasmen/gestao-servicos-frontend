@@ -66,18 +66,20 @@ const CompleteRegistrationPage: React.FC = () => {
                 throw updateError;
             }
 
-            // Sign out the invite session so the user logs in fresh with their
-            // new credentials. Without this, the stale session metadata
-            // (must_set_password: true) would keep redirecting back here.
-            await supabase.auth.signOut({ scope: 'local' });
+            // Refresh session to ensure all components see the updated must_set_password=false metadata
+            await supabase.auth.refreshSession();
 
             if (isPending) {
                 await alert('A sua password foi definida com sucesso. A sua conta aguarda agora a aprovação de um administrador. Será notificado quando for ativada.', 'Sucesso');
+                // For pending users, we SHOULD sign out because they can't do anything yet
+                await supabase.auth.signOut({ scope: 'local' });
+                navigate('/login', { replace: true });
             } else {
                 await alert('A sua password foi definida com sucesso. Já pode aceder à plataforma com as suas novas credenciais.', 'Sucesso');
+                // For approved users, they can just stay in!
+                // App.tsx handles the redirection based on profile completeness.
+                navigate('/', { replace: true });
             }
-
-            navigate('/login', { replace: true });
         } catch (err: any) {
             logger.error(err);
             alert(err.message || 'Ocorreu um erro ao definir a sua password.');
