@@ -16,7 +16,8 @@ import {
   Search,
   Plus,
   X,
-  Check
+  Check,
+  Ticket as TicketIcon
 } from 'lucide-react';
 
 import logger from '../utils/logger';
@@ -272,8 +273,11 @@ const TicketsPage: React.FC = () => {
       {/* Premium Header */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-4 mb-5 px-2">
         <div>
+        <div className="d-flex align-items-center gap-3">
+          <TicketIcon size={40} strokeWidth={2.5} className="text-primary" />
           <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Tickets</h1>
-          <p className="text-muted m-0 fw-medium mt-1">
+        </div>
+          <p className="text-muted small m-0 fst-italic">
             Central de atendimento: acompanhe e gira os novos pedidos de assistência.
           </p>
         </div>

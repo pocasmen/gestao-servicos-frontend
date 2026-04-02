@@ -255,8 +255,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                         <div className="row g-3 mb-3">
                                 {/* Título */}
                                 <div className="col-md-8">
-                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
-                                        <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                    <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 h-100 shadow-sm">
+                                        <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                             <i className="bi bi-fonts me-2 text-primary opacity-50"></i>
                                             Título *
                                         </label>
@@ -274,8 +274,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                 </div>
                                 {/* Atribuição */}
                                 <div className="col-md-4">
-                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
-                                        <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                    <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 h-100 shadow-sm">
+                                        <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                             <i className="bi bi-person-fill me-2 text-primary opacity-50"></i>
                                             Atribuído a *
                                         </label>
@@ -295,8 +295,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                             </div>
 
                             {/* Descrição */}
-                            <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light mb-3">
-                                <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                            <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm mb-3">
+                                <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                     <i className="bi bi-card-text me-2 text-primary opacity-50"></i>
                                     Descrição *
                                 </label>
@@ -315,8 +315,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                             <div className="row mb-3">
                                 {/* Tipo */}
                                 <div className="col-md-6">
-                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
-                                        <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                    <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 h-100 shadow-sm">
+                                        <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                             <i className="bi bi-tag-fill me-2 text-primary opacity-50"></i>
                                             Tipo de Tarefa
                                         </label>
@@ -336,8 +336,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                 </div>
                                 {/* Prioridade */}
                                 <div className="col-md-6">
-                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
-                                        <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                    <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 h-100 shadow-sm">
+                                        <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                             <i className="bi bi-flag-fill me-2 text-primary opacity-50"></i>
                                             Prioridade
                                         </label>
@@ -373,8 +373,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                 <div className="row g-2">
                                     {showClientSearch && (
                                         <div className="col-md-6">
-                                            <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
-                                                <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                            <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 h-100 shadow-sm">
+                                                <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                                     <i className="bi bi-building-fill me-2 text-primary opacity-50"></i>
                                                     Cliente
                                                 </label>
@@ -399,8 +399,8 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
 
                                     {showEquipmentSelect && clientId && (
                                         <div className="col-md-6">
-                                            <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
-                                                <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                            <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 h-100 shadow-sm">
+                                                <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                                     <i className="bi bi-tools me-2 text-primary opacity-50"></i>
                                                     Equipamento
                                                 </label>
@@ -430,9 +430,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                             {/* Configurações de exibição */}
                             <div className="row g-3 mb-3">
                                 <div className="col-md-6">
-                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light h-100 d-flex align-items-center">
+                                    <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm h-100 d-flex align-items-center">
                                         <div className="form-check form-switch w-100 d-flex align-items-center mb-0 p-0">
-                                            <label className="text-muted fw-bold text-uppercase d-flex align-items-center m-0 flex-grow-1" htmlFor="isPrivateSwitch" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                            <label className="text-dark fw-bold text-uppercase d-flex align-items-center m-0 flex-grow-1" htmlFor="isPrivateSwitch" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                                 <i className="bi bi-lock-fill me-2 text-primary opacity-50"></i>
                                                 {isPrivate ? 'Tarefa Privada' : 'Tarefa Pública'}
                                             </label>
@@ -448,9 +448,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                     </div>
                                 </div>
                                 <div className="col-md-6">
-                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light h-100 d-flex align-items-center">
+                                    <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm h-100 d-flex align-items-center">
                                         <div className="form-check form-switch w-100 d-flex align-items-center mb-0 p-0">
-                                            <label className="text-muted fw-bold text-uppercase d-flex align-items-center m-0 flex-grow-1" htmlFor="calendarSwitch" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                            <label className="text-dark fw-bold text-uppercase d-flex align-items-center m-0 flex-grow-1" htmlFor="calendarSwitch" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                                 <i className="bi bi-calendar-check-fill me-2 text-primary opacity-50"></i>
                                                 Visível no Calendário
                                             </label>
@@ -468,9 +468,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                             </div>
 
                             {/* Blocos de Tempo */}
-                            <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light mb-3">
+                            <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm mb-3">
                                 <div className="d-flex justify-content-between align-items-center mb-3">
-                                    <label className="text-muted fw-bold text-uppercase d-block mb-0" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                    <label className="text-dark fw-bold text-uppercase d-block mb-0" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                         <Clock size={16} className="me-2 text-primary opacity-50 d-inline" /> 
                                         Agendamento e Horários
                                     </label>

@@ -36,9 +36,9 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
     if (isTicketScheduling) return null;
 
     return (
-        <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light mb-3 text-start">
+        <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm mb-3 text-start">
             <div className="d-flex justify-content-between align-items-center mb-3">
-                <label className="text-muted fw-bold text-uppercase d-block mb-0" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                <label className="text-dark fw-bold text-uppercase d-block mb-0" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                     <i className="bi bi-basket-fill me-2 text-primary opacity-50"></i>
                     Peças / Artigos
                 </label>

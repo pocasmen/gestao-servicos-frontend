@@ -8,7 +8,7 @@ import { SmartInput } from '../components/SmartInput';
 import { Equipment, Client } from '../types';
 import { EquipmentSchema, ClientSchema } from '../schemas';
 import logger from '../utils/logger';
-import { Pencil, Trash2, History, Plus, X, Check, Search } from 'lucide-react';
+import { Pencil, Trash2, History, Plus, X, Check, Search, Cpu } from 'lucide-react';
 
 // Formulário de Criação (com estilo Bootstrap Card)
 const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipmentAdded }) => {
@@ -272,7 +272,7 @@ const EditEquipmentModal: React.FC<{
                 <div className="form-text text-danger small mt-1 animate__animated animate__headShake">Cliente não encontrado. Selecione um cliente da lista.</div>
               )}
             </div>
-            
+
             <div className="row g-3">
               <div className="col-md-6 mb-3">
                 <SmartInput
@@ -378,23 +378,23 @@ const EquipmentList: React.FC<{
                   </td>
                   <td className="text-end pe-4 py-3">
                     <div className="d-flex justify-content-end gap-2">
-                      <Link 
-                        to={`/equipments/${equipment.id}/history`} 
-                        className="btn btn-icon btn-outline-info rounded-circle border-2 shadow-sm transition-all" 
+                      <Link
+                        to={`/equipments/${equipment.id}/history`}
+                        className="btn btn-icon btn-outline-info rounded-circle border-2 shadow-sm transition-all"
                         title="Ver Histórico"
                       >
                         <History size={18} strokeWidth={2.5} />
                       </Link>
-                      <button 
-                        className="btn btn-icon btn-outline-warning rounded-circle border-2 shadow-sm transition-all" 
-                        onClick={() => onEdit(equipment)} 
+                      <button
+                        className="btn btn-icon btn-outline-warning rounded-circle border-2 shadow-sm transition-all"
+                        onClick={() => onEdit(equipment)}
                         title="Editar Equipamento"
                       >
                         <Pencil size={18} strokeWidth={2.5} />
                       </button>
-                      <button 
-                        className="btn btn-icon btn-outline-danger rounded-circle border-2 shadow-sm transition-all" 
-                        onClick={() => onDelete(equipment)} 
+                      <button
+                        className="btn btn-icon btn-outline-danger rounded-circle border-2 shadow-sm transition-all"
+                        onClick={() => onDelete(equipment)}
                         title="Apagar Equipamento"
                       >
                         <Trash2 size={18} strokeWidth={2.5} />
@@ -498,8 +498,11 @@ const EquipmentsPage: React.FC = () => {
     <div className="container-fluid mt-4">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 mt-2">
         <div>
+        <div className="d-flex align-items-center gap-3">
+          <Cpu size={40} strokeWidth={2.5} className="text-primary" />
           <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Equipamentos</h1>
-          <p className="text-muted m-0" style={{ fontFamily: 'var(--font-family-body)' }}>Consulte e gira o parque de equipamentos instalados</p>
+        </div>
+          <p className="text-muted small m-0 fst-italic">Consulte e gira o parque de equipamentos instalados</p>
         </div>
         <button
           className={`btn ${showNewEquipmentForm ? 'btn-secondary' : 'btn-primary'} rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all`}

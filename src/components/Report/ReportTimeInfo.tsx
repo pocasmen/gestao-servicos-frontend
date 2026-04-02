@@ -34,8 +34,8 @@ const ReportTimeInfo: React.FC<ReportTimeInfoProps> = ({
                 />
             </div>
             <div className="col-md-4">
-                <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light h-100 d-flex flex-column justify-content-center align-items-center mb-3">
-                    <label className="text-muted fw-bold text-uppercase d-block mb-2 text-center" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm h-100 d-flex flex-column justify-content-center align-items-center mb-3">
+                    <label className="text-dark fw-bold text-uppercase d-block mb-2 text-center" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                         <i className="bi bi-hourglass-split me-2 text-primary opacity-50"></i>
                         Horas Totais
                     </label>

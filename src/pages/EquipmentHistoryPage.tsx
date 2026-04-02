@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
 import apiClient from '../apiClient';
+import { History } from 'lucide-react';
 import { Equipment } from '../types';
 
 interface EquipmentHistory {
@@ -69,7 +70,10 @@ const EquipmentHistoryPage: React.FC = () => {
 
   return (
     <div className="container-fluid mt-4">
-      <h1 className="mb-3">Histórico do Equipamento</h1>
+      <div className="d-flex align-items-center gap-3 mb-4">
+        <History size={40} strokeWidth={2.5} className="text-primary" />
+        <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Histórico do Equipamento</h1>
+      </div>
 
       <div className="row">
         {/* Left Column: Details */}

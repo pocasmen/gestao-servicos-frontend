@@ -17,7 +17,7 @@ import OrderDetailsModal from '../components/Inventory/OrderDetailsModal';
 import { supabase } from '../supabase';
 import logger from '../utils/logger';
 import { useNavigate } from 'react-router-dom';
-import { Plus, X, Truck, Search } from 'lucide-react';
+import { Plus, X, Truck, Search, Package } from 'lucide-react';
 
 const InventoryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -163,12 +163,12 @@ const InventoryPage: React.FC = () => {
     setStockChange(0);
     setOrderChange(0);
     setReceiveQuantity(0);
-    
+
     // Default to FOSS if we are receiving and only FOSS has pending orders
     const defaultStock = type === 'receive' && (part.ordered_quantity || 0) <= 0 && (part.ordered_quantity_foss || 0) > 0
-      ? StockType.FOSS 
+      ? StockType.FOSS
       : StockType.GENERAL;
-      
+
     setTargetStock(defaultStock);
   };
 
@@ -199,7 +199,7 @@ const InventoryPage: React.FC = () => {
     try {
       const response = await apiClient.get(`/api/schedules/${scheduleId}`);
       const schedule = response.data;
-      
+
       const event: ScheduleEvent = {
         ...schedule,
         start: schedule.startDate ? new Date(schedule.startDate) : undefined,
@@ -210,7 +210,7 @@ const InventoryPage: React.FC = () => {
           end: new Date(tb.end || tb.end_time)
         }))
       };
-      
+
       setSelectedEvent(event);
       setIsScheduleModalOpen(true);
     } catch (err) {
@@ -238,8 +238,8 @@ const InventoryPage: React.FC = () => {
       setReportToEdit(response.data);
     } catch (error: any) {
       if (error.response?.status === 404) {
-        setReportToEdit({ 
-          scheduleId: Number(event.id), 
+        setReportToEdit({
+          scheduleId: Number(event.id),
           clientId: event.clientId as number,
           equipmentId: event.equipmentId as number,
           technicians: event.technicians || [],
@@ -278,7 +278,7 @@ const InventoryPage: React.FC = () => {
         const report = res.data;
         const schedRes = await apiClient.get(`/api/schedules/${report.scheduleId}`);
         const schedule = schedRes.data;
-        
+
         const event: ScheduleEvent = {
           ...schedule,
           start: schedule.startDate ? new Date(schedule.startDate) : undefined,
@@ -449,9 +449,9 @@ const InventoryPage: React.FC = () => {
     }
   };
 
-   const handleReceiveOrder = async () => {
-     const currentOrdered = targetStock === StockType.FOSS ? (selectedPart?.ordered_quantity_foss || 0) : (selectedPart?.ordered_quantity || 0);
-     if (!selectedPart || receiveQuantity <= 0 || receiveQuantity > currentOrdered || isSubmittingManual) return;
+  const handleReceiveOrder = async () => {
+    const currentOrdered = targetStock === StockType.FOSS ? (selectedPart?.ordered_quantity_foss || 0) : (selectedPart?.ordered_quantity || 0);
+    if (!selectedPart || receiveQuantity <= 0 || receiveQuantity > currentOrdered || isSubmittingManual) return;
     setIsSubmittingManual(true);
     try {
       await apiClient.put<Part>(`/api/inventory/${selectedPart.id}/stock`, {
@@ -527,8 +527,11 @@ const InventoryPage: React.FC = () => {
     <div className="container-fluid py-4 min-vh-100 bg-light">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 mt-2">
         <div>
+        <div className="d-flex align-items-center gap-3">
+          <Package size={40} strokeWidth={2.5} className="text-primary" />
           <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Inventário</h1>
-          <p className="text-muted m-0" style={{ fontFamily: 'var(--font-family-body)' }}>Consulte e gira o stock de peças, equipamentos e componentes.</p>
+        </div>
+          <p className="text-muted small m-0 fst-italic">Consulte e gira o stock de peças, equipamentos e componentes.</p>
         </div>
         <div className="d-flex gap-3">
           <button className="btn btn-outline-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all border-2" onClick={() => navigate('/inventory/orders')}>

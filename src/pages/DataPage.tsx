@@ -190,9 +190,10 @@ const DataPage: React.FC = () => {
     <div className="container-fluid mt-4 animate__animated animate__fadeIn">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h1 className="h2 d-flex align-items-center gap-2">
-            <Database className="text-primary" /> Dados de Administração
-          </h1>
+        <div className="d-flex align-items-center gap-3">
+          <Database size={40} strokeWidth={2.5} className="text-primary" />
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Dados de Administração</h1>
+        </div>
           <p className="text-muted">Gestão e exportação completa de dados do sistema.</p>
         </div>
         <div className="d-flex gap-2">

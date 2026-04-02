@@ -180,8 +180,11 @@ const BillingPage: React.FC = () => {
         <div className="container-fluid mt-4">
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
                 <div>
-                    <h1 className="mb-0">Gestão de Faturação</h1>
-                    <p className="text-muted mb-0">Controlo de faturação e tarefas administrativas.</p>
+                    <div className="d-flex align-items-center gap-3">
+                        <Receipt size={40} strokeWidth={2.5} className="text-primary" />
+                        <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Faturação</h1>
+                    </div>
+                    <p className="text-muted small m-0 fst-italic">Controlo de faturação e tarefas administrativas.</p>
                 </div>
 
                 <div className="d-flex align-items-center gap-2 glass-panel p-2 rounded-4 shadow-sm border-0">

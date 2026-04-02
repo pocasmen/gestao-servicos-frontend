@@ -9,6 +9,7 @@ import { pt } from 'date-fns/locale';
 import apiClient from '../apiClient';
 import { supabase } from '../supabase';
 import logger from '../utils/logger';
+import { Calendar as CalendarLucide } from 'lucide-react';
 
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
@@ -588,8 +589,11 @@ const CalendarPage: React.FC = () => {
       {/* Premium Header */}
       <div className="d-flex justify-content-between align-items-center mb-4 px-2">
         <div>
+        <div className="d-flex align-items-center gap-3">
+          <CalendarLucide size={40} strokeWidth={2.5} className="text-primary" />
           <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Agenda Técnica</h1>
-          <p className="text-muted m-0 fw-medium">Gestão inteligente de intervenções e backlog de serviços.</p>
+        </div>
+          <p className="text-muted small m-0 fst-italic">Gestão inteligente de intervenções e backlog de serviços.</p>
         </div>
       </div>
 
@@ -614,7 +618,7 @@ const CalendarPage: React.FC = () => {
       <div className="row g-4 mt-2">
         <div className="col-md-3">
           <div className="glass-card border-0 mb-4 overflow-hidden h-100 shadow-sm d-flex flex-column animate__animated animate__fadeInLeft" style={{ borderRadius: '24px' }}>
-            <div className="bg-primary px-4 py-3 d-flex justify-content-between align-items-center">
+            <div className="bg-black px-4 py-3 d-flex justify-content-between align-items-center">
               <h6 className="text-white fw-bold m-0 text-uppercase small" style={{ fontFamily: 'var(--font-family-title)', letterSpacing: '0.05em' }}>
                 <i className="bi bi-list-task me-2"></i> Backlog
               </h6>

@@ -9,7 +9,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { Client } from '../types';
 import { ClientSchema } from '../schemas';
 import logger from '../utils/logger';
-import { Pencil, Trash2, UserPlus, Plus, X, Check, Send, Search } from 'lucide-react';
+import { Pencil, Trash2, UserPlus, Plus, X, Check, Send, Search, Users } from 'lucide-react';
 
 // Componente do Formulário (Criação)
 
@@ -177,23 +177,23 @@ const ClientList: React.FC<{
                   </td>
                   <td className="text-end pe-4 py-3">
                     <div className="d-flex justify-content-end gap-2">
-                      <button 
-                        className="btn btn-icon btn-outline-primary rounded-circle border-2 shadow-sm transition-all" 
-                        onClick={() => onInvite(client)} 
+                      <button
+                        className="btn btn-icon btn-outline-primary rounded-circle border-2 shadow-sm transition-all"
+                        onClick={() => onInvite(client)}
                         title="Convidar Utilizador"
                       >
                         <UserPlus size={18} strokeWidth={2.5} />
                       </button>
-                      <button 
-                        className="btn btn-icon btn-outline-warning rounded-circle border-2 shadow-sm transition-all" 
-                        onClick={() => onEdit(client)} 
+                      <button
+                        className="btn btn-icon btn-outline-warning rounded-circle border-2 shadow-sm transition-all"
+                        onClick={() => onEdit(client)}
                         title="Editar Cliente"
                       >
                         <Pencil size={18} strokeWidth={2.5} />
                       </button>
-                      <button 
-                        className="btn btn-icon btn-outline-danger rounded-circle border-2 shadow-sm transition-all" 
-                        onClick={() => onDelete(client)} 
+                      <button
+                        className="btn btn-icon btn-outline-danger rounded-circle border-2 shadow-sm transition-all"
+                        onClick={() => onDelete(client)}
                         title="Apagar Cliente"
                       >
                         <Trash2 size={18} strokeWidth={2.5} />
@@ -465,8 +465,11 @@ const ClientsPage: React.FC = () => {
     <div className="container-fluid mt-4">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 mt-2">
         <div>
+        <div className="d-flex align-items-center gap-3">
+          <Users size={40} strokeWidth={2.5} className="text-primary" />
           <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Clientes</h1>
-          <p className="text-muted m-0" style={{ fontFamily: 'var(--font-family-body)' }}>Registe e gira a sua base de dados de clientes</p>
+        </div>
+          <p className="text-muted small m-0 fst-italic">Registe e gira a sua base de dados de clientes</p>
         </div>
         <button
           className={`btn ${showNewClientForm ? 'btn-secondary' : 'btn-primary'} rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all`}

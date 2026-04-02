@@ -49,7 +49,10 @@ const ClientEquipmentsPage: React.FC = () => {
         <div className="container-fluid py-5">
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
                 <div>
-                    <h1 className="display-5 fw-bold mb-0 text-primary">O Seu Parque de Equipamentos</h1>
+                    <div className="d-flex align-items-center gap-3">
+                        <Cpu size={40} strokeWidth={2.5} className="text-primary" />
+                        <h1 className="display-5 fw-bold mb-0 text-primary" style={{ color: 'var(--primary-color)' }}>O Seu Parque de Equipamentos</h1>
+                    </div>
                     <p className="text-muted lead">Consulte e gira os ativos associados à {activeClient.name}.</p>
                 </div>
                 <div className="position-relative" style={{ minWidth: '300px' }}>

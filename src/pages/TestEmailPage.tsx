@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import apiClient from '../apiClient';
+import { Mail } from 'lucide-react';
 
 type Status = 'idle' | 'loading' | 'success' | 'error';
 
@@ -41,7 +42,7 @@ const TestEmailPage: React.FC = () => {
             }}>
                 {/* Header */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
-                    <span style={{ fontSize: '32px' }}>📧</span>
+                    <Mail size={32} strokeWidth={2.5} style={{ color: '#2563eb' }} />
                     <div>
                         <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#111827' }}>
                             Teste de Email

@@ -23,9 +23,9 @@ const ScheduleTimeBlocks: React.FC<ScheduleTimeBlocksProps> = ({
     if (sendToBacklog) return null;
 
     return (
-        <div className="p-2 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light mb-3">
+        <div className="p-2 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm mb-3">
             <div className="d-flex justify-content-between align-items-center mb-2">
-                <label className="text-muted fw-bold text-uppercase d-block mb-0" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                <label className="text-dark fw-bold text-uppercase d-block mb-0" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                     <i className="bi bi-clock-fill me-2 text-primary opacity-50"></i>
                     Horários do Serviço
                 </label>

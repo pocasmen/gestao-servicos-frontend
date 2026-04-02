@@ -183,6 +183,8 @@ const PerformanceGauge: React.FC<{ percentage: number; label: string }> = ({ per
   );
 };
 
+import { LayoutDashboard } from 'lucide-react';
+
 const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [weeklySchedules, setWeeklySchedules] = useState<ScheduleDetail[]>([]);
@@ -439,7 +441,10 @@ const DashboardPage: React.FC = () => {
     <div className="container-fluid mt-4">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-5 mt-2">
         <div>
-          <h1 className="fw-bold m-0 animate__animated animate__fadeInLeft" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)', fontSize: '2.5rem' }}>Dashboard</h1>
+        <div className="d-flex align-items-center gap-3 animate__animated animate__fadeInLeft">
+          <LayoutDashboard size={48} strokeWidth={2.5} className="text-primary" />
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)', fontSize: '2.5rem' }}>Dashboard</h1>
+        </div>
           <p className="text-muted m-0 animate__animated animate__fadeInLeft animate__delay-1s">Bem-vindo à sua central de controlo operacional</p>
         </div>
 

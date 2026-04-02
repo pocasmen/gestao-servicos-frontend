@@ -3,6 +3,7 @@ import DOMPurify from 'dompurify';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
+import { Settings } from 'lucide-react';
 
 const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<Record<string, string>>({
@@ -126,7 +127,11 @@ const SettingsPage: React.FC = () => {
 
   return (
     <div className="container-fluid mt-4">
-      <h2>Configurações Gerais</h2>
+      <div className="d-flex align-items-center gap-3 mb-4">
+        <Settings size={40} strokeWidth={2.5} className="text-primary" />
+        <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Configurações Gerais</h1>
+      </div>
+
 
       <div className="card mb-4">
         <div className="card-header">
@@ -213,7 +218,7 @@ const SettingsPage: React.FC = () => {
                   value={selectedTemplate.body || ''}
                   onChange={(e) => handleTemplateChange('body', e.target.value)}
                 />
-            <div className="form-text">
+                <div className="form-text">
                   Pode usar HTML. Variáveis disponíveis: <code>{"{{login_url}}"}</code>, <code>{"{{setup_url}}"}</code>, <code>{"{{first_name}}"}</code>
                 </div>
               </div>
@@ -221,12 +226,12 @@ const SettingsPage: React.FC = () => {
                 <label className="form-label">Pré-visualização</label>
                 <div
                   style={{ border: '1px solid #ced4da', padding: '15px', borderRadius: '4px', backgroundColor: '#fff', minHeight: '150px' }}
-                  dangerouslySetInnerHTML={{ 
+                  dangerouslySetInnerHTML={{
                     __html: DOMPurify.sanitize(
                       selectedTemplate.body?.replace(/{{login_url}}/g, '#')
                         .replace(/{{setup_url}}/g, '#')
                         .replace(/{{first_name}}/g, 'João') || ''
-                    ) 
+                    )
                   }}
                 />
               </div>

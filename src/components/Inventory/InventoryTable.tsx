@@ -239,7 +239,8 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                         </div>
                                     </td>
                                     <td className="pe-4">
-                                        <div className="d-flex justify-content-end gap-2">
+                                        <div className="d-flex justify-content-end gap-1">
+                                            {/* Column 1: History (Always) */}
                                             <button
                                                 className={`btn btn-icon rounded-circle shadow-sm transition-all ${expandedPartId === part.id ? 'btn-primary shadow-sm' : 'btn-outline-primary border-2'}`}
                                                 onClick={() => toggleHistory(part.id!)}
@@ -248,7 +249,8 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                                 {expandedPartId === part.id ? <ChevronUp size={18} strokeWidth={2.5} /> : <History size={18} strokeWidth={2.5} />}
                                             </button>
 
-                                            {!part.is_composed && (
+                                            {/* Column 2: Adjustment */}
+                                            {!part.is_composed ? (
                                                 <button
                                                     className="btn btn-icon btn-outline-secondary rounded-circle shadow-sm transition-all border-2"
                                                     onClick={() => onOpenModal(part, 'stock')}
@@ -256,8 +258,9 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                                 >
                                                     <ArrowUpDown size={18} strokeWidth={2.5} />
                                                 </button>
-                                            )}
+                                            ) : <div style={{ width: '34px' }} />}
 
+                                            {/* Column 3: Edit (Always) */}
                                             <button
                                                 className="btn btn-icon btn-outline-primary rounded-circle shadow-sm transition-all border-2"
                                                 onClick={() => onEditItem(part)}
@@ -266,7 +269,8 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                                 <Pencil size={18} strokeWidth={2.5} />
                                             </button>
 
-                                            {!part.is_composed && (
+                                            {/* Column 4: Order */}
+                                            {!part.is_composed ? (
                                                 <button
                                                     className="btn btn-icon btn-outline-warning rounded-circle shadow-sm transition-all border-2"
                                                     onClick={() => onOpenModal(part, 'order')}
@@ -274,9 +278,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                                 >
                                                     <Truck size={18} strokeWidth={2.5} />
                                                 </button>
-                                            )}
+                                            ) : <div style={{ width: '34px' }} />}
 
-                                            {!part.is_composed && ((part.ordered_quantity || 0) > 0 || (part.ordered_quantity_foss || 0) > 0) && (
+                                            {/* Column 5: Receive */}
+                                            {!part.is_composed && ((part.ordered_quantity || 0) > 0 || (part.ordered_quantity_foss || 0) > 0) ? (
                                                 <button
                                                     className="btn btn-icon btn-outline-info rounded-circle shadow-sm transition-all border-2"
                                                     onClick={() => onOpenModal(part, 'receive')}
@@ -284,9 +289,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                                 >
                                                     <Package size={18} strokeWidth={2.5} />
                                                 </button>
-                                            )}
+                                            ) : <div style={{ width: '34px' }} />}
 
-                                            {((part.reserved_quantity || 0) > 0 || (part.reserved_quantity_foss || 0) > 0) && (
+                                            {/* Column 6: Reservations */}
+                                            {((part.reserved_quantity || 0) > 0 || (part.reserved_quantity_foss || 0) > 0) ? (
                                                 <button
                                                     className="btn btn-icon btn-outline-success rounded-circle shadow-sm transition-all border-2"
                                                     onClick={() => onViewReservations(part)}
@@ -294,8 +300,9 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                                 >
                                                     <CalendarCheck size={18} strokeWidth={2.5} />
                                                 </button>
-                                            )}
+                                            ) : <div style={{ width: '34px' }} />}
 
+                                            {/* Column 7: Delete (Always) */}
                                             <button
                                                 className="btn btn-icon btn-outline-danger rounded-circle shadow-sm transition-all border-2"
                                                 onClick={() => onDelete(part)}

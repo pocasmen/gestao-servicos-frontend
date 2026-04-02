@@ -467,25 +467,23 @@ const ReportList: React.FC<{
                 </td>
                 <td className="text-end pe-4">
                   <div className="d-flex justify-content-end gap-1">
-                    <Link to={`/report/print/${report.id}`} className="btn btn-sm btn-primary bg-opacity-15 text-primary-emphasis border-0 shadow-none rounded-pill" target="_blank" title="Ver / Imprimir" style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Printer size={18} />
+                    <Link to={`/report/print/${report.id}`} className="btn btn-icon btn-outline-primary border-2 shadow-sm rounded-circle" target="_blank" title="Ver / Imprimir">
+                      <Printer size={18} strokeWidth={2.5} />
                     </Link>
                     <button
-                      className="btn btn-sm btn-warning bg-opacity-15 text-warning-emphasis border-0 shadow-none rounded-pill"
+                      className="btn btn-icon btn-outline-warning border-2 shadow-sm rounded-circle"
                       onClick={() => onEditReport(report)}
                       title="Editar Relatório"
-                      style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                     >
-                      <Pencil size={18} />
+                      <Pencil size={18} strokeWidth={2.5} />
                     </button>
                     {isAdmin && (
                       <button
-                        className="btn btn-sm btn-outline-danger border-0 rounded-pill"
+                        className="btn btn-icon btn-outline-danger border-2 shadow-sm rounded-circle"
                         onClick={() => onDeleteReport(report)}
                         title="Eliminar Relatório"
-                        style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={18} strokeWidth={2.5} />
                       </button>
                     )}
                   </div>
@@ -594,8 +592,11 @@ const ReportsPage: React.FC = () => {
     <div className="container-fluid mt-4">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 mt-2">
         <div>
+        <div className="d-flex align-items-center gap-3">
+          <FileText size={40} strokeWidth={2.5} className="text-primary" />
           <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Relatórios</h1>
-          <p className="text-muted m-0">Consulte e emita relatórios de intervenção técnica</p>
+        </div>
+          <p className="text-muted small m-0 fst-italic">Consulte e emita relatórios de intervenção técnica</p>
         </div>
         <button
           className={`btn ${showNewReportForm ? 'btn-secondary' : 'btn-primary'} rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2`}

@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
-import { Plus, Clock, Lock, Globe, Filter, AlertTriangle, Calendar as CalendarIcon, Trash2, Building2, Wrench, Pencil, Check } from 'lucide-react';
+import { Plus, Clock, Lock, Globe, Filter, AlertTriangle, Calendar as CalendarIcon, Trash2, Building2, Wrench, Pencil, Check, ListTodo } from 'lucide-react';
 import TaskModal from '../components/TaskModal';
 import logger from '../utils/logger';
 import { InternalTask } from '../types';
@@ -82,7 +82,7 @@ const TasksPage: React.FC = () => {
                 if (task.completed && statusFilter === 'pending') {
                     setStatusFilter('all');
                 }
-                
+
                 handleEdit(task);
                 // Limpar o estado para não reabrir ao navegar internamente
                 window.history.replaceState({}, document.title);
@@ -164,7 +164,10 @@ const TasksPage: React.FC = () => {
             {/* Header */}
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
                 <div>
-                    <h1 className="h2 fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: '#0f172a' }}>Tarefas Internas</h1>
+                <div className="d-flex align-items-center gap-3">
+                    <ListTodo size={40} strokeWidth={2.5} className="text-primary" />
+                    <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Tarefas Internas</h1>
+                </div>
                     <p className="text-muted small m-0 fst-italic">Gestão administrativa, formação e eventos de equipa.</p>
                 </div>
                 <div className="d-flex align-items-center gap-2 flex-wrap">

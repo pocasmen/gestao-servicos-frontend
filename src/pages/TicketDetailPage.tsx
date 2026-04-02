@@ -10,6 +10,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { UserRole, TicketStatus } from '../constants/enums';
 import logger from '../utils/logger';
+import { Ticket as TicketIcon } from 'lucide-react';
 import { DetailedTicketSchema } from '../schemas';
 import { Attachment, DetailedTicket, TicketResponse } from '../types';
 import { compressIfImage } from '../utils/imageUtils';
@@ -557,9 +558,12 @@ const TicketDetailPage: React.FC = () => {
               <li className="breadcrumb-item active text-primary" aria-current="page">#{id}</li>
             </ol>
           </nav>
-          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)', fontSize: '2rem' }}>
-            {ticket.clientName}
-          </h1>
+          <div className="d-flex align-items-center gap-3">
+            <TicketIcon size={32} strokeWidth={2.5} className="text-primary" />
+            <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)', fontSize: '2rem' }}>
+              {ticket.clientName}
+            </h1>
+          </div>
           <div className="d-flex align-items-center gap-2 mt-2">
             <span className={`badge rounded-pill border-0 px-3 py-1 fw-bold ${isTicketClosed ? 'bg-secondary bg-opacity-15 text-secondary' : 'bg-success bg-opacity-15 text-success'}`}>
               <span className="me-1">{isTicketClosed ? '●' : '●'}</span>

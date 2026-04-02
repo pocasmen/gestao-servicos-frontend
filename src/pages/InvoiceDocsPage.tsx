@@ -79,7 +79,7 @@ const InvoiceDocsPage = () => {
       // Reset input
       const input = document.getElementById('invoice-upload') as HTMLInputElement;
       if (input) input.value = '';
-      
+
       await fetchInvoices();
     } catch (err: any) {
       console.error('Erro no upload:', err);
@@ -107,10 +107,11 @@ const InvoiceDocsPage = () => {
     <div className="container-fluid animate__animated animate__fadeIn">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 className="h3 mb-0 fw-bold d-flex align-items-center gap-2 text-primary">
-            <FileText size={28} /> Gestão de Documentos
-          </h2>
-          <p className="text-muted mb-0">Extração automatizada de dados de faturas internos.</p>
+        <div className="d-flex align-items-center gap-3">
+          <FileText size={40} strokeWidth={2.5} className="text-primary" />
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Documentos</h1>
+        </div>
+          <p className="text-muted small m-0 fst-italic">Extração automatizada de dados de faturas internos.</p>
         </div>
       </div>
 
@@ -127,14 +128,14 @@ const InvoiceDocsPage = () => {
               <form onSubmit={handleUpload}>
                 <div className="mb-4">
                   <div className="upload-zone p-4 border-2 border-dashed rounded-4 bg-light cursor-pointer hover-bg-light-blue"
-                       onClick={() => document.getElementById('invoice-upload')?.click()}>
+                    onClick={() => document.getElementById('invoice-upload')?.click()}>
                     <Upload size={40} className="text-primary opacity-50 mb-2" />
-                    <p className="mb-0 small text-muted">Arraste ou clique para selecionar<br/>PDF da fatura (Micro Atomo)</p>
+                    <p className="mb-0 small text-muted">Arraste ou clique para selecionar<br />PDF da fatura (Micro Atomo)</p>
                   </div>
-                  <input 
-                    type="file" 
-                    id="invoice-upload" 
-                    className="d-none" 
+                  <input
+                    type="file"
+                    id="invoice-upload"
+                    className="d-none"
                     accept="application/pdf"
                     onChange={handleFileChange}
                   />
@@ -154,8 +155,8 @@ const InvoiceDocsPage = () => {
                   </div>
                 )}
 
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   className="btn btn-primary w-100 rounded-pill py-2 fw-bold d-flex align-items-center justify-content-center gap-2"
                   disabled={!file || uploading}
                 >
@@ -207,9 +208,9 @@ const InvoiceDocsPage = () => {
                       </tr>
                     ) : (
                       invoices.map((invoice) => (
-                        <tr 
-                          key={invoice.id} 
-                          className="align-middle" 
+                        <tr
+                          key={invoice.id}
+                          className="align-middle"
                           style={{ cursor: 'pointer' }}
                           onClick={() => setSelectedInvoice(invoice)}
                         >
@@ -229,8 +230,8 @@ const InvoiceDocsPage = () => {
                             {formatCurrency(invoice.total_value)}
                           </td>
                           <td className="px-4 text-center" onClick={(e) => e.stopPropagation()}>
-                            <a href={invoice.file_url} target="_blank" rel="noopener noreferrer" 
-                               className="btn btn-sm btn-outline-secondary rounded-circle p-1 hover-bg-primary hover-text-white transition-all">
+                            <a href={invoice.file_url} target="_blank" rel="noopener noreferrer"
+                              className="btn btn-sm btn-outline-secondary rounded-circle p-1 hover-bg-primary hover-text-white transition-all">
                               <Download size={16} />
                             </a>
                           </td>
@@ -257,7 +258,7 @@ const InvoiceDocsPage = () => {
                 </h5>
                 <button type="button" className="btn-close btn-close-white shadow-none" onClick={() => setSelectedInvoice(null)}></button>
               </div>
-              
+
               <div className="modal-body p-0">
                 {/* Header Info */}
                 <div className="bg-light p-4 border-bottom">
@@ -348,8 +349,8 @@ const InvoiceDocsPage = () => {
               </div>
 
               <div className="modal-footer bg-white p-3 border-top d-flex justify-content-between">
-                <a href={selectedInvoice.file_url} target="_blank" rel="noopener noreferrer" 
-                   className="btn btn-outline-secondary d-flex align-items-center gap-2 rounded-pill px-4">
+                <a href={selectedInvoice.file_url} target="_blank" rel="noopener noreferrer"
+                  className="btn btn-outline-secondary d-flex align-items-center gap-2 rounded-pill px-4">
                   <Download size={18} /> Baixar PDF Original
                 </a>
                 <button type="button" className="btn btn-dark rounded-pill px-4" onClick={() => setSelectedInvoice(null)}>Fechar</button>
@@ -358,7 +359,7 @@ const InvoiceDocsPage = () => {
           </div>
         </div>
       )}
-      
+
       <style>{`
         .upload-zone:hover {
           border-color: var(--bs-primary) !important;

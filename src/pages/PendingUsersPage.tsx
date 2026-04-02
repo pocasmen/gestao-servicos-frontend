@@ -103,7 +103,10 @@ const PendingUsersPage: React.FC = () => {
 
     return (
         <div className="container-fluid mt-4">
-            <h2 className="mb-4">Aprovações de Utilizadores Pendentes</h2>
+            <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Aprovações de Utilizadores Pendentes</h1>
+
+            <p className="text-muted small m-0 fst-italic">Lista de utilizadores que aguardam aprovação para aceder ao sistema.</p>
+            <p> </p>
             {pendingUsers.length === 0 ? (
                 <p>Não há utilizadores pendentes de aprovação.</p>
             ) : (

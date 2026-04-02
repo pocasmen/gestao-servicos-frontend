@@ -25,8 +25,8 @@ const ReportDescriptions: React.FC<ReportDescriptionsProps> = ({
 }) => {
     return (
         <div className="d-flex flex-column gap-2">
-            <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light">
-                <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+            <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm">
+                <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                     <i className="bi bi-exclamation-triangle-fill me-2 text-primary opacity-50"></i>
                     Descrição da Avaria
                 </label>
@@ -40,8 +40,8 @@ const ReportDescriptions: React.FC<ReportDescriptionsProps> = ({
                 ></textarea>
             </div>
 
-            <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light">
-                <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+            <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm">
+                <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                     <i className="bi bi-pencil-square me-2 text-primary opacity-50"></i>
                     Descrição da Intervenção
                 </label>
@@ -56,7 +56,7 @@ const ReportDescriptions: React.FC<ReportDescriptionsProps> = ({
                 ></textarea>
             </div>
 
-            <div className="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-30 rounded-4 shadow-sm">
+            <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm">
                 <label className="text-dark fw-bold text-uppercase d-flex align-items-center mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                     <i className="bi bi-journal-text me-2 text-primary opacity-50"></i>
                     Notas Internas

@@ -27,8 +27,8 @@ const ScheduleClientEquipment: React.FC<ScheduleClientEquipmentProps> = ({
     return (
         <div className="row g-3 mb-3">
             <div className="col-md-6">
-                <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
-                    <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 h-100 shadow-sm">
+                    <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                         <i className="bi bi-building-fill me-2 text-primary opacity-50"></i>
                         Cliente
                     </label>
@@ -47,8 +47,8 @@ const ScheduleClientEquipment: React.FC<ScheduleClientEquipmentProps> = ({
                 </div>
             </div>
             <div className="col-md-6">
-                <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
-                    <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 h-100 shadow-sm">
+                    <label className="text-dark fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                         <i className="bi bi-tools me-2 text-primary opacity-50"></i>
                         Equipamento
                     </label>

@@ -5,12 +5,18 @@ import { AuthContext } from '../contexts/AuthContext';
 import { UserRole } from '../constants/enums';
 import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
+import { UserCircle } from 'lucide-react';
 import { AppUser } from './TechniciansPage'; // Reusing interface
 
 const UserList: React.FC<{ users: AppUser[], onSelectUser: (user: AppUser) => void }> = ({ users, onSelectUser }) => {
   return (
     <div>
-      <h2>Utilizadores (Clientes)</h2>
+      <div className="d-flex align-items-center gap-3">
+        <UserCircle size={40} strokeWidth={2.5} className="text-primary" />
+        <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Utilizadores (Clientes)</h1>
+      </div>
+      <p className="text-muted small m-0 fst-italic">Listagem de todos os utilizadores registados.</p>
+      <p></p>
       <table className="table table-hover">
         <thead>
           <tr>
@@ -22,31 +28,31 @@ const UserList: React.FC<{ users: AppUser[], onSelectUser: (user: AppUser) => vo
         </thead>
         <tbody>
           {users.map(user => {
-             // extract client logic if any, currently we send 'client_users' object
-             const clientUsers = (user as any).client_users || [];
-             const companyName = clientUsers.length > 0 ? clientUsers[0].name : '-';
-             
-             return (
-                <tr key={user.id} onClick={() => onSelectUser(user)} style={{ cursor: 'pointer' }}>
-                  <td>{user.name}</td>
-                  <td>{user.email}</td>
-                  <td>{companyName}</td>
-                  <td>
-                    {(user.role === UserRole.CLIENT) && (
-                       <button 
-                         className="btn btn-sm btn-outline-warning" 
-                         onClick={(e) => {
-                           e.stopPropagation(); // Evitar abrir o modal
-                           document.dispatchEvent(new CustomEvent('initImpersonate', { detail: user }));
-                         }}
-                         title="Simular Conta"
-                       >
-                         <i className="bi bi-person-lines-fill"></i> Simular
-                       </button>
-                    )}
-                  </td>
-                </tr>
-             );
+            // extract client logic if any, currently we send 'client_users' object
+            const clientUsers = (user as any).client_users || [];
+            const companyName = clientUsers.length > 0 ? clientUsers[0].name : '-';
+
+            return (
+              <tr key={user.id} onClick={() => onSelectUser(user)} style={{ cursor: 'pointer' }}>
+                <td>{user.name}</td>
+                <td>{user.email}</td>
+                <td>{companyName}</td>
+                <td>
+                  {(user.role === UserRole.CLIENT) && (
+                    <button
+                      className="btn btn-sm btn-outline-warning"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Evitar abrir o modal
+                        document.dispatchEvent(new CustomEvent('initImpersonate', { detail: user }));
+                      }}
+                      title="Simular Conta"
+                    >
+                      <i className="bi bi-person-lines-fill"></i> Simular
+                    </button>
+                  )}
+                </td>
+              </tr>
+            );
           })}
         </tbody>
       </table>
@@ -74,33 +80,33 @@ const UsersPage: React.FC = () => {
     fetchUsers();
 
     const handleImpersonateEvent = async (e: Event) => {
-        const customEvent = e as CustomEvent;
-        const targetUser = customEvent.detail as AppUser;
-        
-        if (await confirm({
-          message: `Tem a certeza que deseja simular a conta de ${targetUser.first_name} ${targetUser.last_name}? A sua sessão será temporariamente mascarada.`,
-          title: 'Iniciar Simulação',
-          confirmText: 'Simular'
-        })) {
-            try {
-                const resp = await apiClient.get(`/api/auth/admin/impersonate/${targetUser.id}`);
-                if (startImpersonation) {
-                   startImpersonation(resp.data);
-                } else {
-                   await alert("Erro de contexto: não foi possível inciar a simulação.");
-                }
-            } catch(error: any) {
-                 let errorMsg = "Erro ao simular utilizador.";
-                 if (error?.response?.data?.error) errorMsg = error.response.data.error;
-                 await alert(errorMsg);
-            }
+      const customEvent = e as CustomEvent;
+      const targetUser = customEvent.detail as AppUser;
+
+      if (await confirm({
+        message: `Tem a certeza que deseja simular a conta de ${targetUser.first_name} ${targetUser.last_name}? A sua sessão será temporariamente mascarada.`,
+        title: 'Iniciar Simulação',
+        confirmText: 'Simular'
+      })) {
+        try {
+          const resp = await apiClient.get(`/api/auth/admin/impersonate/${targetUser.id}`);
+          if (startImpersonation) {
+            startImpersonation(resp.data);
+          } else {
+            await alert("Erro de contexto: não foi possível inciar a simulação.");
+          }
+        } catch (error: any) {
+          let errorMsg = "Erro ao simular utilizador.";
+          if (error?.response?.data?.error) errorMsg = error.response.data.error;
+          await alert(errorMsg);
         }
+      }
     };
 
     document.addEventListener('initImpersonate', handleImpersonateEvent);
-    
+
     return () => {
-        document.removeEventListener('initImpersonate', handleImpersonateEvent);
+      document.removeEventListener('initImpersonate', handleImpersonateEvent);
     };
   }, []);
 

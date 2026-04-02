@@ -27,7 +27,7 @@ const ScheduleInternalNotes: React.FC<ScheduleInternalNotesProps> = ({
     if (isTicketScheduling) return null;
 
     return (
-        <div className="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-30 rounded-4 shadow-sm mt-3 animate__animated animate__fadeIn">
+        <div className="p-3 bg-white bg-opacity-80 border border-secondary border-opacity-25 rounded-4 shadow-sm mt-3 animate__animated animate__fadeIn">
             <label className="text-dark fw-bold text-uppercase d-flex align-items-center mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                 <i className="bi bi-journal-text me-2 text-primary opacity-50"></i>
                 Notas Internas

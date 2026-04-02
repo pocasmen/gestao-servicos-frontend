@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
-import { Plus, Package, Eye, Calendar, User, FileText, Search } from 'lucide-react';
+import { Plus, Package, Eye, Calendar, User, FileText, Search, Truck } from 'lucide-react';
 import { useConfirm } from '../contexts/ConfirmContext';
 import CreateOrderModal from '../components/Inventory/CreateOrderModal';
 import OrderDetailsModal from '../components/Inventory/OrderDetailsModal';
@@ -32,7 +32,7 @@ const OrdersPage: React.FC = () => {
     }
   };
 
-  const filteredOrders = orders?.filter((o: any) => 
+  const filteredOrders = orders?.filter((o: any) =>
     o.document_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.id.toString().includes(searchTerm) ||
     `${o.first_name} ${o.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
@@ -51,8 +51,11 @@ const OrdersPage: React.FC = () => {
     <div className="container-fluid py-4 px-md-5 animate__animated animate__fadeIn" style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
         <div>
-           <h1 className="h2 fw-bold text-dark m-0" style={{ fontFamily: 'Montserrat, sans-serif' }}>Gestão de Encomendas</h1>
-           <p className="text-muted small m-0 fst-italic">Acompanhamento de encomendas de peças e receção de stock</p>
+        <div className="d-flex align-items-center gap-3">
+          <Truck size={40} strokeWidth={2.5} className="text-primary" />
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Encomendas</h1>
+        </div>
+          <p className="text-muted small m-0 fst-italic">Acompanhamento de encomendas de peças e receção de stock</p>
         </div>
         <button className="btn btn-primary d-flex align-items-center justify-content-center gap-2 rounded-pill px-4 py-2 shadow-sm fw-semibold transform-active" onClick={() => setShowCreateModal(true)} style={{ transition: 'all 0.2s' }}>
           <Plus size={20} /> Nova Encomenda
@@ -61,16 +64,16 @@ const OrdersPage: React.FC = () => {
 
       <div className="row mb-4">
         <div className="col-12">
-            <div className="glass-panel p-3 rounded-4 shadow-sm border-0 d-flex align-items-center gap-2">
-                <Search size={18} className="text-muted ms-2" />
-                <input 
-                    type="text" 
-                    className="form-control border-0 bg-transparent shadow-none" 
-                    placeholder="Procurar por Nº Doc, ID ou Utilizador..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-            </div>
+          <div className="glass-panel p-3 rounded-4 shadow-sm border-0 d-flex align-items-center gap-2">
+            <Search size={18} className="text-muted ms-2" />
+            <input
+              type="text"
+              className="form-control border-0 bg-transparent shadow-none"
+              placeholder="Procurar por Nº Doc, ID ou Utilizador..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
       </div>
 
@@ -113,7 +116,7 @@ const OrdersPage: React.FC = () => {
                     <td>
                       <div className="d-flex align-items-center gap-2 small fw-medium">
                         <div className="bg-secondary bg-opacity-10 p-1 rounded-circle">
-                            <User size={12} className="text-secondary" />
+                          <User size={12} className="text-secondary" />
                         </div>
                         {order.first_name} {order.last_name || ''}
                       </div>
@@ -136,8 +139,8 @@ const OrdersPage: React.FC = () => {
       </div>
 
       {showCreateModal && (
-        <CreateOrderModal 
-          isOpen={showCreateModal} 
+        <CreateOrderModal
+          isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setShowCreateModal(false);

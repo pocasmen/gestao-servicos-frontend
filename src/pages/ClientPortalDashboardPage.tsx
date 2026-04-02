@@ -2,7 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '../apiClient';
 import { ActiveClientContext, ClientCompany } from '../contexts/ActiveClientContext';
-import { Briefcase, Building2, ChevronRight, Construction, Building } from 'lucide-react';
+import { Briefcase, Building2, ChevronRight, Construction, Building, LayoutDashboard } from 'lucide-react';
 import { logger } from '../utils/logger';
 
 const ClientPortalDashboardPage: React.FC = () => {
@@ -63,7 +63,10 @@ const ClientPortalDashboardPage: React.FC = () => {
     return (
         <div className="container-fluid py-5" style={{ background: 'linear-gradient(135deg, var(--bs-gray-100) 0%, #ffffff 100%)', minHeight: 'calc(100vh - 70px)' }}>
             <div className="text-center mb-5">
-                <h1 className="display-5 fw-bold" style={{ color: 'var(--bs-primary)', letterSpacing: '-1px' }}>Portal do Cliente</h1>
+                <div className="d-flex align-items-center justify-content-center gap-3 mb-2">
+                    <LayoutDashboard size={48} strokeWidth={2.5} className="text-primary" />
+                    <h1 className="display-5 fw-bold mb-0" style={{ color: 'var(--primary-color)', letterSpacing: '-1px' }}>Portal do Cliente</h1>
+                </div>
                 <p className="lead text-secondary">Bem-vindo. Selecione a empresa que pretende gerir.</p>
             </div>
 
@@ -109,7 +112,7 @@ const ClientPortalDashboardPage: React.FC = () => {
                                         <Building2 size={28} />
                                     </div>
                                     <div>
-                                        <h4 className="fw-bold mb-0 text-truncate" style={{ maxWidth: '200px' }} title={company.name}>{company.name}</h4>
+                                        <h4 className="fw-bold mb-0" style={{ wordBreak: 'break-word', overflowWrap: 'anywhere' }} title={company.name}>{company.name}</h4>
                                         <small className={activeClient?.id === company.id ? "text-light opacity-75" : "text-muted"}>
                                             NIF: {company.nif || 'N/A'}
                                         </small>

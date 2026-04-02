@@ -1,19 +1,20 @@
 import React, { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
-import { 
-  History, 
-  Package, 
-  TrendingUp, 
-  TrendingDown, 
-  Search, 
-  Calendar, 
-  User, 
-  FileText,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  X
+import {
+    History,
+    Package,
+    TrendingUp,
+    TrendingDown,
+    Search,
+    Calendar,
+    User,
+    FileText,
+    ChevronLeft,
+    ChevronRight,
+    Filter,
+    X,
+    ArrowLeftRight
 } from 'lucide-react';
 import apiClient from '../apiClient';
 import logger from '../utils/logger';
@@ -30,30 +31,30 @@ import { StockType } from '../constants/enums';
 
 // ─── Transaction type config ─────────────────────────────────────────────────
 const TX_TYPE: Record<string, { label: string; colorCls: string; icon: React.ReactNode }> = {
-    PURCHASE_ORDER: { label: 'Encomenda',    colorCls: 'bg-success bg-opacity-10 text-success', icon: <TrendingUp size={14} /> },
-    AD_HOC:         { label: 'Ad-hoc',       colorCls: 'bg-primary bg-opacity-10 text-primary', icon: <TrendingUp size={14} /> },
-    SERVICE_REPORT: { label: 'Relatório',    colorCls: 'bg-danger bg-opacity-10 text-danger',   icon: <TrendingDown size={14} /> },
-    DIRECT_SALE:    { label: 'Venda Direta', colorCls: 'bg-warning bg-opacity-10 text-warning', icon: <TrendingDown size={14} /> },
-    MANUAL_ADJUST:  { label: 'Ajuste',       colorCls: 'bg-secondary bg-opacity-10 text-secondary', icon: null },
+    PURCHASE_ORDER: { label: 'Encomenda', colorCls: 'bg-success bg-opacity-10 text-success', icon: <TrendingUp size={14} /> },
+    AD_HOC: { label: 'Ad-hoc', colorCls: 'bg-primary bg-opacity-10 text-primary', icon: <TrendingUp size={14} /> },
+    SERVICE_REPORT: { label: 'Relatório', colorCls: 'bg-danger bg-opacity-10 text-danger', icon: <TrendingDown size={14} /> },
+    DIRECT_SALE: { label: 'Venda Direta', colorCls: 'bg-warning bg-opacity-10 text-warning', icon: <TrendingDown size={14} /> },
+    MANUAL_ADJUST: { label: 'Ajuste', colorCls: 'bg-secondary bg-opacity-10 text-secondary', icon: null },
 };
 
 const MovementsPage: React.FC = () => {
     const queryClient = useQueryClient();
     const { alert } = useConfirm();
-    
+
     const [page, setPage] = useState(1);
     const limit = 50;
 
     // Modal States
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
     const [selectedReport, setSelectedReport] = useState<any>(null);
-    
+
     const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
 
     const [isPartModalOpen, setIsPartModalOpen] = useState(false);
     const [selectedPartId, setSelectedPartId] = useState<number | null>(null);
-    
+
     // Part Edit State (Simplified version of InventoryPage logic)
     const [newItem, setNewItem] = useState<Omit<Part, 'id'> & { id?: number }>({
         reference: '',
@@ -122,7 +123,7 @@ const MovementsPage: React.FC = () => {
     // Handlers
     const handleOpenDoc = async (tx: any) => {
         if (!tx.reference_id) return;
-        
+
         if (tx.type === 'SERVICE_REPORT' || tx.type === 'SERVICE') {
             try {
                 // Verify existence first
@@ -193,10 +194,11 @@ const MovementsPage: React.FC = () => {
             {/* Header section */}
             <div className="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                    <h2 className="fw-bold mb-1" style={{ color: '#0f172a', fontFamily: 'Montserrat, sans-serif' }}>
-                        Movimentos de Inventário
-                    </h2>
-                    <p className="text-muted small mb-0">Histórico completo de entradas e saídas de stock</p>
+                <div className="d-flex align-items-center gap-3">
+                    <ArrowLeftRight size={40} strokeWidth={2.5} className="text-primary" />
+                    <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Movimentos de Inventário</h1>
+                </div>
+                    <p className="text-muted small m-0 fst-italic">Histórico completo de entradas e saídas de stock</p>
                 </div>
                 <div className="d-flex gap-2">
                     <div className="bg-white p-2 rounded-pill shadow-sm d-flex align-items-center px-3 border border-light">
@@ -248,7 +250,7 @@ const MovementsPage: React.FC = () => {
                                 movements.map((tx: any) => {
                                     const txConfig = TX_TYPE[tx.type] ?? { label: tx.type, colorCls: 'bg-secondary bg-opacity-10 text-secondary', icon: null };
                                     const isPositive = tx.quantity > 0;
-                                    
+
                                     return (
                                         <tr key={tx.id} className="border-bottom border-light">
                                             <td className="ps-4 py-3">
@@ -263,8 +265,8 @@ const MovementsPage: React.FC = () => {
                                                 </div>
                                             </td>
                                             <td className="py-3">
-                                                <div 
-                                                    style={{ fontSize: '0.85rem', cursor: 'pointer' }} 
+                                                <div
+                                                    style={{ fontSize: '0.85rem', cursor: 'pointer' }}
                                                     className="hover-opacity"
                                                     onClick={() => handleEditPart(tx.part_id)}
                                                 >
@@ -293,7 +295,7 @@ const MovementsPage: React.FC = () => {
                                             </td>
                                             <td className="py-3">
                                                 {tx.reference_id ? (
-                                                    <button 
+                                                    <button
                                                         className="btn btn-link btn-sm p-0 d-flex align-items-center gap-1 text-primary fw-medium small text-decoration-none"
                                                         onClick={() => handleOpenDoc(tx)}
                                                     >
@@ -326,10 +328,10 @@ const MovementsPage: React.FC = () => {
                 {pagination.totalPages > 1 && (
                     <div className="px-4 py-3 d-flex justify-content-between align-items-center border-top border-light bg-light bg-opacity-10">
                         <div className="text-muted small">
-                            Mostrando <span className="fw-semibold">{(page-1)*limit + 1}</span> a <span className="fw-semibold">{Math.min(page*limit, pagination.total)}</span> de <span className="fw-semibold">{pagination.total}</span> resultados
+                            Mostrando <span className="fw-semibold">{(page - 1) * limit + 1}</span> a <span className="fw-semibold">{Math.min(page * limit, pagination.total)}</span> de <span className="fw-semibold">{pagination.total}</span> resultados
                         </div>
                         <div className="d-flex gap-2">
-                            <button 
+                            <button
                                 className="btn btn-sm btn-white border shadow-sm rounded-pill px-3 d-flex align-items-center gap-1 fw-semibold small"
                                 onClick={() => setPage(p => Math.max(1, p - 1))}
                                 disabled={page === 1}
@@ -342,7 +344,7 @@ const MovementsPage: React.FC = () => {
                                     // Only show current, 2 before, 2 after
                                     if (p === 1 || p === pagination.totalPages || (p >= page - 2 && p <= page + 2)) {
                                         return (
-                                            <button 
+                                            <button
                                                 key={p}
                                                 className={`btn btn-sm rounded-circle d-flex align-items-center justify-content-center fw-bold ${page === p ? 'btn-primary' : 'btn-white border shadow-sm text-muted'}`}
                                                 style={{ width: '30px', height: '30px', fontSize: '0.75rem' }}
@@ -356,7 +358,7 @@ const MovementsPage: React.FC = () => {
                                     return null;
                                 })}
                             </div>
-                            <button 
+                            <button
                                 className="btn btn-sm btn-white border shadow-sm rounded-pill px-3 d-flex align-items-center gap-1 fw-semibold small"
                                 onClick={() => setPage(p => Math.min(pagination.totalPages, p + 1))}
                                 disabled={page === pagination.totalPages}

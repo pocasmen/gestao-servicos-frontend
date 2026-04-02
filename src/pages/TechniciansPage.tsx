@@ -5,6 +5,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { UserRole } from '../constants/enums';
 import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
+import { Users } from 'lucide-react';
 
 // Updated interface to match the new backend response
 export interface AppUser {
@@ -218,8 +219,11 @@ const TechniciansPage: React.FC = () => {
     <div className="container-fluid py-4">
       <div className="d-flex justify-content-between align-items-center mb-5 mt-2">
         <div>
-          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)', fontSize: '2.5rem' }}>Equipa e Utilizadores</h1>
-          <p className="text-muted m-0">Gestão de acessos, funções e notificações do sistema.</p>
+          <div className="d-flex align-items-center gap-3">
+            <Users size={40} strokeWidth={2.5} className="text-primary" />
+            <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)', fontSize: '2.5rem' }}>Equipa e Utilizadores</h1>
+          </div>
+          <p className="text-muted small m-0 fst-italic">Gestão de acessos, funções e notificações do sistema.</p>
         </div>
       </div>
 

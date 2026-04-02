@@ -3,7 +3,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --primary-color: #4f46e5;
+  --primary-color: #083085;
   /* SaaS Premium Indigo */
   --text-color: #1f2937;
   --background-color: #f3f4f6;
@@ -158,7 +158,7 @@ h6,
 
 .form-control:focus {
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+  box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.1);
 }
 
 /* Botões */
@@ -252,7 +252,7 @@ h2 {
   background-color: rgba(255, 255, 255, 0.6);
   border-radius: 20px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.07);
 }
 
 /* Solid variant for modals — no transparency */
@@ -381,4 +381,4 @@ h2 {
 .btn-outline-secondary:hover:not(:disabled) {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
   filter: brightness(0.97);
-}
+}
