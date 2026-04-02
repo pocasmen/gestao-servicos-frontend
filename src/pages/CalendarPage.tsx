@@ -266,7 +266,7 @@ const CalendarPage: React.FC = () => {
     if (scheduleToEditId) {
       const allPossibleItems = [...events, ...backlog];
       const eventToEdit = allPossibleItems.find(e => e.id === scheduleToEditId || e.scheduleId === scheduleToEditId);
-      
+
       if (eventToEdit) {
         setSelectedEvent(eventToEdit);
         setIsModalOpen(true);
@@ -584,92 +584,128 @@ const CalendarPage: React.FC = () => {
   }, [dirtyEventIds]);
 
   return (
-    <div className="container-fluid mt-4 calendar-container">
+    <div className="container-fluid py-4 min-vh-100 bg-light animate__animated animate__fadeIn">
+      {/* Premium Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4 px-2">
+        <div>
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Agenda Técnica</h1>
+          <p className="text-muted m-0 fw-medium">Gestão inteligente de intervenções e backlog de serviços.</p>
+        </div>
+      </div>
+
       {dirtyEventIds.size > 0 && (
-        <div className="floating-toolbar">
-          <span>Tem {dirtyEventIds.size} alteração(ões) por guardar.</span>
-          <button className="btn btn-primary btn-sm ms-3" onClick={handleSaveAll}>Guardar Alterações</button>
-          <button className="btn btn-secondary btn-sm ms-2" onClick={handleCancelAll}>Cancelar</button>
+        <div className="floating-toolbar glass-card border border-primary border-opacity-25 shadow-lg py-3 px-4 animate__animated animate__fadeInUp d-flex align-items-center gap-4"
+          style={{ position: 'fixed', bottom: '30px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, borderRadius: '50px' }}>
+          <span className="fw-bold text-primary small d-flex align-items-center">
+            <i className="bi bi-info-circle-fill me-2 rotate-pulse"></i>
+            {dirtyEventIds.size} alteração(ões) pendente(s)
+          </span>
+          <div className="d-flex gap-3">
+            <button className="btn btn-primary rounded-pill px-4 py-1 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={handleSaveAll}>
+              <i className="bi bi-check-lg"></i> Guardar
+            </button>
+            <button className="btn btn-white rounded-pill px-4 py-1 fw-bold border shadow-sm text-muted d-flex align-items-center gap-2" onClick={handleCancelAll}>
+              <i className="bi bi-x-lg"></i> Descartar
+            </button>
+          </div>
         </div>
       )}
-      <div className="row">
-        <div className="col-md-3 backlog-sidebar">
-          <div className="card h-100 shadow-sm">
-            <div className="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-              <h6 className="mb-0">Serviços Pendentes</h6>
-              <span className="badge bg-primary">{backlog.length}</span>
+
+      <div className="row g-4 mt-2">
+        <div className="col-md-3">
+          <div className="glass-card border-0 mb-4 overflow-hidden h-100 shadow-sm d-flex flex-column animate__animated animate__fadeInLeft" style={{ borderRadius: '24px' }}>
+            <div className="bg-primary px-4 py-3 d-flex justify-content-between align-items-center">
+              <h6 className="text-white fw-bold m-0 text-uppercase small" style={{ fontFamily: 'var(--font-family-title)', letterSpacing: '0.05em' }}>
+                <i className="bi bi-list-task me-2"></i> Backlog
+              </h6>
+              <span className="badge rounded-pill bg-white text-primary px-3 fw-bold shadow-sm">{backlog.length}</span>
             </div>
-            <div className="card-body p-2 overflow-auto" style={{ maxHeight: 'calc(100vh - 250px)' }}>
-              <div className="form-check form-switch mb-3">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  id="filterMyBacklog"
-                  checked={showOnlyMyBacklog}
-                  onChange={(e) => setShowOnlyMyBacklog(e.target.checked)}
-                />
-                <label className="form-check-label small" htmlFor="filterMyBacklog">
-                  Apenas os meus
-                </label>
-              </div>
-              <div className="btn-group btn-group-sm w-100 mb-2" role="group">
-                <button
-                  type="button"
-                  className={`btn ${backlogSortMode === 'date' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setBacklogSortMode('date')}
-                >
-                  Por Data
-                </button>
-                <button
-                  type="button"
-                  className={`btn ${backlogSortMode === 'priority' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                  onClick={() => setBacklogSortMode('priority')}
-                >
-                  Por Prioridade
-                </button>
+            <div className="p-4 flex-grow-1 overflow-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+              <div className="bg-light p-3 rounded-4 mb-4 border border-light">
+                <div className="form-check form-switch mb-2">
+                  <input
+                    className="form-check-input shadow-none"
+                    type="checkbox"
+                    id="filterMyBacklog"
+                    checked={showOnlyMyBacklog}
+                    onChange={(e) => setShowOnlyMyBacklog(e.target.checked)}
+                  />
+                  <label className="form-check-label small fw-bold text-dark" htmlFor="filterMyBacklog">
+                    Minhas tarefas
+                  </label>
+                </div>
+                <hr className="my-2 opacity-10" />
+                <div className="btn-group btn-group-sm w-100 mt-2 p-1 bg-white rounded-pill shadow-sm" role="group">
+                  <button
+                    type="button"
+                    className={`btn rounded-pill border-0 fw-bold px-3 ${backlogSortMode === 'priority' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+                    onClick={() => setBacklogSortMode('priority')}
+                  >
+                    Prioridade
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn rounded-pill border-0 fw-bold px-3 ${backlogSortMode === 'date' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+                    onClick={() => setBacklogSortMode('date')}
+                  >
+                    Recentes
+                  </button>
+                </div>
               </div>
 
               {filteredBacklog
                 .map(item => (
                   <div
                     key={item.id}
-                    className="card mb-2 backlog-item shadow-none border position-relative"
+                    className="card mb-3 bg-white border-0 shadow-sm backlog-item position-relative overflow-hidden"
                     onClick={() => handleBacklogClick(item)}
                     draggable
                     onDragStart={() => handleDragStart(item)}
                     style={{
                       cursor: 'grab',
-                      overflow: 'hidden'
+                      borderRadius: '16px',
+                      transition: 'transform 0.2s, box-shadow 0.2s'
                     }}
                   >
-                    <div className={`priority-strip bg-${(item.priority || SchedulePriority.MEDIUM) === SchedulePriority.HIGH ? 'danger' :
-                      (item.priority || SchedulePriority.MEDIUM) === SchedulePriority.LOW ? 'secondary' :
-                        'warning'
-                      }`}></div>
-                    <div className="card-body p-2 pt-3">
-                      <div className="small fw-bold text-truncate" title={item.clientName}>{item.clientName}</div>
-                      <div className="d-flex justify-content-between align-items-center gap-2">
-                        <div className="small text-muted text-truncate" title={item.equipmentInfo}>
-                          {item.equipmentInfo}
-                        </div>
-                        <div className="d-flex align-items-center gap-1 flex-shrink-0">
-                          <span className="badge bg-light text-dark border p-1" style={{ fontSize: '0.6rem', lineHeight: 1, whiteSpace: 'normal', textAlign: 'left', wordBreak: 'break-word', maxWidth: '100px' }} title={Array.isArray(item.serviceType) ? item.serviceType.map(t => SERVICE_TYPE_LABELS[t] || t).join(', ') : (SERVICE_TYPE_LABELS[item.serviceType || ''] || item.serviceType)}>
-                            {Array.isArray(item.serviceType)
-                              ? (item.serviceType.length > 1
-                                ? item.serviceType.map(t => (SERVICE_TYPE_LABELS[t] || t).substring(0, 3)).join(', ')
-                                : item.serviceType.map(t => SERVICE_TYPE_LABELS[t] || t).join(', '))
-                              : (SERVICE_TYPE_LABELS[item.serviceType || ''] || item.serviceType)}
-                          </span>
-                          <div className="d-flex ms-1">
-                            {item.technicians?.map(t => (
-                              <div
-                                key={t.id}
-                                className="rounded-circle ms-n1"
-                                style={{ width: '10px', height: '10px', backgroundColor: t.color, border: '1px solid white' }}
-                                title={t.name}
-                              />
-                            ))}
-                          </div>
+                    <div
+                      className={`position-absolute top-0 start-0 h-100`}
+                      style={{
+                        width: '4px',
+                        backgroundColor: (item.priority || SchedulePriority.MEDIUM) === SchedulePriority.HIGH ? 'var(--bs-danger)' :
+                          (item.priority || SchedulePriority.MEDIUM) === SchedulePriority.LOW ? 'var(--bs-secondary)' :
+                            'var(--bs-warning)'
+                      }}
+                    ></div>
+                    <div className="card-body p-3">
+                      <div className="small fw-bold text-dark text-truncate mb-1" title={item.clientName}>{item.clientName}</div>
+                      <div className="small text-muted text-truncate mb-2" style={{ fontSize: '0.75rem' }} title={item.equipmentInfo}>
+                        <i className="bi bi-cpu-fill me-1"></i> {item.equipmentInfo}
+                      </div>
+
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="badge rounded-pill bg-light text-dark fw-medium border-0 px-2 py-1" style={{ fontSize: '0.65rem' }}>
+                          {Array.isArray(item.serviceType)
+                            ? (item.serviceType.length > 1
+                              ? `${SERVICE_TYPE_LABELS[item.serviceType[0]]?.substring(0, 3)}...`
+                              : SERVICE_TYPE_LABELS[item.serviceType[0]] || item.serviceType[0])
+                            : (SERVICE_TYPE_LABELS[item.serviceType || ''] || item.serviceType)}
+                        </span>
+
+                        <div className="d-flex ms-auto">
+                          {item.technicians?.map((t, i) => (
+                            <div
+                              key={t.id}
+                              className="rounded-circle shadow-sm"
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                backgroundColor: t.color,
+                                border: '2px solid #fff',
+                                marginLeft: i > 0 ? '-6px' : '0'
+                              }}
+                              title={t.name}
+                            />
+                          ))}
                         </div>
                       </div>
                     </div>
@@ -678,30 +714,32 @@ const CalendarPage: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="col-md-9">
-          <DragAndDropCalendar
-            localizer={localizer}
-            events={events}
-            onEventDrop={handleEventDrop}
-            onEventResize={handleEventResize}
-            resizable
-            selectable
-            onSelectEvent={handleSelectEvent}
-            onSelectSlot={handleSelectSlot}
-            onDropFromOutside={onDropFromOutside}
-            dragFromOutsideItem={dragFromOutsideItem}
-            defaultView={Views.WORK_WEEK}
-            views={calendarViews}
-            culture="pt-PT"
-            messages={messages}
-            eventPropGetter={eventStyleGetter}
-            date={date}
-            view={view}
-            onNavigate={handleNavigate}
-            onView={handleView}
-            min={new Date(new Date().setHours(8, 0, 0, 0))}
-            max={new Date(new Date().setHours(20, 0, 0, 0))}
-          />
+        <div className="col-md-9 mt-0">
+          <div className="glass-card border-0 shadow-sm p-4 overflow-hidden" style={{ borderRadius: '24px' }}>
+            <DragAndDropCalendar
+              localizer={localizer}
+              events={events}
+              onEventDrop={handleEventDrop}
+              onEventResize={handleEventResize}
+              resizable
+              selectable
+              onSelectEvent={handleSelectEvent}
+              onSelectSlot={handleSelectSlot}
+              onDropFromOutside={onDropFromOutside}
+              dragFromOutsideItem={dragFromOutsideItem}
+              defaultView={Views.WORK_WEEK}
+              views={calendarViews}
+              culture="pt-PT"
+              messages={messages}
+              eventPropGetter={eventStyleGetter}
+              date={date}
+              view={view}
+              onNavigate={handleNavigate}
+              onView={handleView}
+              min={new Date(new Date().setHours(8, 0, 0, 0))}
+              max={new Date(new Date().setHours(20, 0, 0, 0))}
+            />
+          </div>
         </div>
       </div>
       {isModalOpen && (

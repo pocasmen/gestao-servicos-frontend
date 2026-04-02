@@ -272,15 +272,16 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
 
     if (isInline) {
         return (
-            <div className="card mb-4 border-0 shadow-sm" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-                <div className="card-header bg-primary text-white py-3">
-                    <h5 className="mb-0">Novo Item de Inventário</h5>
+            <div className="glass-card border-0 mb-4 overflow-hidden shadow-sm animate__animated animate__fadeIn">
+                <div className="bg-dark px-4 py-3">
+                    <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Novo Item de Inventário</h5>
                 </div>
-                <div className="card-body p-4">
+                <div className="p-4">
                     {content}
-                    <div className="d-flex justify-content-end mt-4 pt-3 border-top">
-                        <button type="button" className="btn btn-secondary me-2" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
-                        <button type="button" className="btn btn-success px-4" onClick={onSubmit} disabled={isSubmitting}>
+                    <div className="px-4 py-3 bg-light bg-opacity-75 border-top d-flex justify-content-end gap-2">
+                        <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+                        <button type="button" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={onSubmit} disabled={isSubmitting}>
+                            {isSubmitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
                             {isSubmitting ? 'A criar...' : 'Criar Item'}
                         </button>
                     </div>
@@ -290,25 +291,24 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
     }
 
     return (
-        <div className="modal show" style={{ display: 'block' }} tabIndex={-1}>
-            <div className="modal-dialog modal-lg">
-                <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '16px', overflow: 'hidden' }}>
-                    <div className="modal-header bg-dark text-white py-3">
-                        <h5 className="modal-title fw-bold">
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
+            <div className="glass-card glass-card--solid border-0 shadow-lg overflow-hidden animate__animated animate__zoomIn w-100" style={{ maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center flex-shrink-0">
+                        <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>
                             {newItem.id ? (isComposed ? 'Editar Peça Composta' : 'Editar Item') : 'Adicionar Novo Item'}
                         </h5>
-                        <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
+                        <button type="button" className="btn-close btn-close-white shadow-none" onClick={onClose}></button>
                     </div>
-                    <div className="modal-body p-4">
+                    <div className="p-4" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
                         {content}
                     </div>
-                    <div className="modal-footer bg-light p-3">
-                        <button type="button" className="btn btn-secondary px-4" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
-                        <button type="button" className="btn btn-primary px-4" onClick={onSubmit} disabled={isSubmitting}>
+                    <div className="px-4 py-3 bg-light bg-opacity-75 border-top d-flex justify-content-end gap-2 flex-shrink-0">
+                        <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+                        <button type="button" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={onSubmit} disabled={isSubmitting}>
+                            {isSubmitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
                             {isSubmitting ? (newItem.id ? 'A atualizar...' : 'A criar...') : (newItem.id ? 'Atualizar Peça' : 'Criar Item')}
                         </button>
                     </div>
-                </div>
             </div>
         </div>
     );

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Search, X } from 'lucide-react';
 
 interface InventoryToolbarProps {
     filter: string;
@@ -18,53 +19,57 @@ const InventoryToolbar: React.FC<InventoryToolbarProps> = ({
     setView
 }) => {
     return (
-        <div className="row mb-3 align-items-center">
-            <div className="col-auto">
-                <div className="input-group" style={{ maxWidth: '800px' }}>
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Pesquisar..."
-                        value={filter}
-                        onChange={e => setFilter(e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && onSearch()}
-                    />
-                    {filter && (
-                        <button className="btn btn-outline-secondary" type="button" onClick={onReset} title="Limpar pesquisa">
-                            <i className="bi bi-x-lg"></i>
-                        </button>
-                    )}
-                    <button className="btn btn-primary" type="button" onClick={onSearch} title="Pesquisar">
-                        <i className="bi bi-search"></i>
-                    </button>
-                </div>
-            </div>
-            <div className="col d-flex justify-content-end align-items-center">
-                <div className="btn-group shadow-sm">
-                    <button
-                        className={`btn ${view === 'all' ? 'btn-primary' : 'btn-outline-primary'}`}
-                        onClick={() => setView('all')}
-                        title="Ver Tudo"
-                    >
-                        <i className="bi bi-grid-3x3-gap-fill me-1"></i>
-                        <span className="d-none d-md-inline">Tudo</span>
-                    </button>
-                    <button
-                        className={`btn ${view === 'reserved' ? 'btn-warning' : 'btn-outline-warning'}`}
-                        onClick={() => setView('reserved')}
-                        title="Itens com Reserva"
-                    >
-                        <i className="bi bi-calendar-check-fill me-1"></i>
-                        <span className="d-none d-md-inline">Reservas</span>
-                    </button>
-                    <button
-                        className={`btn ${view === 'low_stock' ? 'btn-danger' : 'btn-outline-danger'}`}
-                        onClick={() => setView('low_stock')}
-                        title="Stock Baixo"
-                    >
-                        <i className="bi bi-exclamation-triangle-fill me-1"></i>
-                        <span className="d-none d-md-inline">Avisos</span>
-                    </button>
+        <div className="glass-card border-0 mb-4 overflow-hidden shadow-sm">
+            <div className="p-3">
+                <div className="row g-3 align-items-center">
+                    <div className="col-md-7">
+                        <div className="input-group shadow-sm rounded-pill overflow-hidden border bg-white ps-3">
+                            <span className="bg-transparent border-0 d-flex align-items-center text-muted pe-2">
+                                <Search size={18} />
+                            </span>
+                            <input
+                                type="text"
+                                className="form-control border-0 bg-transparent py-2 px-1"
+                                placeholder="Pesquisar por referência ou designação..."
+                                value={filter}
+                                onChange={e => setFilter(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && onSearch()}
+                                style={{ boxShadow: 'none' }}
+                            />
+                            {filter && (
+                                <button className="btn btn-link text-muted border-0 p-2" type="button" onClick={onReset} title="Limpar pesquisa">
+                                    <X size={18} />
+                                </button>
+                            )}
+                            <button className="btn btn-primary px-4 fw-bold shadow-none" type="button" onClick={onSearch} title="Pesquisar">
+                                Pesquisar
+                            </button>
+                        </div>
+                    </div>
+                    <div className="col-md-5">
+                        <div className="d-flex justify-content-md-end gap-2">
+                            <div className="btn-group shadow-sm rounded-pill overflow-hidden border p-1 bg-white" style={{ height: '46px' }}>
+                                <button
+                                    className={`btn btn-sm border-0 rounded-pill px-4 fw-bold ${view === 'all' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+                                    onClick={() => setView('all')}
+                                >
+                                    Ver Tudo
+                                </button>
+                                <button
+                                    className={`btn btn-sm border-0 rounded-pill px-4 fw-bold ${view === 'reserved' ? 'btn-warning text-white shadow-sm' : 'btn-light text-muted'}`}
+                                    onClick={() => setView('reserved')}
+                                >
+                                    Reserva
+                                </button>
+                                <button
+                                    className={`btn btn-sm border-0 rounded-pill px-4 fw-bold ${view === 'low_stock' ? 'btn-danger text-white shadow-sm' : 'btn-light text-muted'}`}
+                                    onClick={() => setView('low_stock')}
+                                >
+                                    Avisos
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -15,28 +15,31 @@ const ScheduleTechnicians: React.FC<ScheduleTechniciansProps> = ({
     isPastOrCompleted
 }) => {
     return (
-        <div className="form-group mb-2 p-2 border rounded bg-light">
-            <label className="form-label fw-bold mb-1 d-flex align-items-center small">
-                <i className="bi bi-people-fill me-2 text-primary"></i>
-                Técnicos
+        <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light mb-3">
+            <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                <i className="bi bi-people-fill me-2 text-primary opacity-50"></i>
+                Técnicos Atribuídos
             </label>
-            <div className="row g-2">
+            <div className="row g-3 ps-1">
                 {technicians.length === 0 ? (
-                    <div className="col-12"><small className="text-muted italic">Nenhum técnico disponível.</small></div>
+                    <div className="col-12 text-center py-2 px-3 bg-light rounded-4 border border-dashed">
+                        <small className="text-muted fw-bold">Nenhum técnico disponível.</small>
+                    </div>
                 ) : (
                     technicians.map(t => (
                         <div className="col-md-4 col-6" key={t.id}>
-                            <div className="form-check">
+                            <div className="form-check custom-checkbox">
                                 <input
-                                    className="form-check-input"
+                                    className="form-check-input shadow-none"
                                     type="checkbox"
                                     id={`tech-${t.id}`}
                                     value={t.id}
                                     checked={technicianIds.includes(String(t.id))}
                                     onChange={() => handleTechnicianChange(String(t.id))}
                                     disabled={isPastOrCompleted}
+                                    style={{ width: '1.2rem', height: '1.2rem' }}
                                 />
-                                <label className="form-check-label small" htmlFor={`tech-${t.id}`}>
+                                <label className="form-check-label small fw-medium text-dark ms-1 cursor-pointer" htmlFor={`tech-${t.id}`}>
                                     {t.name}
                                 </label>
                             </div>

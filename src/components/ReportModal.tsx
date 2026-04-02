@@ -475,15 +475,16 @@ const ReportModal: React.FC<ReportModalProps> = ({
   };
 
   return (
-    <div className="modal show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog modal-lg">
-        <div className="modal-content">
-          <form onSubmit={handleSubmit}>
-            <div className="modal-header">
-              <h5 className="modal-title">{isEditing ? 'Editar Relatório de Intervenção' : 'Criar Relatório de Intervenção'}</h5>
-              <button type="button" className="btn-close" onClick={onClose}></button>
-            </div>
-            <div className="modal-body">
+    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}>
+      <div className="glass-card glass-card--solid border-0 shadow-lg overflow-hidden animate__animated animate__zoomIn w-100" style={{ maxWidth: '900px', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+            <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>
+              {isEditing ? 'Editar Relatório de Intervenção' : 'Criar Relatório de Intervenção'}
+            </h5>
+            <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
+          </div>
+          <div className="modal-body p-4" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
               <ReportServiceInfo
                 serviceTypes={serviceTypes} setServiceTypes={setServiceTypes}
                 classification={classification} setClassification={setClassification}
@@ -522,48 +523,35 @@ const ReportModal: React.FC<ReportModalProps> = ({
                 clientUsers={clientUsers}
               />
             </div>
-            <div className="modal-footer d-flex flex-column align-items-start py-2">
-              <div className="w-100 mb-1">
-                <div className="form-check form-switch p-0 ms-2">
-                  <input className="form-check-input ms-0 me-2" type="checkbox" id="billingPendingCheck" checked={isBillingPending} onChange={(e) => setIsBillingPending(e.target.checked)} />
-                  <label className="form-check-label text-primary fw-bold small" htmlFor="billingPendingCheck">Ainda não pronto para faturação</label>
-                </div>
-              </div>
-              <div className="d-flex justify-content-between align-items-center w-100">
-                <div>
-                  {isEditing && reportToEdit && isAdmin && (
-                    <button type="button" className="btn btn-sm btn-danger" onClick={handleDelete} disabled={isSubmitting}>
-                      <Trash2 size={16} className="me-2" />
-                      {isSubmitting ? 'A eliminar...' : 'Eliminar'}
-                    </button>
-                  )}
-                </div>
-                <div className="d-flex gap-2">
-                  <button type="button" className="btn btn-sm btn-secondary" onClick={onClose} disabled={isSubmitting}>
-                    <X size={16} className="me-2" /> Cancelar
-                  </button>
-                  <button type="submit" className="btn btn-sm btn-primary" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        A guardar...
-                      </>
-                    ) : (
-                      <>
-                        <Save size={16} className="me-2" /> {isEditing ? 'Guardar' : 'Submeter'}
-                      </>
-                    )}
-                  </button>
-                  {isEditing && reportToEdit && (
-                    <button type="button" className="btn btn-sm btn-outline-primary" onClick={() => window.open(`/report/print/${reportToEdit.id}`, '_blank')}>
-                      <Printer size={16} className="me-2" />Relatório
-                    </button>
-                  )}
-                </div>
+          <div className="px-4 py-3 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center gap-2 flex-wrap">
+            <div className="d-flex flex-column align-items-start">
+              {isEditing && reportToEdit && isAdmin && (
+                <button type="button" className="btn btn-outline-danger border-0 rounded-pill px-3 fw-medium mb-2" onClick={handleDelete} disabled={isSubmitting}>
+                  <Trash2 size={18} className="me-2" />
+                  Eliminar
+                </button>
+              )}
+              <div className="form-check form-switch ms-1 mb-0">
+                <input className="form-check-input" type="checkbox" id="billingPendingCheck" checked={isBillingPending} onChange={(e) => setIsBillingPending(e.target.checked)} />
+                <label className="form-check-label text-primary fw-bold small ms-1" htmlFor="billingPendingCheck">Pendente Faturação</label>
               </div>
             </div>
-          </form>
-        </div>
+            <div className="d-flex gap-2 flex-wrap justify-content-end align-items-center mt-2 mt-sm-0">
+              <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium" onClick={onClose} disabled={isSubmitting}>
+                Cancelar
+              </button>
+              <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" disabled={isSubmitting}>
+                {isSubmitting ? <span className="spinner-border spinner-border-sm"></span> : <Save size={18} />}
+                {isEditing ? 'Guardar' : 'Submeter'}
+              </button>
+              {isEditing && reportToEdit && (
+                <button type="button" className="btn btn-info text-white rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={() => window.open(`/report/print/${reportToEdit.id}`, '_blank')}>
+                  <Printer size={18} /> Ver PDF
+                </button>
+              )}
+            </div>
+          </div>
+        </form>
       </div>
       {showDeleteConfirm && reportToEdit && (
         <DeleteReportModal report={reportToEdit} onClose={() => setShowDeleteConfirm(false)} onConfirm={confirmDelete} />

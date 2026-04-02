@@ -8,6 +8,7 @@ const SelfRegisterPage: React.FC = () => {
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [companyName, setCompanyName] = useState('');
+    const [honeypot, setHoneypot] = useState(''); // Bot protection
     const [loading, setLoading] = useState(false);
     const { alert } = useConfirm();
 
@@ -19,7 +20,8 @@ const SelfRegisterPage: React.FC = () => {
             email,
             firstName,
             lastName,
-            companyName
+            companyName,
+            website: honeypot // Send honeypot field
         };
 
         apiClient.post('/api/auth/self-register', registrationData)
@@ -89,6 +91,19 @@ const SelfRegisterPage: React.FC = () => {
                                 required
                             />
                         </div>
+
+                        {/* Honeypot field for bot protection - Hidden from humans */}
+                        <div style={{ display: 'none' }} aria-hidden="true">
+                            <input
+                                type="text"
+                                name="website"
+                                value={honeypot}
+                                onChange={e => setHoneypot(e.target.value)}
+                                tabIndex={-1}
+                                autoComplete="off"
+                            />
+                        </div>
+
                         <button type="submit" className="btn btn-primary w-100" disabled={loading}>
                             {loading ? 'A registar...' : 'Registar Pedido'}
                         </button>

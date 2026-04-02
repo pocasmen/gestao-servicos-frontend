@@ -66,6 +66,7 @@ export const ScheduleEventSchema = z.object({
     parts: z.array(PartItemSchema).optional().nullable().transform(v => v ?? undefined),
     clientName: z.string().optional().nullable().transform(v => v ?? undefined),
     equipmentInfo: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipmentModel: z.string().optional().nullable().transform(v => v ?? undefined),
     timeBlocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
     includes_travel: z.boolean().optional().nullable().transform(v => v ?? undefined),
     classification: z.nativeEnum(ServiceClassification).optional().nullable().transform(v => v ?? undefined),

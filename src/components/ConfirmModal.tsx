@@ -1,5 +1,4 @@
 import React from 'react';
-import styles from './ConfirmModal.module.css';
 
 interface ConfirmModalProps {
     isOpen: boolean;
@@ -33,25 +32,27 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     // Usamos as classes padrão do bootstrap 'btn-args'
 
     return (
-        <div className={styles.overlay}>
-            <div className={styles.modal} role="dialog" aria-modal="true">
-                <div className={styles.header}>
-                    <h5 className={styles.title}>{title}</h5>
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1060, backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(8px)' }}>
+            <div className="glass-card glass-card--solid border-0 shadow-lg p-0 overflow-hidden animate__animated animate__zoomIn" style={{ width: '90%', maxWidth: '450px' }} role="dialog" aria-modal="true">
+                <div className="px-4 pt-4 pb-2">
+                    <h5 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', fontSize: '1.35rem', color: '#111827' }}>
+                        {title}
+                    </h5>
                 </div>
-                <div className={styles.body}>
-                    {typeof message === 'string' ? <p style={{ margin: 0 }}>{message}</p> : message}
+                <div className="px-4 py-2" style={{ color: '#374151', fontSize: '1.05rem', lineHeight: '1.6' }}>
+                    {typeof message === 'string' ? <p className="m-0">{message}</p> : message}
                 </div>
-                <div className={styles.footer}>
+                <div className="px-4 py-3 bg-light bg-opacity-75 border-top d-flex justify-content-end gap-2">
                     {!isAlert && (
                         <button
-                            className={`btn btn-light text-dark border-0 ${styles.button}`}
+                            className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium"
                             onClick={onCancel}
                         >
                             {cancelText}
                         </button>
                     )}
                     <button
-                        className={`btn btn-${variant} ${styles.button}`}
+                        className={`btn btn-${variant} rounded-pill px-4 fw-bold shadow-sm`}
                         onClick={onConfirm}
                         autoFocus
                     >

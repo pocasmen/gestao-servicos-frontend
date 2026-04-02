@@ -27,20 +27,21 @@ const ScheduleInternalNotes: React.FC<ScheduleInternalNotesProps> = ({
     if (isTicketScheduling) return null;
 
     return (
-        <div className="form-group mb-2 p-2 border rounded bg-light border-warning border-opacity-50 mt-2">
-            <label className="form-label fw-bold mb-1 d-flex align-items-center text-dark small">
-                <i className="bi bi-card-text me-2 text-warning"></i>
-                Notas Internas <span className="ms-2 badge bg-warning text-dark small" style={{ fontSize: '0.65rem' }}>Privado</span>
+        <div className="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-30 rounded-4 shadow-sm mt-3 animate__animated animate__fadeIn">
+            <label className="text-dark fw-bold text-uppercase d-flex align-items-center mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                <i className="bi bi-journal-text me-2 text-primary opacity-50"></i>
+                Notas Internas
+                <span className="badge bg-warning bg-opacity-10 text-warning ms-3 px-2 py-1" style={{ fontSize: '0.65rem', letterSpacing: '0' }}>Oculto do Cliente</span>
             </label>
             <textarea
                 ref={internalNotesRef}
-                className="form-control form-control-sm"
+                className="form-control form-control-sm border-white bg-white rounded-4 px-3 py-2 shadow-none fw-medium"
                 value={internalNotes}
                 onChange={e => setInternalNotes(e.target.value)}
-                rows={1}
-                style={{ overflow: 'hidden', resize: 'none' }}
+                rows={2}
+                style={{ overflow: 'hidden', resize: 'none', transition: 'height 0.2s ease-in-out' }}
                 disabled={isPastOrCompleted}
-                placeholder="Notas para a equipa técnica..."
+                placeholder="Insira notas privadas para a equipa técnica..."
             />
         </div>
     );

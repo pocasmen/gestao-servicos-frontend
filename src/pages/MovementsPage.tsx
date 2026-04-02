@@ -389,40 +389,39 @@ const MovementsPage: React.FC = () => {
             )}
 
             {isPartModalOpen && (
-                <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-                    <div className="modal-dialog modal-lg modal-dialog-centered">
-                        <div className="modal-content rounded-4 border-0 shadow-lg">
-                            <div className="modal-header border-0 pb-0 px-4 pt-4">
-                                <h5 className="fw-bold m-0">Editar Item de Inventário</h5>
-                                <button type="button" className="btn-close" onClick={() => setIsPartModalOpen(false)}></button>
-                            </div>
-                            <div className="modal-body p-4">
-                                <InventoryItemForm
-                                    newItem={newItem}
-                                    setNewItem={setNewItem}
-                                    isComposed={isComposed}
-                                    setIsComposed={setIsComposed}
-                                    components={components}
-                                    compSearch={compSearch}
-                                    setCompSearch={setCompSearch}
-                                    handleCompSearch={handleCompSearch}
-                                    compSearchResults={compSearchResults}
-                                    showCompResults={showCompResults}
-                                    addComponent={addComponent}
-                                    removeComponent={removeComponent}
-                                    updateComponentQty={updateComponentQty}
-                                    isSubmitting={isSubmitting}
-                                    onClose={() => setIsPartModalOpen(false)}
-                                    onSubmit={handleUpdatePart}
-                                    isInline={true}
-                                />
-                            </div>
-                            <div className="modal-footer border-0 px-4 pb-4">
-                                <button className="btn btn-light rounded-pill px-4" onClick={() => setIsPartModalOpen(false)}>Cancelar</button>
-                                <button className="btn btn-primary rounded-pill px-4 fw-bold" onClick={handleUpdatePart} disabled={isSubmitting}>
-                                    {isSubmitting ? 'A guardar...' : 'Guardar Alterações'}
-                                </button>
-                            </div>
+                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
+                    <div className="glass-card glass-card--solid border-0 shadow-lg overflow-hidden animate__animated animate__zoomIn w-100" style={{ maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+                        <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center flex-shrink-0">
+                            <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Editar Item de Inventário</h5>
+                            <button type="button" className="btn-close btn-close-white shadow-none" onClick={() => setIsPartModalOpen(false)}></button>
+                        </div>
+                        <div className="p-4" style={{ overflowY: 'auto' }}>
+                            <InventoryItemForm
+                                newItem={newItem}
+                                setNewItem={setNewItem}
+                                isComposed={isComposed}
+                                setIsComposed={setIsComposed}
+                                components={components}
+                                compSearch={compSearch}
+                                setCompSearch={setCompSearch}
+                                handleCompSearch={handleCompSearch}
+                                compSearchResults={compSearchResults}
+                                showCompResults={showCompResults}
+                                addComponent={addComponent}
+                                removeComponent={removeComponent}
+                                updateComponentQty={updateComponentQty}
+                                isSubmitting={isSubmitting}
+                                onClose={() => setIsPartModalOpen(false)}
+                                onSubmit={handleUpdatePart}
+                                isInline={true}
+                            />
+                        </div>
+                        <div className="px-4 py-3 bg-light bg-opacity-75 border-top d-flex justify-content-end gap-2 flex-shrink-0">
+                            <button className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium" onClick={() => setIsPartModalOpen(false)}>Cancelar</button>
+                            <button className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={handleUpdatePart} disabled={isSubmitting}>
+                                {isSubmitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
+                                {isSubmitting ? 'A guardar...' : 'Guardar Alterações'}
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -19,15 +19,15 @@ const ReportClientEquipment: React.FC<ReportClientEquipmentProps> = ({
     clientEquipments
 }) => {
     return (
-        <div className="row g-2 mb-2">
+        <div className="row g-3 mb-3">
             <div className="col-md-6">
-                <div className="form-group p-2 border rounded bg-light h-100">
-                    <label className="form-label fw-bold mb-1 d-flex align-items-center small">
-                        <i className="bi bi-building-fill me-2 text-primary"></i>
+                <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
+                    <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                        <i className="bi bi-building-fill me-2 text-primary opacity-50"></i>
                         Cliente
                     </label>
                     <select
-                        className="form-select form-select-sm"
+                        className="form-select form-select-sm border-light bg-white rounded-pill px-3 shadow-none fw-medium"
                         value={clientId}
                         onChange={e => setClientId(Number(e.target.value))}
                         required
@@ -38,13 +38,13 @@ const ReportClientEquipment: React.FC<ReportClientEquipmentProps> = ({
                 </div>
             </div>
             <div className="col-md-6">
-                <div className="form-group p-2 border rounded bg-light h-100">
-                    <label className="form-label fw-bold mb-1 d-flex align-items-center small">
-                        <i className="bi bi-pc-display me-2 text-primary"></i>
+                <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
+                    <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                        <i className="bi bi-tools me-2 text-primary opacity-50"></i>
                         Equipamento
                     </label>
                     <select
-                        className="form-select form-select-sm"
+                        className="form-select form-select-sm border-light bg-white rounded-pill px-3 shadow-none fw-medium"
                         value={equipmentId}
                         onChange={e => setEquipmentId(Number(e.target.value))}
                         required

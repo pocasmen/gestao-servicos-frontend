@@ -1,185 +1,222 @@
 /* client/src/pages/TicketDetailPage.css */
 
+.admin-ticket-detail-page .glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(229, 231, 235, 0.5);
+  border-radius: 1.25rem;
+}
+
 .admin-ticket-detail-page .card-header {
-  background-color: #f0f0f0;
-  border-bottom: 1px solid #e9ecef;
-  font-weight: 600;
-  color: #343a40;
-}
-
-.admin-ticket-detail-page .ticket-info-header {
-  background-color: #eef2f7;
-  color: #343a40;
-}
-
-.admin-ticket-detail-page .reply-form-header {
-  background-color: #e9f2fa;
-  color: #0b5ed7;
-}
-
-.admin-ticket-detail-page .reply-form-header .btn-link {
-  color: #0b5ed7;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.admin-ticket-detail-page .reply-form-header .btn-link:hover {
-  text-decoration: underline;
-}
-
-.admin-ticket-detail-page .breadcrumb {
-  background-color: transparent;
-  padding-left: 0;
-}
-
-.admin-ticket-detail-page .breadcrumb-item a {
-  color: #0b5ed7;
-  text-decoration: none;
-}
-
-.admin-ticket-detail-page .breadcrumb-item a:hover {
-  text-decoration: underline;
-}
-
-.admin-ticket-detail-page .breadcrumb-item.active {
-  color: #6c757d;
-}
-
-.admin-ticket-detail-page .thread-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
-  border-radius: 12px;
-  margin: 12px 0;
-  border: 1px solid #e5e7eb;
-  background-color: #ffffff;
-}
-
-.admin-ticket-detail-page .thread-client {
-  border-color: #e5e7eb;
-  background-color: #ffffff;
-}
-
-.admin-ticket-detail-page .thread-tech {
-  border-color: #d0e3ff;
-  background-color: #f0f7ff;
-}
-
-.admin-ticket-detail-page .thread-new {
-  animation: threadNewFade 1.6s ease-in-out;
-}
-
-.admin-ticket-detail-page .thread-unread {
-  border-color: #0b5ed7;
+  background-color: #1a1a1a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  font-weight: 700;
+  color: #ffffff;
+  padding: 1rem 1.25rem;
+  font-family: var(--font-family-title);
+  border-top-left-radius: 1.25rem;
+  border-top-right-radius: 1.25rem;
 }
 
 .chat-body {
-  max-height: 60vh;
+  max-height: 500px;
   overflow-y: auto;
-  background-color: #f7f9fc;
+  scroll-behavior: smooth;
+  padding: 1.5rem;
+  background-color: #f8fafc;
+  border-radius: 1rem;
 }
 
-.chat-bubble {
-  max-width: 75%;
-  padding: 10px 12px;
-  border-radius: 16px;
-  margin: 15px 0;
+/* Scrollbar styling */
+.chat-body::-webkit-scrollbar {
+  width: 6px;
+}
+.chat-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-body::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.thread-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.5rem;
+  max-width: 85%;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.thread-client {
+  align-self: flex-start;
+}
+
+.thread-tech {
+  align-self: flex-end;
+}
+
+.thread-bubble {
+  padding: 1rem 1.25rem;
+  border-radius: 1.25rem;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
   position: relative;
-  display: inline-block;
 }
 
-.chat-left {
+.thread-client .thread-bubble {
   background-color: #ffffff;
-  color: #1f2937;
-  border: 1px solid #e5e7eb;
+  color: #1e293b;
+  border: 1px solid #e2e8f0;
+  border-top-left-radius: 0.25rem;
 }
 
-.chat-right {
-  background-color: #0b5ed7;
+.thread-tech .thread-bubble {
+  background-color: var(--primary-color);
   color: #ffffff;
-  margin-left: auto;
+  border-top-right-radius: 0.25rem;
+}
+
+.thread-unread .thread-bubble {
+  border: 2px solid var(--primary-color);
 }
 
 .thread-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.thread-tech .thread-header {
+  flex-direction: row-reverse;
 }
 
 .thread-avatar {
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  font-size: 0.95rem;
-  color: #ffffff;
-  background-color: #0b5ed7;
+  font-size: 0.75rem;
+  background-color: #e2e8f0;
+  color: #64748b;
   position: relative;
   flex-shrink: 0;
 }
 
+.thread-tech .thread-avatar {
+  background-color: #dbeafe;
+  color: #2563eb;
+}
+
 .status-indicator {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 12px;
-  height: 12px;
+  bottom: -1px;
+  right: -1px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   border: 2px solid #ffffff;
   z-index: 2;
 }
 
-.status-indicator.online {
-  background-color: #28a745;
+.status-indicator.online { background-color: #10b981; }
+.status-indicator.offline { background-color: #94a3b8; }
+
+.role-badge {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  z-index: 3;
+  border: 1px solid rgba(0,0,0,0.05);
 }
 
-.status-indicator.offline {
-  background-color: #dc3545;
+.role-badge.client { 
+  color: #0d6efd; 
+  background-color: #e7f1ff;
+}
+
+.role-badge.tech { 
+  color: #10b981; 
+  background-color: #ecfdf5;
 }
 
 .thread-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
-.status-badge {
-  display: none;
-  /* Removido para usar ponto de status */
+.thread-tech .thread-meta {
+  align-items: flex-end;
 }
 
-.status-badge.bg-secondary {
-  background-color: #6c757d !important;
-  color: #ffffff;
-}
-
-.chat-meta {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.chat-timestamp {
+.thread-author {
   font-size: 0.85rem;
-  color: #9aa3ad;
+  font-weight: 700;
+  color: #475569;
 }
 
-.chat-bubble:hover {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+.thread-timestamp {
+  font-size: 0.75rem;
+  color: #94a3b8;
 }
 
-.chat-new {
-  animation: chatNewFade 1.6s ease-in-out;
+.presence-popup {
+  border-radius: 100px !important;
+  padding: 0.5rem 1.5rem !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  border: none !important;
+  font-weight: 600;
+  animation: slideDownIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.chat-unread {
-  box-shadow: 0 0 0 2px rgba(11, 94, 215, 0.15);
-  border-color: #0b5ed7;
+@keyframes slideDownIn {
+  from { transform: translateY(-100%) translateX(-50%); opacity: 0; }
+  to { transform: translateY(0) translateX(-50%); opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.quote-bubble {
+  background: rgba(0, 0, 0, 0.05);
+  border-left: 3px solid rgba(0, 0, 0, 0.1);
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-style: italic;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.thread-tech .quote-bubble {
+  background: rgba(255, 255, 255, 0.1);
+  border-left-color: rgba(255, 255, 255, 0.2);
+}
+
+.attachment-item {
+  transition: all 0.2s ease;
+  border-radius: 0.75rem !important;
+  border: 1px solid #f1f5f9 !important;
+  margin-bottom: 0.5rem;
+}
+
+.attachment-item:hover {
+  background-color: #f8fafc;
+  transform: translateX(4px);
 }

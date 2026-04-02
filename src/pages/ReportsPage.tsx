@@ -18,6 +18,7 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
   const [equipments, setEquipments] = useState<Equipment[]>([]);
   const [technicians, setTechnicians] = useState<Technician[]>([]);
   const [clientId, setClientId] = useState<number | string>('');
+  const [equipmentName, setEquipmentName] = useState<string>('');
   const [equipmentId, setEquipmentId] = useState<number | string>('');
   const [technicianId, setTechnicianId] = useState<number | string>('');
   const [serviceDate, setServiceDate] = useState('');
@@ -234,137 +235,180 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
   };
 
   return (
-    <div className="mb-4">
-      <h2>Novo Relatório de Intervenção</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="form-group">
-          <label>Cliente</label>
-          <select className="form-control" value={clientId} onChange={e => setClientId(e.target.value)} required>
-            <option value="">Selecione um cliente...</option>
-            {clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
-          </select>
-        </div>
-        <div className="form-group">
-          <label>Equipamento</label>
-          <select className="form-control" value={equipmentId} onChange={e => setEquipmentId(e.target.value)} required disabled={!clientId}>
-            <option value="">Selecione um equipamento...</option>
-            {equipments.map(equipment => (
-              <option key={equipment.id} value={equipment.id}>
-                {`${equipment.brand || ''} ${equipment.model || ''}${equipment.serialNumber ? ` (${equipment.serialNumber})` : ''}`.trim()}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group">
-          <label>Técnico</label>
-          <select className="form-control" value={technicianId} onChange={e => setTechnicianId(e.target.value)} required>
-            <option value="">Selecione um técnico...</option>
-            {technicians && technicians.map(tech => <option key={tech.id} value={tech.id}>{tech.name}</option>)}
-          </select>
-        </div>
-        <div className="form-group">
-          <label>Tipo de Serviço</label>
-          <select className="form-control" value={serviceType} onChange={e => setServiceType(e.target.value)} required>
-            <option value="">Selecione um tipo...</option>
-            {Object.entries(SERVICE_TYPE_LABELS).map(([val, label]) => (
-              <option key={val} value={val}>{label}</option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group">
-          <label>Classificação do Serviço</label>
-          <select className="form-control" value={classification} onChange={e => setClassification(e.target.value)} required>
-            {SERVICE_CLASSIFICATIONS_LIST.map(item => (
-              <option key={item.id} value={item.id}>{item.label}</option>
-            ))}
-          </select>
-        </div>
-        <div className="form-group">
-          <label>Data do Serviço</label>
-          <input type="date" className="form-control" value={serviceDate} onChange={e => setServiceDate(e.target.value)} />
-        </div>
-        <div className="form-group">
-          <label>Nº de Horas</label>
-          <input type="number" className="form-control" value={hours} onChange={e => setHours(e.target.value)} />
-        </div>
-        <div className="form-group">
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <label className="mb-0">Peças Utilizadas</label>
+    <div className="glass-card border-0 mb-4 overflow-hidden animate__animated animate__fadeIn">
+      <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+        <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Novo Relatório de Intervenção</h5>
+      </div>
+      <div className="p-4">
+        <form onSubmit={handleSubmit}>
+          <div className="row g-3 mb-4">
+            <div className="col-md-6">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Cliente</label>
+              <div className="input-group shadow-sm rounded-3 overflow-hidden border">
+                <select className="form-select border-0 py-2 ps-3" value={clientId} onChange={e => setClientId(e.target.value)} required>
+                  <option value="">Selecione um cliente...</option>
+                  {clients.map(client => <option key={client.id} value={client.id}>{client.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Equipamento</label>
+              <div className="input-group shadow-sm rounded-3 overflow-hidden border">
+                <select className="form-select border-0 py-2 ps-3" value={equipmentId} onChange={e => setEquipmentId(e.target.value)} required disabled={!clientId}>
+                  <option value="">Selecione um equipamento...</option>
+                  {equipments.map(equipment => (
+                    <option key={equipment.id} value={equipment.id}>
+                      {`${equipment.brand || ''} ${equipment.model || ''}${equipment.serialNumber ? ` (${equipment.serialNumber})` : ''}`.trim()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
-          {parts.map((part, index) => (
-            <div key={index} className="row mb-2">
-              <div className="col-3"><input type="number" className="form-control" placeholder="Quantidade" value={part.quantity} onChange={e => handlePartChange(index, 'quantity', e.target.value)} /></div>
-              <div className="col-4"><input type="text" className="form-control" placeholder="Referência" value={part.reference} onChange={e => handlePartChange(index, 'reference', e.target.value)} /></div>
-              <div className="col-4"><input type="text" className="form-control" placeholder="Designação" value={part.designation} onChange={e => handlePartChange(index, 'designation', e.target.value)} disabled={part.isDesignationLocked} /></div>
-              <div className="col-1">
-                <button type="button" className="btn btn-danger btn-sm" onClick={() => handleRemovePart(index)} title="Remover Peça">
-                  <X size={16} />
+
+          <div className="row g-3 mb-4">
+            <div className="col-md-4">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Técnico Principal</label>
+              <div className="input-group shadow-sm rounded-3 overflow-hidden border">
+                <select className="form-select border-0 py-2 ps-3" value={technicianId} onChange={e => setTechnicianId(e.target.value)} required>
+                  <option value="">Selecione um técnico...</option>
+                  {technicians && technicians.map(tech => <option key={tech.id} value={tech.id}>{tech.name}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Tipo de Serviço</label>
+              <div className="input-group shadow-sm rounded-3 overflow-hidden border">
+                <select className="form-select border-0 py-2 ps-3" value={serviceType} onChange={e => setServiceType(e.target.value)} required>
+                  <option value="">Selecione um tipo...</option>
+                  {Object.entries(SERVICE_TYPE_LABELS).map(([val, label]) => (
+                    <option key={val} value={val}>{label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Classificação</label>
+              <div className="input-group shadow-sm rounded-3 overflow-hidden border">
+                <select className="form-select border-0 py-2 ps-3" value={classification} onChange={e => setClassification(e.target.value)} required>
+                  {SERVICE_CLASSIFICATIONS_LIST.map(item => (
+                    <option key={item.id} value={item.id}>{item.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div className="row g-3 mb-4">
+            <div className="col-md-6">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Data do Serviço</label>
+              <input type="date" className="form-control rounded-3 py-2 shadow-sm" value={serviceDate} onChange={e => setServiceDate(e.target.value)} />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Nº de Horas</label>
+              <input type="number" className="form-control rounded-3 py-2 shadow-sm" placeholder="Contabilizar tempo..." value={hours} onChange={e => setHours(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <label className="form-label small fw-bold text-muted text-uppercase m-0" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Peças Utilizadas</label>
+              <div className="d-flex gap-2">
+                <button type="button" className="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-1" onClick={handleCopyParts} title="Copiar Peças">
+                  <Copy size={16} /> <span className="small">Copiar</span>
+                </button>
+                <button type="button" className="btn btn-sm btn-outline-primary rounded-pill d-flex align-items-center gap-1" onClick={handlePasteParts} title="Colar Peças">
+                  <Clipboard size={16} /> <span className="small">Colar</span>
+                </button>
+                <button type="button" className="btn btn-sm btn-primary rounded-pill d-flex align-items-center gap-1 shadow-sm" onClick={handleAddPart} title="Adicionar Peça">
+                  <Plus size={16} /> <span className="small">Adicionar</span>
                 </button>
               </div>
             </div>
-          ))}
-          <div className="d-flex align-items-center gap-2 mt-2">
-            <button type="button" className="btn btn-secondary btn-sm" onClick={handleAddPart} title="Adicionar Peça">
-              <Plus size={18} />
-            </button>
-            <div className="btn-group">
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-info d-flex align-items-center"
-                onClick={handleCopyParts}
-                title="Copiar Peças"
-              >
-                <Copy size={18} />
-              </button>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-info d-flex align-items-center"
-                onClick={handlePasteParts}
-                title="Colar Peças"
-              >
-                <Clipboard size={18} />
-              </button>
+
+            <div className="table-responsive rounded-3 border overflow-hidden">
+              <table className="table table-sm align-middle mb-0">
+                <thead className="bg-light">
+                  <tr className="small text-muted">
+                    <th className="ps-3" style={{ width: '80px' }}>QNT</th>
+                    <th style={{ width: '25%' }}>REFERÊNCIA</th>
+                    <th>DESIGNAÇÃO</th>
+                    <th className="text-end pe-3" style={{ width: '50px' }}></th>
+                  </tr>
+                </thead>
+                <tbody style={{ borderTop: 'none' }}>
+                  {parts.length === 0 ? (
+                    <tr>
+                      <td colSpan={4} className="text-center py-4 text-muted small">Nenhuma peça adicionada. Use Adicionar ou Colar.</td>
+                    </tr>
+                  ) : (
+                    parts.map((part, index) => (
+                      <tr key={index}>
+                        <td className="ps-3"><input type="number" className="form-control form-control-sm border-0" value={part.quantity} onChange={e => handlePartChange(index, 'quantity', e.target.value)} /></td>
+                        <td><input type="text" className="form-control form-control-sm border-0" placeholder="Ref..." value={part.reference} onChange={e => handlePartChange(index, 'reference', e.target.value)} /></td>
+                        <td><input type="text" className="form-control form-control-sm border-0" placeholder="Descrição..." value={part.designation} onChange={e => handlePartChange(index, 'designation', e.target.value)} disabled={part.isDesignationLocked} /></td>
+                        <td className="text-end pe-3">
+                          <button type="button" className="btn btn-link text-danger p-0" onClick={() => handleRemovePart(index)}>
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
-        </div>
-        <div className="form-group">
-          <label>Descrição da Avaria</label>
-          <textarea
-            ref={damageRef}
-            className="form-control"
-            style={{ overflow: 'hidden', resize: 'none' }}
-            value={damage}
-            onChange={e => setDamage(e.target.value)}
-            rows={1}
-          />
-        </div>
-        <div className="form-group">
-          <label>Descrição da Intervenção</label>
-          <textarea
-            ref={descriptionRef}
-            className="form-control"
-            style={{ overflow: 'hidden', resize: 'none' }}
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            rows={1}
-          />
-        </div>
-        <div className="form-group p-2 bg-light border rounded">
-          <label className="text-primary font-weight-bold">Notas Internas (Não visível ao cliente)</label>
-          <textarea
-            ref={internalNotesRef}
-            className="form-control"
-            style={{ overflow: 'hidden', resize: 'none' }}
-            value={internalNotes}
-            onChange={e => setInternalNotes(e.target.value)}
-            rows={1}
-            placeholder="Notas para a equipa técnica..."
-          />
-        </div>
-        <button type="submit" className="btn btn-primary mt-2" title="Criar Relatório">
-          <Check size={20} />
-        </button>
-      </form>
+
+          <div className="row g-3 mb-4 text-areas-container">
+            <div className="col-12">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Descrição da Avaria</label>
+              <textarea
+                ref={damageRef}
+                className="form-control rounded-3 shadow-sm"
+                style={{ resize: 'none' }}
+                placeholder="Qual era o problema relatado?"
+                value={damage}
+                onChange={e => setDamage(e.target.value)}
+                rows={2}
+              />
+            </div>
+            <div className="col-12">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Descrição da Intervenção</label>
+              <textarea
+                ref={descriptionRef}
+                className="form-control rounded-3 shadow-sm"
+                style={{ resize: 'none' }}
+                placeholder="O que foi feito para resolver?"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div className="col-12">
+              <div className="p-3 rounded-4" style={{ backgroundColor: 'rgba(79, 70, 229, 0.05)', border: '1px dashed rgba(79, 70, 229, 0.2)' }}>
+                <label className="form-label small fw-bold text-primary text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Notas Internas (Privadas)</label>
+                <textarea
+                  ref={internalNotesRef}
+                  className="form-control bg-white border-0 shadow-sm rounded-3"
+                  style={{ resize: 'none' }}
+                  placeholder="Informação relevante apenas para técnicos..."
+                  value={internalNotes}
+                  onChange={e => setInternalNotes(e.target.value)}
+                  rows={2}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-end mt-4">
+            <button type="submit" className="btn btn-primary rounded-pill px-5 fw-bold shadow-sm d-flex align-items-center gap-2">
+              <Check size={20} />
+              <span>Gerar Relatório Profissional</span>
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
@@ -377,57 +421,69 @@ const ReportList: React.FC<{
   isAdmin: boolean
 }> = ({ reports, onEditReport, onDeleteReport, isAdmin }) => {
   return (
-    <div>
-      <h2>Histórico de Relatórios</h2>
-      <div className="table-responsive">
-        <table className="table">
-          <thead>
+    <div className="table-responsive">
+      <table className="table align-middle mb-0">
+        <thead className="table-light">
+          <tr className="text-uppercase small fw-bold text-muted">
+            <th className="ps-4">Cliente / Equipamento</th>
+            <th>Técnico(s)</th>
+            <th>Data</th>
+            <th>Serviço</th>
+            <th>Horas</th>
+            <th className="text-end pe-4">Ações</th>
+          </tr>
+        </thead>
+        <tbody style={{ borderTop: 'none' }}>
+          {reports.length === 0 ? (
             <tr>
-              <th>Cliente</th>
-              <th>Equipamento</th>
-              <th>Técnico(s)</th>
-              <th>Data</th>
-              <th>Tipo de Serviço</th>
-              <th>Horas</th>
-              <th>Ações</th>
+              <td colSpan={6} className="text-center py-4 text-muted">Nenhum relatório encontrado.</td>
             </tr>
-          </thead>
-          <tbody>
-            {reports.map(report => (
-              <tr key={report.id}>
-                <td>{report.clientName}</td>
-                <td>{report.equipmentBrand} - {report.equipmentModel}</td>
-                <td>
-                  {report.technicians && report.technicians.length > 1
-                    ? 'Vários'
-                    : report.technicians?.map(t => t.name).join(', ') || 'N/A'}
+          ) : (
+            reports.map(report => (
+              <tr key={report.id} className="shadow-sm">
+                <td className="ps-4 py-3">
+                  <div className="fw-bold text-dark">{report.clientName}</div>
+                  <div className="small text-muted">{report.equipmentBrand} {report.equipmentModel}</div>
                 </td>
-                <td>{new Date(report.serviceDate).toLocaleDateString('pt-PT')}</td>
                 <td>
-                  {Array.isArray(report.serviceType)
-                    ? report.serviceType.map(t => SERVICE_TYPE_LABELS[t] || t).join(', ')
-                    : SERVICE_TYPE_LABELS[report.serviceType] || report.serviceType}
+                  <span className="badge bg-light text-dark border fw-medium px-2 py-1">
+                    {report.technicians && report.technicians.length > 1
+                      ? 'Equipa'
+                      : report.technicians?.map(t => t.name).join(', ') || 'N/A'}
+                  </span>
                 </td>
-                <td>{report.hours}</td>
+                <td className="text-muted fw-medium">
+                  {new Date(report.serviceDate).toLocaleDateString('pt-PT')}
+                </td>
                 <td>
-                  <div className="d-flex gap-2">
-                    <Link to={`/report/print/${report.id}`} className="btn btn-sm btn-outline-primary shadow-sm d-flex align-items-center justify-content-center" style={{ width: '32px', height: '32px' }} target="_blank" title="Ver / Imprimir">
+                  <span className="small fw-semibold text-primary">
+                    {Array.isArray(report.serviceType)
+                      ? report.serviceType.map(t => SERVICE_TYPE_LABELS[t] || t).join(', ')
+                      : SERVICE_TYPE_LABELS[report.serviceType] || report.serviceType}
+                  </span>
+                </td>
+                <td>
+                  <span className="fw-bold text-dark">{report.hours}h</span>
+                </td>
+                <td className="text-end pe-4">
+                  <div className="d-flex justify-content-end gap-1">
+                    <Link to={`/report/print/${report.id}`} className="btn btn-sm btn-primary bg-opacity-15 text-primary-emphasis border-0 shadow-none rounded-pill" target="_blank" title="Ver / Imprimir" style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                       <Printer size={18} />
                     </Link>
                     <button
-                      className="btn btn-sm btn-outline-secondary shadow-sm d-flex align-items-center justify-content-center"
-                      style={{ width: '32px', height: '32px' }}
+                      className="btn btn-sm btn-warning bg-opacity-15 text-warning-emphasis border-0 shadow-none rounded-pill"
                       onClick={() => onEditReport(report)}
                       title="Editar Relatório"
+                      style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                     >
                       <Pencil size={18} />
                     </button>
                     {isAdmin && (
                       <button
-                        className="btn btn-sm btn-outline-danger shadow-sm d-flex align-items-center justify-content-center"
-                        style={{ width: '32px', height: '32px' }}
+                        className="btn btn-sm btn-outline-danger border-0 rounded-pill"
                         onClick={() => onDeleteReport(report)}
                         title="Eliminar Relatório"
+                        style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         <Trash2 size={18} />
                       </button>
@@ -435,10 +491,10 @@ const ReportList: React.FC<{
                   </div>
                 </td>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 };
@@ -536,70 +592,87 @@ const ReportsPage: React.FC = () => {
 
   return (
     <div className="container-fluid mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2>Gestão de Relatórios</h2>
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 mt-2">
+        <div>
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Relatórios</h1>
+          <p className="text-muted m-0">Consulte e emita relatórios de intervenção técnica</p>
+        </div>
         <button
-          className={`btn ${showNewReportForm ? 'btn-secondary' : 'btn-success'}`}
+          className={`btn ${showNewReportForm ? 'btn-secondary' : 'btn-primary'} rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2`}
           onClick={() => setShowNewReportForm(!showNewReportForm)}
-          title={showNewReportForm ? 'Cancelar' : 'Novo Relatório'}
         >
-          {showNewReportForm ? <X size={20} /> : <Plus size={20} />}
+          {showNewReportForm ? (
+            <>
+              <X size={20} />
+              <span>Cancelar</span>
+            </>
+          ) : (
+            <>
+              <Plus size={20} />
+              <span>Novo Relatório</span>
+            </>
+          )}
         </button>
       </div>
 
       {showNewReportForm && (
-        <div className="card mb-4 shadow-sm">
-          <div className="card-body">
-            <ReportForm onReportAdded={() => {
-              fetchReports();
-              setShowNewReportForm(false);
-            }} />
-          </div>
-        </div>
+        <ReportForm onReportAdded={() => {
+          fetchReports();
+          setShowNewReportForm(false);
+        }} />
       )}
 
       {/* Filter Section */}
-      <div className="card mb-4 mt-4 shadow-sm" style={{ backdropFilter: 'blur(10px)', backgroundColor: 'rgba(255, 255, 255, 0.8)' }}>
-        <div className="card-body">
+      <div className="glass-card border-0 mb-4 overflow-hidden">
+        <div className="p-4">
           <div className="row g-3 align-items-end">
             <div className="col-md-3">
-              <label className="form-label text-muted">Pesquisar</label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Cliente, equipamento, série..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
-              />
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Pesquisar</label>
+              <div className="input-group shadow-sm rounded-pill overflow-hidden border bg-white ps-3">
+                <span className="bg-transparent border-0 d-flex align-items-center text-muted pe-2">
+                  <Search size={18} />
+                </span>
+                <input
+                  type="text"
+                  className="form-control border-0 bg-transparent py-2"
+                  placeholder="Cliente, equipamento..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                />
+              </div>
             </div>
-            <div className="col-md-3">
-              <label className="form-label text-muted">Período</label>
-              <div className="btn-group w-100" role="group">
+            <div className="col-md-4">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Período</label>
+              <div className="btn-group w-100 shadow-sm rounded-3 overflow-hidden border" role="group">
                 <button
                   type="button"
-                  className={`btn ${dateFilter === '' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  className={`btn border-0 py-2 py-lg-2 fw-medium ${dateFilter === '' ? 'btn-primary' : 'btn-white text-muted'}`}
+                  style={{ fontSize: '0.85rem' }}
                   onClick={() => setDateFilter('')}
                 >
-                  Todos
+                  Tudo
                 </button>
                 <button
                   type="button"
-                  className={`btn ${dateFilter === 'today' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  className={`btn border-0 py-2 py-lg-2 fw-medium ${dateFilter === 'today' ? 'btn-primary' : 'btn-white text-muted'}`}
+                  style={{ fontSize: '0.85rem' }}
                   onClick={() => setDateFilter('today')}
                 >
                   Hoje
                 </button>
                 <button
                   type="button"
-                  className={`btn ${dateFilter === 'week' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  className={`btn border-0 py-2 py-lg-2 fw-medium ${dateFilter === 'week' ? 'btn-primary' : 'btn-white text-muted'}`}
+                  style={{ fontSize: '0.85rem' }}
                   onClick={() => setDateFilter('week')}
                 >
                   Semana
                 </button>
                 <button
                   type="button"
-                  className={`btn ${dateFilter === 'month' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  className={`btn border-0 py-2 py-lg-2 fw-medium ${dateFilter === 'month' ? 'btn-primary' : 'btn-white text-muted'}`}
+                  style={{ fontSize: '0.85rem' }}
                   onClick={() => setDateFilter('month')}
                 >
                   Mês
@@ -607,28 +680,33 @@ const ReportsPage: React.FC = () => {
               </div>
             </div>
             <div className="col-md-3">
-              <label className="form-label text-muted">Tipo de Serviço</label>
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Tipo de Serviço</label>
               <select
-                className="form-select"
+                className="form-select shadow-sm rounded-3 py-2 border"
+                style={{ fontSize: '0.9rem' }}
                 value={serviceTypeFilter}
                 onChange={(e) => setServiceTypeFilter(e.target.value)}
               >
-                <option value="">Todos</option>
+                <option value="">Todos os tipos</option>
                 {Object.entries(SERVICE_TYPE_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
                 ))}
               </select>
             </div>
-            <div className="col-md-3">
+            <div className="col-md-2">
               <button
-                className="btn btn-primary w-100"
+                className="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
                 onClick={fetchReports}
                 disabled={isLoading}
-                title="Pesquisar"
               >
                 {isLoading ? (
                   <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                ) : <Search size={20} />}
+                ) : (
+                  <>
+                    <Search size={20} />
+                    <span>Filtrar</span>
+                  </>
+                )}
               </button>
             </div>
           </div>

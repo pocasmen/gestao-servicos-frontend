@@ -91,21 +91,21 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
             {/* Modal */}
             <div className="modal show d-block" style={{ zIndex: 1055 }} tabIndex={-1} role="dialog">
                 <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
+                    <div className="modal-content glass-card border-0 shadow-lg overflow-hidden">
 
                         {/* Header */}
-                        <div className="modal-header border-0 px-4 pt-4 pb-3">
-                            <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'Montserrat, sans-serif', color: '#111827' }}>
-                                <span className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-secondary bg-opacity-10 text-dark">
+                        <div className="modal-header bg-dark text-white border-0 px-4 py-3">
+                            <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'var(--font-family-title)' }}>
+                                <span className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-white bg-opacity-10 text-white">
                                     <Package size={22} />
                                 </span>
                                 Encomenda #{orderId}
                             </h5>
-                            <button type="button" className="btn-close" onClick={onClose} disabled={isSubmitting} />
+                            <button type="button" className="btn-close btn-close-white" onClick={onClose} disabled={isSubmitting} />
                         </div>
 
                         {/* Body */}
-                        <div className="modal-body px-4 py-3 bg-light bg-opacity-50">
+                        <div className="modal-body px-4 py-4">
                             {isLoading ? (
                                 <div className="text-center py-5">
                                     <div className="spinner-border text-primary" role="status" />
@@ -116,13 +116,13 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                     {/* Summary row */}
                                     <div className="row g-3 mb-4">
                                         <div className="col-md-4">
-                                            <div className="rounded-4 p-3 bg-white shadow-sm h-100">
+                                            <div className="rounded-4 p-3 bg-white shadow-sm h-100 border border-light">
                                                 <div className="small fw-bold text-muted text-uppercase mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Nº Documento</div>
                                                 <div className="fw-bold text-primary fs-5 m-0">{order.document_number}</div>
                                             </div>
                                         </div>
                                         <div className="col-md-4">
-                                            <div className="rounded-4 p-3 bg-white shadow-sm h-100 d-flex flex-column justify-content-between">
+                                            <div className="rounded-4 p-3 bg-white shadow-sm h-100 d-flex flex-column justify-content-between border border-light">
                                                 <div className="small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Estado</div>
                                                 {statusInfo && (
                                                     <span className={`badge px-3 py-2 rounded-pill fw-semibold border-0 ${statusInfo.cls}`}>{statusInfo.label}</span>
@@ -130,7 +130,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                             </div>
                                         </div>
                                         <div className="col-md-4">
-                                            <div className="rounded-4 p-3 bg-white shadow-sm h-100">
+                                            <div className="rounded-4 p-3 bg-white shadow-sm h-100 border border-light">
                                                 <div className="small fw-bold text-muted text-uppercase mb-1" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Registado por</div>
                                                 <div className="fw-semibold">{order.first_name} {order.last_name || ''}</div>
                                                 <div className="small text-muted">{format(new Date(order.created_at), 'dd/MM/yyyy HH:mm')}</div>
@@ -139,7 +139,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                     </div>
 
                                     {order.notes && (
-                                        <div className="rounded-4 p-3 bg-white shadow-sm mb-4 small text-secondary border-0">
+                                        <div className="rounded-4 p-3 bg-white shadow-sm mb-4 small text-secondary border border-light">
                                             <span className="fw-bold text-muted me-1" style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Notas:</span>
                                             {order.notes}
                                         </div>
@@ -176,7 +176,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                                             </td>
                                                             <td className="text-center bg-primary bg-opacity-10 py-2">
                                                                 {done ? (
-                                                                    <span className="badge bg-success bg-opacity-10 text-success border-0 rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1">
+                                                                    <span className="badge bg-success bg-opacity-15 text-success-emphasis border-0 rounded-pill px-3 py-2 fw-semibold d-inline-flex align-items-center gap-1">
                                                                         <CheckCircle size={13} /> OK
                                                                     </span>
                                                                 ) : (
@@ -209,13 +209,13 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
 
                         {/* Footer */}
                         <div className="modal-footer border-0 px-4 py-3">
-                            <button type="button" className="btn btn-light border rounded-pill px-4 fw-medium" onClick={onClose} disabled={isSubmitting}>
+                            <button type="button" className="btn btn-light border rounded-pill px-4 fw-medium shadow-sm" onClick={onClose} disabled={isSubmitting}>
                                 Sair
                             </button>
                             {order && order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
                                 <button
                                     type="button"
-                                    className="btn btn-primary rounded-pill px-5 fw-semibold d-flex align-items-center gap-2"
+                                    className="btn btn-primary rounded-pill px-5 fw-semibold d-flex align-items-center gap-2 shadow-sm"
                                     onClick={handleReceive}
                                     disabled={isSubmitting || !hasReceivable}
                                 >

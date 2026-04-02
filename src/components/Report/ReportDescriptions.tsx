@@ -25,14 +25,14 @@ const ReportDescriptions: React.FC<ReportDescriptionsProps> = ({
 }) => {
     return (
         <div className="d-flex flex-column gap-2">
-            <div className="form-group p-2 border rounded bg-light">
-                <label className="form-label fw-bold mb-1 d-flex align-items-center small">
-                    <i className="bi bi-exclamation-triangle-fill me-2 text-primary"></i>
+            <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light">
+                <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                    <i className="bi bi-exclamation-triangle-fill me-2 text-primary opacity-50"></i>
                     Descrição da Avaria
                 </label>
                 <textarea
                     ref={damageRef}
-                    className="form-control form-control-sm"
+                    className="form-control form-control-sm border-light bg-light rounded-4 px-3 py-2 shadow-none fw-medium"
                     style={{ overflow: 'hidden', resize: 'none' }}
                     value={damage}
                     onChange={e => setDamage(e.target.value)}
@@ -40,14 +40,14 @@ const ReportDescriptions: React.FC<ReportDescriptionsProps> = ({
                 ></textarea>
             </div>
 
-            <div className="form-group p-2 border rounded bg-light">
-                <label className="form-label fw-bold mb-1 d-flex align-items-center small">
-                    <i className="bi bi-pencil-square me-2 text-primary"></i>
+            <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light">
+                <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                    <i className="bi bi-pencil-square me-2 text-primary opacity-50"></i>
                     Descrição da Intervenção
                 </label>
                 <textarea
                     ref={descriptionRef}
-                    className="form-control form-control-sm"
+                    className="form-control form-control-sm border-light bg-light rounded-4 px-3 py-2 shadow-none fw-medium"
                     style={{ overflow: 'hidden', resize: 'none' }}
                     value={description}
                     onChange={e => setDescription(e.target.value)}
@@ -56,14 +56,15 @@ const ReportDescriptions: React.FC<ReportDescriptionsProps> = ({
                 ></textarea>
             </div>
 
-            <div className="form-group p-2 border rounded bg-light border-warning border-opacity-50">
-                <label className="form-label fw-bold mb-1 d-flex align-items-center text-dark small">
-                    <i className="bi bi-card-text me-2 text-warning"></i>
-                    Notas Internas <span className="ms-2 badge bg-warning text-dark small" style={{ fontSize: '0.65rem' }}>Privado</span>
+            <div className="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-30 rounded-4 shadow-sm">
+                <label className="text-dark fw-bold text-uppercase d-flex align-items-center mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                    <i className="bi bi-journal-text me-2 text-primary opacity-50"></i>
+                    Notas Internas
+                    <span className="badge bg-warning bg-opacity-10 text-warning ms-3 px-2 py-1" style={{ fontSize: '0.65rem', letterSpacing: '0' }}>Oculto do Cliente</span>
                 </label>
                 <textarea
                     ref={internalNotesRef}
-                    className="form-control form-control-sm"
+                    className="form-control form-control-sm border-warning border-opacity-25 bg-white bg-opacity-75 rounded-4 px-3 py-2 shadow-none fw-medium"
                     style={{ overflow: 'hidden', resize: 'none' }}
                     value={internalNotes}
                     onChange={e => setInternalNotes(e.target.value)}

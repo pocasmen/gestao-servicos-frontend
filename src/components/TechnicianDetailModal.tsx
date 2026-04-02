@@ -4,6 +4,7 @@ import { AppUser } from '../pages/TechniciansPage'; // Import the new generic in
 import GoogleColorPicker from './GoogleColorPicker';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { UserRole } from '../constants/enums';
+import { Trash2 } from 'lucide-react';
 import logger from '../utils/logger';
 
 interface ModalProps {
@@ -121,129 +122,142 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
   };
 
   return (
-    <div className="modal show" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog">
-        <div className="modal-content">
+    <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(4px)' }}>
+      <div className="modal-dialog modal-dialog-centered modal-lg">
+        <div className="glass-card border-0 shadow-lg w-100 overflow-hidden animate__animated animate__zoomIn animate__faster">
           <form onSubmit={handleSave}>
-            <div className="modal-header">
-              <h5 className="modal-title">Editar Utilizador</h5>
-              <button type="button" className="btn-close" onClick={onClose}></button>
+            <div className="modal-header bg-dark border-0 px-4 py-3 d-flex justify-content-between align-items-center">
+              <h5 className="modal-title text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>
+                Perfil: {firstName} {lastName}
+              </h5>
+              <button type="button" className="btn-close btn-close-white shadow-none" onClick={onClose}></button>
             </div>
-            <div className="modal-body">
-              {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
 
-              <div className="mb-3">
-                <label className="form-label">Email</label>
-                <input type="email" className="form-control" value={user.email} disabled readOnly />
-                <div className="form-text">O email não pode ser alterado.</div>
-              </div>
-
-              <div className="row">
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Primeiro Nome</label>
-                  <input type="text" className="form-control" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+            <div className="modal-body p-4">
+              {errorMessage && (
+                <div className="alert alert-danger border-0 shadow-sm rounded-4 small fw-bold mb-4">
+                  <i className="bi bi-exclamation-triangle-fill me-2"></i> {errorMessage}
                 </div>
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Último Nome</label>
-                  <input type="text" className="form-control" value={lastName} onChange={e => setLastName(e.target.value)} required />
-                </div>
-              </div>
+              )}
 
-              <div className="row">
-                <div className="col-md-12 mb-3">
-                  <label className="form-label">Função</label>
-                  <select
-                    className="form-select"
-                    value={role}
-                    onChange={e => setRole(e.target.value as UserRole)}
-                  >
-                    <option value={UserRole.TECHNICIAN}>Técnico</option>
-                    <option value={UserRole.OFFICE_STAFF}>Administrativo</option>
-                    <option value={UserRole.ADMIN}>Admin</option>
-                    {currentUserRole === UserRole.SUPER_ADMIN && (
-                      <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
-                    )}
-                  </select>
-                </div>
-              </div>
-
-              <div className="row">
-                <div className="col-md-6 mb-3">
-                  <label className="form-label">Cor Interna</label>
-                  <input type="color" className="form-control form-control-color w-100" value={color} onChange={e => setColor(e.target.value)} />
-                </div>
-                <div className="col-md-6 mb-3">
-                  <GoogleColorPicker
-                    label="Cor Google Calendar"
-                    value={googleCalendarColorId}
-                    onChange={setGoogleCalendarColorId}
-                  />
-                </div>
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">Telegram Chat ID</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Ex: 12345678"
-                  value={telegramchatid}
-                  onChange={e => setTelegramchatid(e.target.value)}
-                />
-                <div className="form-text">ID necessário para notificações automáticas via Telegram.</div>
-              </div>
-
-              {botUsername && user && (
-                <div className="alert alert-light border mt-3 text-center">
-                  <h6 className="mb-2">Associação Automática</h6>
-                  <p className="small text-muted mb-2">Peça ao técnico para ler o QR Code ou clicar no botão abaixo para associar o Telegram automaticamente.</p>
-                  <div className="d-inline-block p-2 bg-white border mb-2">
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`https://t.me/${botUsername}?start=${user.id}`)}`}
-                      alt="QR Code Telegram"
-                    />
+              <div className="row g-4">
+                <div className="col-md-6">
+                  <div className="mb-4">
+                    <label className="form-label small fw-bold text-muted text-uppercase">Email</label>
+                    <input type="email" className="form-control rounded-pill bg-light border-0 px-3 fw-medium text-muted" value={user.email} disabled readOnly />
+                    <div className="form-text small opacity-75">O email é o identificador único e não pode ser alterado.</div>
                   </div>
-                  <div className="mt-2">
-                    <button
+
+                  <div className="row g-3 mb-4">
+                    <div className="col-6">
+                      <label className="form-label small fw-bold text-muted text-uppercase">Primeiro Nome</label>
+                      <input type="text" className="form-control rounded-pill px-3" value={firstName} onChange={e => setFirstName(e.target.value)} required />
+                    </div>
+                    <div className="col-6">
+                      <label className="form-label small fw-bold text-muted text-uppercase">Último Nome</label>
+                      <input type="text" className="form-control rounded-pill px-3" value={lastName} onChange={e => setLastName(e.target.value)} required />
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <label className="form-label small fw-bold text-muted text-uppercase">Função / Acesso</label>
+                    <select className="form-select rounded-pill px-3" value={role} onChange={e => setRole(e.target.value as UserRole)}>
+                      <option value={UserRole.TECHNICIAN}>Técnico</option>
+                      <option value={UserRole.OFFICE_STAFF}>Administrativo</option>
+                      <option value={UserRole.ADMIN}>Admin</option>
+                      {currentUserRole === UserRole.SUPER_ADMIN && (
+                        <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
+                      )}
+                    </select>
+                  </div>
+
+                  <div className="row g-3 mb-4">
+                    <div className="col-6">
+                      <label className="form-label small fw-bold text-muted text-uppercase">Cor Interna</label>
+                      <div className="d-flex gap-2 align-items-center">
+                        <input type="color" className="form-control form-control-color rounded-circle border-0 p-0" style={{ width: '38px', height: '38px' }} value={color} onChange={e => setColor(e.target.value)} />
+                        <span className="small text-muted font-monospace">{color.toUpperCase()}</span>
+                      </div>
+                    </div>
+                    <div className="col-6">
+                      <GoogleColorPicker
+                        label="Cor Google"
+                        value={googleCalendarColorId}
+                        onChange={setGoogleCalendarColorId}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="col-md-6 border-start ps-md-4">
+                  <div className="mb-4">
+                    <label className="form-label small fw-bold text-muted text-uppercase">Notificações Telegram</label>
+                    <div className="input-group">
+                      <span className="input-group-text rounded-start-pill bg-light border-0"><i className="bi bi-send text-primary"></i></span>
+                      <input
+                        type="text"
+                        className="form-control rounded-end-pill px-3"
+                        placeholder="Chat ID (ex: 12345678)"
+                        value={telegramchatid}
+                        onChange={e => setTelegramchatid(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {botUsername && user && (
+                    <div className="bg-light rounded-4 p-3 border border-dashed text-center">
+                      <h6 className="fw-bold small text-uppercase text-primary mb-3">Associação Automática</h6>
+                      <div className="bg-white p-2 d-inline-block rounded-3 border shadow-sm mb-3">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(`https://t.me/${botUsername}?start=${user.id}`)}`}
+                          alt="QR Code Telegram"
+                        />
+                      </div>
+                      <div className="d-flex flex-column gap-2">
+                        <button
+                          type="button"
+                          className={`btn btn-sm rounded-pill fw-bold ${telegramchatid ? 'btn-success' : 'btn-primary'} shadow-sm`}
+                          onClick={handleSyncTelegram}
+                          disabled={isSyncing}
+                        >
+                          {isSyncing ? (
+                            <><span className="spinner-border spinner-border-sm me-2"></span> A sincronizar...</>
+                          ) : (
+                            telegramchatid ? 'Re-verificar Associação' : 'Verificar Agora'
+                          )}
+                        </button>
+                        <a href={`https://t.me/${botUsername}?start=${user.id}`} target="_blank" rel="noopener noreferrer" className="btn btn-sm btn-outline-primary rounded-pill fw-bold">
+                          Abrir Bot no Telegram
+                        </a>
+                      </div>
+                      {syncStatus && <div className="mt-2 x-small fw-bold text-success animate__animated animate__pulse">{syncStatus}</div>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer bg-light border-0 px-4 py-3 d-flex justify-content-between gap-2">
+              <button type="button" className="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold border-0" onClick={handleDelete}>
+                <Trash2 size={16} className="me-1" /> Eliminar Utilizador
+              </button>
+              
+              <div className="d-flex gap-2">
+                {user.role === UserRole.CLIENT && currentUserRole === UserRole.SUPER_ADMIN && (
+                  <button
                       type="button"
-                      className={`btn btn-sm ${telegramchatid ? 'btn-success' : 'btn-primary'} me-2`}
-                      onClick={handleSyncTelegram}
-                      disabled={isSyncing}
-                    >
-                      {isSyncing ? 'A verificar...' : (telegramchatid ? 'Verificar Novamente' : 'Verificar Associação')}
-                    </button>
-                    <a
-                      href={`https://t.me/${botUsername}?start=${user.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-sm btn-outline-primary"
-                    >
-                      Abrir Telegram
-                    </a>
-                  </div>
-                  {syncStatus && <div className="small mt-2 fw-bold">{syncStatus}</div>}
-                </div>
-              )}
-
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-danger me-auto" onClick={handleDelete}>Eliminar Utilizador</button>
-              {user.role === UserRole.CLIENT && currentUserRole === UserRole.SUPER_ADMIN && (
-                <button
-                    type="button"
-                    className="btn btn-outline-warning"
-                    title="Simular conta de Cliente"
-                    onClick={() => {
-                        onClose();
-                        // Dispatch the event that both TechniciansPage and UsersPage listen to
-                        document.dispatchEvent(new CustomEvent('initImpersonate', { detail: user }));
-                    }}
-                >
-                    <i className="bi bi-person-lines-fill"></i> Simular Conta
-                </button>
-              )}
-              <button type="button" className="btn btn-secondary" onClick={onClose}>Cancelar</button>
-              <button type="submit" className="btn btn-primary">Guardar Alterações</button>
+                      className="btn btn-sm btn-warning rounded-pill px-3 fw-bold shadow-sm"
+                      onClick={() => {
+                          onClose();
+                          document.dispatchEvent(new CustomEvent('initImpersonate', { detail: user }));
+                      }}
+                  >
+                      <i className="bi bi-person-lines-fill me-1"></i> Simular
+                  </button>
+                )}
+                <button type="button" className="btn btn-sm btn-light rounded-pill px-3 fw-bold border shadow-sm" onClick={onClose}>Cancelar</button>
+                <button type="submit" className="btn btn-sm btn-primary rounded-pill px-4 fw-bold shadow-sm">Guardar Alterações</button>
+              </div>
             </div>
           </form>
         </div>

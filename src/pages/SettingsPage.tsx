@@ -213,8 +213,8 @@ const SettingsPage: React.FC = () => {
                   value={selectedTemplate.body || ''}
                   onChange={(e) => handleTemplateChange('body', e.target.value)}
                 />
-                <div className="form-text">
-                  Pode usar HTML. Variáveis disponíveis: <code>{"{{login_url}}"}</code>
+            <div className="form-text">
+                  Pode usar HTML. Variáveis disponíveis: <code>{"{{login_url}}"}</code>, <code>{"{{setup_url}}"}</code>, <code>{"{{first_name}}"}</code>
                 </div>
               </div>
               <div className="mb-3">
@@ -222,7 +222,11 @@ const SettingsPage: React.FC = () => {
                 <div
                   style={{ border: '1px solid #ced4da', padding: '15px', borderRadius: '4px', backgroundColor: '#fff', minHeight: '150px' }}
                   dangerouslySetInnerHTML={{ 
-                    __html: DOMPurify.sanitize(selectedTemplate.body?.replace(/{{login_url}}/g, '#') || '') 
+                    __html: DOMPurify.sanitize(
+                      selectedTemplate.body?.replace(/{{login_url}}/g, '#')
+                        .replace(/{{setup_url}}/g, '#')
+                        .replace(/{{first_name}}/g, 'João') || ''
+                    ) 
                   }}
                 />
               </div>

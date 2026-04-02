@@ -255,6 +255,16 @@ h2 {
   box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
 }
 
+/* Solid variant for modals — no transparency */
+.glass-card--solid {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background-color: #ffffff;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
 /* Glassmorphism for alerts */
 .alert {
   backdrop-filter: blur(10px);
@@ -338,3 +348,37 @@ h2 {
   border-radius: 50%;
   aspect-ratio: 1/1;
 }
+
+/* Global Icon Button Diameter */
+.btn-icon {
+  width: 34px !important;
+  height: 34px !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ─── Global Button Hover Effects ─── */
+.btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease !important;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+  filter: brightness(1.07);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  filter: brightness(0.97);
+}
+
+/* Lighter lift for secondary / light buttons */
+.btn-light:hover:not(:disabled),
+.btn-outline-secondary:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  filter: brightness(0.97);
+}

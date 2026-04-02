@@ -16,9 +16,11 @@ import InventoryReservationsModal from '../components/Inventory/InventoryReserva
 import OrderDetailsModal from '../components/Inventory/OrderDetailsModal';
 import { supabase } from '../supabase';
 import logger from '../utils/logger';
-import { Plus, X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, X, Truck, Search } from 'lucide-react';
 
 const InventoryPage: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState('');
   const [search, setSearch] = useState('');
@@ -522,18 +524,22 @@ const InventoryPage: React.FC = () => {
   }
 
   return (
-    <div className="container-fluid mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h1>Gestão de Inventário</h1>
-        <button
-          className={`btn ${modalType === 'add_item' ? 'btn-secondary' : 'btn-success'}`}
-          onClick={() => {
-            if (modalType === 'add_item') closeModal();
-            else { closeModal(); setModalType('add_item'); }
-          }}
-        >
-          {modalType === 'add_item' ? <X size={20} /> : <Plus size={20} />}
-        </button>
+    <div className="container-fluid py-4 min-vh-100 bg-light">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 mt-2">
+        <div>
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Inventário</h1>
+          <p className="text-muted m-0" style={{ fontFamily: 'var(--font-family-body)' }}>Consulte e gira o stock de peças, equipamentos e componentes.</p>
+        </div>
+        <div className="d-flex gap-3">
+          <button className="btn btn-outline-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all border-2" onClick={() => navigate('/inventory/orders')}>
+            <Truck size={18} strokeWidth={2.5} />
+            <span>Encomendas</span>
+          </button>
+          <button className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all" onClick={() => { closeModal(); setModalType('add_item'); }}>
+            <Plus size={18} strokeWidth={2.5} />
+            <span>Nova Peça</span>
+          </button>
+        </div>
       </div>
 
       {modalType === 'add_item' && !newItem.id && (
@@ -650,8 +656,7 @@ const InventoryPage: React.FC = () => {
         />
       )}
 
-      {modalType && (modalType !== 'add_item' || newItem.id) && <div className="modal-backdrop fade show"></div>}
-
+      {/* Removed legacy modal-backdrop since modals manage their own overlays */}
       {isScheduleModalOpen && selectedEvent && (
         <ScheduleDetailModal
           isOpen={isScheduleModalOpen}

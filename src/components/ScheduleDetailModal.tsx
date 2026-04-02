@@ -698,15 +698,16 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   if (!isOpen) return null;
 
   return (
-    <div className="modal show fade" style={{ display: 'block' }} tabIndex={-1}>
-      <div className="modal-dialog modal-lg">
-        <div className="modal-content">
-          <form onSubmit={handleSubmit}>
-            <div className="modal-header">
-              <h5 className="modal-title">{isCreating ? 'Novo Agendamento' : 'Detalhes do Agendamento'}</h5>
-              <button type="button" className="btn-close" onClick={onClose}></button>
+    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}>
+      <div className="glass-card glass-card--solid border-0 shadow-lg overflow-hidden animate__animated animate__zoomIn w-100" style={{ maxWidth: '900px', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+            <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+              <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>
+                {isCreating ? 'Novo Agendamento' : 'Detalhes do Agendamento'}
+              </h5>
+              <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
             </div>
-            <div className="modal-body">
+            <div className="modal-body p-4" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
               <ScheduleFormHeader
                 serviceType={serviceType}
                 setServiceType={setServiceType}
@@ -722,7 +723,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                 isPastOrCompleted={isPastOrCompleted}
               />
 
-              <div className="row mb-0">
+              <div className="row mb-0 g-3">
                 <div className={sendToBacklog ? "col-12" : "col-md-9"}>
                   <ScheduleTimeBlocks
                     timeBlocks={timeBlocks}
@@ -734,17 +735,16 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                   />
                 </div>
                 {!sendToBacklog && (
-                  <div className="col-md-3 mb-2">
-                    <div className="form-group p-2 border rounded bg-light h-100 d-flex flex-column justify-content-center align-items-center">
-                      <label className="form-label fw-bold mb-1 d-flex align-items-center small">
-                        <i className="bi bi-hourglass-split me-2 text-primary"></i>
+                  <div className="col-md-3">
+                    <div className="p-3 bg-light rounded-4 h-100 d-flex flex-column justify-content-center align-items-center border border-dashed border-2">
+                      <label className="small fw-bold text-muted text-uppercase mb-2 text-center" style={{ fontSize: '0.65rem' }}>
                         Horas Totais
                       </label>
-                      <div className="h4 mb-0 text-primary fw-bold">
+                      <div className="h3 mb-0 text-primary fw-bold">
                         {timeBlocks.reduce((acc, block) => acc + calculateHours(block.start, block.end), 0)}h
                       </div>
-                      <small className="text-muted mt-1 d-block italic text-center" style={{ fontSize: '0.6rem' }}>
-                        Calculado auto.
+                      <small className="text-muted mt-1 text-center" style={{ fontSize: '0.6rem' }}>
+                        Cálculo Automático
                       </small>
                     </div>
                   </div>
@@ -791,44 +791,43 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
                 isOpen={isOpen}
               />
             </div>
-            <div className="modal-footer d-flex justify-content-between py-2">
+            <div className="px-4 py-3 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center gap-2">
               <div>
                 {!isCreating && (
-                  <button type="button" className="btn btn-sm btn-danger" onClick={handleDelete} disabled={isSubmitting}>
-                    <Trash2 size={16} className="me-2" />
-                    {isSubmitting ? 'A eliminar...' : 'Eliminar'}
+                  <button type="button" className="btn btn-outline-danger border-0 rounded-pill px-3 fw-medium" onClick={handleDelete} disabled={isSubmitting}>
+                    <Trash2 size={18} className="me-2" />
+                    Eliminar
                   </button>
                 )}
               </div>
-              <div className="d-flex gap-1 flex-wrap justify-content-end">
-                <button type="button" className="btn btn-sm btn-secondary" onClick={onClose} disabled={isSubmitting}>
-                  <X size={16} className="me-1" /> Cancelar
+              <div className="d-flex gap-2 flex-wrap justify-content-end">
+                <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium" onClick={onClose} disabled={isSubmitting}>
+                  Cancelar
                 </button>
                 {!isPastOrCompleted && (
-                  <button type="submit" className="btn btn-sm btn-primary" disabled={isSubmitting}>
+                  <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" disabled={isSubmitting}>
                     {isSubmitting ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                        {isCreating ? 'A criar...' : 'A guardar...'}
-                      </>
+                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                     ) : (
-                      <>
-                        <Save size={16} className="me-1" />
-                        {isCreating ? 'Criar' : 'Guardar'}
-                      </>
+                      <Save size={18} />
                     )}
+                    {isCreating ? 'Criar Agendamento' : 'Guardar Alterações'}
                   </button>
                 )}
                 {canComplete && (
-                  <button type="button" className="btn btn-sm btn-success" onClick={handleComplete} disabled={isSubmitting}>
-                    <i className="bi bi-check-circle me-1"></i>
-                    {isSubmitting ? 'A concluir...' : 'Concluir'}
+                  <button type="button" className="btn btn-success rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={handleComplete} disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <span className="spinner-border spinner-border-sm"></span>
+                    ) : (
+                      <i className="bi bi-check-circle-fill"></i>
+                    )}
+                    Concluir Serviço
                   </button>
                 )}
                 {isCompleted && (
-                  <button type="button" className="btn btn-sm btn-info" onClick={() => onManageReport(event!)} disabled={isSubmitting}>
-                    <i className="bi bi-file-earmark-text me-1"></i>
-                    {event?.hasReport ? 'Relatório' : 'Relatório'}
+                  <button type="button" className="btn btn-info text-white rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={() => onManageReport(event!)} disabled={isSubmitting}>
+                    <i className="bi bi-file-earmark-text-fill"></i>
+                    Relatório de Serviço
                   </button>
                 )}
               </div>
@@ -836,7 +835,6 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
           </form>
         </div>
       </div>
-    </div>
   );
 };
 

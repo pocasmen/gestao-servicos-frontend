@@ -77,14 +77,14 @@ const OrdersPage: React.FC = () => {
       <div className="card border-0 shadow-sm overflow-hidden" style={{ borderRadius: '24px' }}>
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0" style={{ borderCollapse: 'separate', borderSpacing: '0' }}>
-            <thead className="bg-light">
-              <tr className="text-uppercase small fw-bold text-muted border-bottom">
-                <th className="ps-4 py-3">Referência</th>
-                <th className="py-3">Documento</th>
-                <th className="py-3">Utilizador</th>
-                <th className="py-3">Peças</th>
-                <th className="py-3">Estado</th>
-                <th className="text-end pe-4 py-3">Ação</th>
+            <thead>
+              <tr className="bg-dark text-white text-uppercase small fw-bold" style={{ letterSpacing: '0.05em', fontFamily: 'var(--font-family-title)' }}>
+                <th className="ps-4 py-3 border-0">Referência</th>
+                <th className="py-3 border-0">Documento</th>
+                <th className="py-3 border-0">Utilizador</th>
+                <th className="py-3 border-0">Peças</th>
+                <th className="py-3 border-0">Estado</th>
+                <th className="text-end pe-4 py-3 border-0">Ação</th>
               </tr>
             </thead>
             <tbody className="border-top-0">

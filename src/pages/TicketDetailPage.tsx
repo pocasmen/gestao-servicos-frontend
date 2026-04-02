@@ -532,12 +532,12 @@ const TicketDetailPage: React.FC = () => {
   const isTicketClosed = ticket.status === TicketStatus.CLOSED;
 
   return (
-    <div className="container-fluid mt-4 admin-ticket-detail-page">
+    <div className="container-fluid py-4 min-vh-100 bg-light admin-ticket-detail-page">
       {showPresencePopup && currentPresenceMsg && (
         <div
-          className={`presence-popup alert alert-${currentPresenceMsg.type === 'online' ? 'success' : 'secondary'} fixed-top mx-auto mt-3 text-center`}
+          className={`presence-popup alert shadow-lg fixed-top mx-auto mt-3 text-center animate__animated animate__slideInDown ${currentPresenceMsg.type === 'online' ? 'bg-success text-white' : 'bg-secondary text-white'}`}
           role="alert"
-          style={{ width: 'fit-content', zIndex: 1050, cursor: 'pointer' }}
+          style={{ width: 'fit-content', left: '50%', transform: 'translateX(-50%)', zIndex: 1050, cursor: 'pointer' }}
           onClick={() => setShowPresencePopup(false)}
         >
           {(() => {
@@ -546,146 +546,250 @@ const TicketDetailPage: React.FC = () => {
           })()}
         </div>
       )}
-      <div className="row">
+
+      {/* Header Section */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 mt-2">
+        <div>
+          <nav aria-label="breadcrumb">
+            <ol className="breadcrumb mb-2 small fw-medium">
+              <li className="breadcrumb-item"><Link to="/dashboard" className="text-muted text-decoration-none">Dashboard</Link></li>
+              <li className="breadcrumb-item"><Link to="/tickets" className="text-muted text-decoration-none">Tickets</Link></li>
+              <li className="breadcrumb-item active text-primary" aria-current="page">#{id}</li>
+            </ol>
+          </nav>
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)', fontSize: '2rem' }}>
+            {ticket.clientName}
+          </h1>
+          <div className="d-flex align-items-center gap-2 mt-2">
+            <span className={`badge rounded-pill border-0 px-3 py-1 fw-bold ${isTicketClosed ? 'bg-secondary bg-opacity-15 text-secondary' : 'bg-success bg-opacity-15 text-success'}`}>
+              <span className="me-1">{isTicketClosed ? '●' : '●'}</span>
+              {isTicketClosed ? 'Ticket Fechado' : 'Ticket Aberto'}
+            </span>
+            <span className="text-muted small fw-medium">ID: #{id}</span>
+          </div>
+        </div>
+        <div className="d-flex gap-3">
+          <button className="btn btn-light rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 border" onClick={() => navigate('/tickets')}>
+            Sair
+          </button>
+        </div>
+      </div>
+
+      <div className="row g-4">
+        {/* Left Column: Info & Attachments */}
         <div className="col-lg-4">
-          <div className="card mb-4">
-            <div className="card-header">
-              <i className="bi bi-info-circle me-2"></i> Informação do Ticket
+          <div className="glass-card border-0 shadow-sm mb-4 overflow-hidden animate__animated animate__fadeInLeft">
+            <div className="bg-dark px-4 py-3">
+              <h6 className="text-white fw-bold m-0 d-flex align-items-center gap-2">
+                <i className="bi bi-info-circle"></i>
+                Informação do Pedido
+              </h6>
             </div>
-            <div className="card-body">
-              <p><strong>Requisitante:</strong> {ticket.userFirstName} {ticket.userLastName}</p>
-              <p><strong>Cliente:</strong> {ticket.clientName}</p>
-              <p><strong>Equipamento:</strong> {ticket.equipmentInfo}</p>
-              <p><strong>Enviado:</strong> {format(new Date(ticket.createdAt), 'dd/MM/yyyy (HH:mm)', { locale: pt })}</p>
-              <p><strong>Última atualização:</strong> {format(new Date(ticket.updatedAt), 'dd/MM/yyyy (HH:mm)', { locale: pt })}</p>
-              <p>
-                <strong>Estado:</strong>{' '}
-                <span className={`badge bg-${isTicketClosed ? 'secondary' : 'success'}`}>
-                  {isTicketClosed ? 'Fechado' : 'Aberto'}
-                </span>
-              </p>
+            <div className="p-4">
+              <div className="mb-4">
+                <label className="text-muted small fw-bold text-uppercase d-block mb-1">Título do Ticket</label>
+                <div className="fw-bold text-dark">{ticket.title}</div>
+              </div>
+
+              <div className="mb-3 d-flex align-items-start gap-3 p-3 rounded-4 bg-light border border-white shadow-sm">
+                <div className="bg-primary bg-opacity-10 rounded-circle p-2 text-primary">
+                  <i className="bi bi-person h5 m-0"></i>
+                </div>
+                <div>
+                  <label className="text-muted small fw-bold text-uppercase d-block mb-0">Requisitante</label>
+                  <div className="fw-bold text-dark">{ticket.userFirstName} {ticket.userLastName}</div>
+                </div>
+              </div>
+
+              <div className="mb-3 d-flex align-items-start gap-3 p-3 rounded-4 bg-light border border-white shadow-sm">
+                <div className="bg-info bg-opacity-10 rounded-circle p-2 text-info">
+                  <i className="bi bi-laptop h5 m-0"></i>
+                </div>
+                <div>
+                  <label className="text-muted small fw-bold text-uppercase d-block mb-0">Equipamento</label>
+                  <div className="fw-bold text-dark">{ticket.equipmentInfo || 'Não especificado'}</div>
+                </div>
+              </div>
+
+              <hr className="my-4 opacity-10" />
+
+              <div className="d-flex justify-content-between mb-2">
+                <span className="text-muted small">Criado em:</span>
+                <span className="fw-medium small">{format(new Date(ticket.createdAt), 'dd MMM yyyy, HH:mm', { locale: pt })}</span>
+              </div>
+              <div className="d-flex justify-content-between">
+                <span className="text-muted small">Última Ativ.:</span>
+                <span className="fw-medium small">{format(new Date(ticket.updatedAt), 'dd MMM yyyy, HH:mm', { locale: pt })}</span>
+              </div>
             </div>
           </div>
 
-          <div className="card mb-4">
-            <div className="card-header">
-              <i className="bi bi-paperclip me-2"></i> Anexos
+          <div className="glass-card border-0 shadow-sm mb-4 overflow-hidden animate__animated animate__fadeInLeft" style={{ animationDelay: '0.1s' }}>
+            <div className="bg-dark px-4 py-3">
+              <h6 className="text-white fw-bold m-0 d-flex align-items-center gap-2">
+                <i className="bi bi-paperclip"></i>
+                Ficheiros e Anexos
+              </h6>
             </div>
-            <div className="card-body">
+            <div className="p-4">
               {ticket.attachments && ticket.attachments.length > 0 ? (
-                <ul className="list-group mb-3">
+                <div className="list-group list-group-flush mb-4">
                   {ticket.attachments.map((att) => (
-                    <li key={att.id} className="list-group-item d-flex justify-content-between align-items-center">
-                      <a href={att.url} target="_blank" rel="noreferrer">{att.file_name}</a>
-                      <div>
-                        <button className="btn btn-outline-danger btn-sm" onClick={() => handleDeleteAttachment(att)}>Remover</button>
+                    <div key={att.id} className="attachment-item d-flex justify-content-between align-items-center p-2 mb-2 border rounded-3 bg-white shadow-sm">
+                      <div className="d-flex align-items-center gap-2 overflow-hidden">
+                        <i className="bi bi-file-earmark-text text-primary fs-5"></i>
+                        <a href={att.url} target="_blank" rel="noreferrer" className="text-dark text-truncate small fw-medium text-decoration-none">{att.file_name}</a>
                       </div>
-                    </li>
+                      <button className="btn btn-link text-danger p-1 shadow-none" onClick={() => handleDeleteAttachment(att)} title="Remover ficheiro">
+                        <i className="bi bi-trash"></i>
+                      </button>
+                    </div>
                   ))}
-                </ul>
+                </div>
               ) : (
-                <p className="text-muted">Sem anexos.</p>
+                <div className="text-center py-4 bg-light rounded-4 border border-dashed mb-4">
+                  <i className="bi bi-cloud-upload text-muted opacity-25 fs-1"></i>
+                  <p className="text-muted small mt-2 m-0">Sem ficheiros associados.</p>
+                </div>
               )}
-              <div className="mt-3">
-                <input type="file" className="form-control mb-2" onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)} />
-                <button className="btn btn-primary" onClick={handleFileUpload} disabled={!selectedFile || isUploading}>
-                  {isUploading ? 'A carregar...' : 'Carregar Anexo'}
+
+              <div className="bg-light p-3 rounded-4 border shadow-sm">
+                <label className="form-label small fw-bold text-muted text-uppercase mb-2">Adicionar novo ficheiro</label>
+                <div className="input-group input-group-sm mb-2">
+                  <input type="file" className="form-control rounded-start-pill border-0 shadow-none ps-3" onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)} />
+                </div>
+                <button className="btn btn-primary w-100 rounded-pill fw-bold shadow-sm py-2" onClick={handleFileUpload} disabled={!selectedFile || isUploading}>
+                  {isUploading ? <span className="spinner-border spinner-border-sm me-2"></span> : <i className="bi bi-upload me-2"></i>}
+                  Carregar
                 </button>
               </div>
             </div>
           </div>
         </div>
 
+        {/* Right Column: Chat & Reply */}
         <div className="col-lg-8">
-          <div className="d-flex align-items-center justify-content-between mb-3">
-            <h3 className="mb-0">{ticket.clientName}</h3>
-
-          </div>
-          <nav aria-label="breadcrumb">
-            <ol className="breadcrumb">
-              <li className="breadcrumb-item"><Link to="/dashboard">Dashboard</Link></li>
-              <li className="breadcrumb-item"><Link to="/tickets">Tickets</Link></li>
-              <li className="breadcrumb-item active" aria-current="page">Ver Ticket</li>
-            </ol>
-          </nav>
-
-          <div className="card mb-4">
-            <div className="card-header">
-              <i className="bi bi-file-text me-2"></i> Detalhes do Ticket
-            </div>
-            <div className="card-body">
-              <p><strong>Título:</strong> {ticket.title}</p>
-              <p><strong>Avaria/Descrição:</strong> {ticket.faultDescription}</p>
-            </div>
-          </div>
-          <div className="card mb-4">
-            <div className="card-header">
-              <i className="bi bi-chat-dots me-2"></i> Thread
-            </div>
-            <div className="card-body" ref={chatBodyRef} aria-live="polite" aria-relevant="additions">
-              {messages.length === 0 ? (
-                <p className="text-muted">Sem mensagens.</p>
-              ) : (
-                messages.map((m, i) => (
-                  <div
-                    key={i}
-                    className={`thread-item ${m.isClient ? 'thread-client' : 'thread-tech'} ${newMsgIndex === i ? 'thread-new' : ''} ${(m as any).isUnread ? 'thread-unread' : ''}`}
-                    role="group"
-                    aria-label={`Mensagem ${m.isClient ? 'do cliente' : 'do gestor'} às ${m.displayTs}`}
-                  >
-                    <div className="thread-header">
-                      <div className="thread-avatar">
-                        {m.avatarText}
-                        {m.authorId && (
-                          <span className={`status-indicator ${isUserOnline(m.authorId) ? 'online' : 'offline'}`} title={isUserOnline(m.authorId) ? 'Online' : 'Offline'}></span>
-                        )}
-                      </div>
-                      <div className="thread-meta">
-                        <strong className="thread-author">{m.authorName}</strong>
-                        <small className="thread-role d-block mb-0">
-                          {m.isClient ? <img src="/images/client-icon.png" alt="Cliente" className="me-2" style={{ width: '1.5em', height: '1.5em' }} /> : <img src="/images/technician-icon.png" alt="Técnico" className="me-2" style={{ width: '1.5em', height: '1.5em' }} />}
-                          {m.isClient ? 'Cliente' : 'Técnico'}
-                        </small>
-                        <small className="thread-timestamp">{m.displayTs}</small>
-                      </div>
-                      <button className="btn btn-sm btn-outline-secondary ms-auto" onClick={() => setReplyContent(prev => `${prev ? prev + '\n' : ''}> ${m.content}\n`)}>Citar</button>
-                    </div>
-                    <div className="thread-content">{m.content}</div>
-                  </div>
-                ))
+          <div className="glass-card border-0 shadow-sm mb-4 overflow-hidden animate__animated animate__fadeInRight">
+            <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+              <h6 className="text-white fw-bold m-0 d-flex align-items-center gap-2">
+                <i className="bi bi-chat-dots"></i>
+                Conversa com o Cliente
+              </h6>
+              {messages.some(m => m.authorId && isUserOnline(m.authorId)) && (
+                <span className="badge rounded-pill bg-success px-3 fw-bold shadow-sm animate__animated animate__pulse animate__infinite">
+                  Cliente Online
+                </span>
               )}
             </div>
-          </div>
-
-          {/* Reply Form */}
-          <div className="card mb-4">
-            <div className="card-header reply-form-header" id="replyHeading">
-              <button className="btn btn-link text-decoration-none w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#replyCollapse" aria-expanded="true" aria-controls="replyCollapse">
-                <i className="bi bi-pencil-square me-2"></i> Responder
-              </button>
+            <div className="p-0 border-bottom">
+              <div className="p-4 bg-white bg-opacity-50">
+                <label className="text-muted small fw-bold text-uppercase d-block mb-2">Avaria descrita pelo cliente:</label>
+                <div className="p-3 bg-light rounded-4 border-start border-primary border-4 shadow-sm fw-medium text-dark">
+                  {ticket.faultDescription}
+                </div>
+              </div>
             </div>
-            <div id="replyCollapse" className="collapse show" aria-labelledby="replyHeading">
-              <div className="card-body">
+
+            <div className="chat-body" ref={chatBodyRef} style={{ height: '500px', backgroundColor: '#fdfdfd' }}>
+              {messages.length === 0 ? (
+                <div className="h-100 d-flex align-items-center justify-content-center">
+                  <div className="text-center text-muted opacity-25">
+                    <i className="bi bi-chat-left-dots display-1"></i>
+                    <p className="fw-bold">Sem mensagens para mostrar.</p>
+                  </div>
+                </div>
+              ) : (
+                messages.map((m, i) => {
+                  const isQuoted = m.content.startsWith('>');
+                  let content = m.content;
+                  let quote = '';
+                  if (isQuoted) {
+                    const lines = m.content.split('\n');
+                    const quoteLines = lines.filter(l => l.startsWith('>')).map(l => l.substring(1).trim());
+                    quote = quoteLines.join('\n');
+                    content = lines.filter(l => !l.startsWith('>')).join('\n').trim();
+                  }
+
+                  return (
+                    <div
+                      key={i}
+                      className={`thread-item ${m.isClient ? 'thread-client' : 'thread-tech'} ${newMsgIndex === i ? 'thread-new animate__animated animate__headShake' : ''} ${(m as any).isUnread ? 'thread-unread' : ''}`}
+                    >
+                      <div className="thread-header">
+                        <div className="thread-avatar shadow-sm position-relative">
+                          {m.avatarText}
+                          <span className={`role-badge ${m.isClient ? 'client' : 'tech'}`} title={m.isClient ? 'Cliente' : 'Técnico/Gestor'}>
+                            <i className={`bi ${m.isClient ? 'bi-person' : 'bi-tools'}`}></i>
+                          </span>
+                          {m.authorId && (
+                            <span className={`status-indicator ${isUserOnline(m.authorId) ? 'online' : 'offline'}`} title={isUserOnline(m.authorId) ? 'Online' : 'Offline'}></span>
+                          )}
+                        </div>
+                        <div className="thread-meta">
+                          <span className="thread-author">{m.authorName}</span>
+                          <span className="thread-timestamp">{m.displayTs}</span>
+                        </div>
+                        {!m.isClient && (
+                          <button className="btn btn-sm btn-light border-0 rounded-pill p-1 ms-2 opacity-50 hover-opacity-100 shadow-sm" onClick={() => setReplyContent(prev => `${prev ? prev + '\n' : ''}> ${m.content}\n`)} title="Citar esta mensagem">
+                            <i className="bi bi-quote"></i>
+                          </button>
+                        )}
+                      </div>
+                      <div className="thread-bubble shadow-sm">
+                        {quote && <div className="quote-bubble">{quote}</div>}
+                        <div className="message-text" style={{ whiteSpace: 'pre-wrap' }}>{content}</div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Reply Form */}
+            {!isTicketClosed && (
+              <div className="p-4 bg-white border-top">
                 <form onSubmit={handleReplySubmit}>
-                  <div className="mb-3">
+                  <div className="mb-3 position-relative">
                     <textarea
-                      className="form-control"
-                      rows={10}
-                      placeholder="Escreva a sua resposta aqui..."
+                      className="form-control rounded-4 border-0 bg-light p-3 shadow-none focus-ring-primary"
+                      rows={4}
+                      placeholder="Escreva a sua resposta para o cliente aqui..."
                       value={replyContent}
                       onChange={(e) => setReplyContent(e.target.value)}
                       disabled={isReplying}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && e.ctrlKey) {
+                          handleReplySubmit(e);
+                        }
+                      }}
+                      style={{ resize: 'none', transition: 'all 0.2s', border: '1px solid #eee' }}
                     ></textarea>
+                    <div className="position-absolute bottom-0 end-0 p-2 text-muted small opacity-50">
+                      Ctrl + Enter para enviar
+                    </div>
                   </div>
-                  <button type="submit" className="btn btn-primary w-auto" disabled={isReplying}>
-                    {isReplying ? 'A enviar...' : 'Enviar Resposta'}
-                  </button>
+                  <div className="d-flex justify-content-between align-items-center">
+                    <div className="text-muted small">
+                      <i className="bi bi-info-circle me-1"></i>
+                      O cliente será notificado via Telegram/Email.
+                    </div>
+                    <button type="submit" className="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" disabled={isReplying || !replyContent.trim()}>
+                      {isReplying ? <span className="spinner-border spinner-border-sm"></span> : <i className="bi bi-send-fill"></i>}
+                      Enviar Resposta
+                    </button>
+                  </div>
                 </form>
               </div>
-            </div>
+            )}
+            {isTicketClosed && (
+               <div className="p-4 bg-light text-center border-top">
+                  <div className="text-muted fw-bold small text-uppercase">
+                    <i className="bi bi-lock-fill me-2"></i>
+                    Este ticket está fechado. Não é possível enviar novas respostas.
+                  </div>
+               </div>
+            )}
           </div>
-
-
         </div>
       </div>
     </div>

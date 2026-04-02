@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Part } from '../../types';
-import { Pencil, Trash2, ArrowUpDown, Truck, Package, CalendarCheck, History, ChevronUp, ChevronDown, TrendingUp, TrendingDown } from 'lucide-react';
+import { Pencil, Trash2, ArrowUpDown, Truck, Package, CalendarCheck, History, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
 import apiClient from '../../apiClient';
 import './InventoryTable.css';
 import { format } from 'date-fns';
@@ -71,7 +71,7 @@ const PartHistoryPanel: React.FC<{ partId: number; colSpan: number; onOpenDoc?: 
                                                     {format(new Date(tx.created_at), 'dd/MM/yyyy HH:mm')}
                                                 </td>
                                                 <td className="py-2">
-                                                    <span className={`badge border-0 px-2 py-1 rounded-pill d-inline-flex align-items-center gap-1 ${txConfig.colorCls}`}>
+                                                    <span className={`fw-bold small d-inline-flex align-items-center gap-1 ${txConfig.colorCls.replace('bg-', 'text-').replace(' bg-opacity-10', '')}`}>
                                                         {txConfig.icon}
                                                         {txConfig.label}
                                                     </span>
@@ -82,7 +82,7 @@ const PartHistoryPanel: React.FC<{ partId: number; colSpan: number; onOpenDoc?: 
                                                     </span>
                                                 </td>
                                                 <td className="py-2">
-                                                    <span className="badge bg-light text-dark border-0 rounded-pill px-2">
+                                                    <span className="fw-bold text-muted small">
                                                         {tx.stock_type === 'contract' ? 'FOSS/Contrato' : 'Geral'}
                                                     </span>
                                                 </td>
@@ -148,182 +148,178 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
     const TOTAL_COLS = 11; // foto + 8 data cols + ações + 1 for history
 
     return (
-        <div className="table-responsive">
-            <table className="table table-hover">
-                <thead>
-                    <tr>
-                        <th style={{ width: '50px' }}>Foto</th>
-                        <th>Designação</th>
-                        <th>Referência</th>
-                        <th className="text-end">Preço</th>
-                        <th className="text-center">Disp. (G)</th>
-                        <th className="text-center">Disp. (F)</th>
-                        <th className="text-center">Res. (G/F)</th>
-                        <th className="text-center">Stock Real (G/F)</th>
-                        <th className="text-center">Enc. (G/F)</th>
-                        <th className="text-end pe-4">Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {inventory.map(part => (
-                        <React.Fragment key={part.id}>
-                            {/* ── Main row ───────────────────────────────── */}
-                            <tr className={expandedPartId === part.id ? 'table-active' : ''}>
-                                <td className="align-middle">
-                                    {part.image_path ? (
-                                        <div className="inventory-photo-container d-inline-block">
-                                            <img
-                                                src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${part.image_path}`}
-                                                alt={part.reference}
-                                                className="inventory-photo-thumbnail rounded shadow-sm border p-1 bg-white"
-                                                onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/40x40?text=?'; }}
-                                            />
-                                            <div className="inventory-photo-large shadow-lg rounded overflow-hidden">
+        <div className="glass-card border-0 shadow-sm overflow-hidden animate__animated animate__fadeIn rounded-4 mb-4">
+            <div className="table-responsive">
+                <table className="table align-middle mb-0">
+                    <thead className="bg-dark text-white">
+                        <tr className="text-uppercase small fw-bold" style={{ letterSpacing: '0.05em', fontFamily: 'var(--font-family-title)' }}>
+                            <th className="ps-4 py-3 border-0" style={{ width: '80px' }}>Item</th>
+                            <th className="py-3 border-0">Designação / Referência</th>
+                            <th className="text-end py-3 border-0">Preço</th>
+                            <th className="text-center py-3 border-0">Disponível</th>
+                            <th className="text-center py-3 border-0">Reserva</th>
+                            <th className="text-center py-3 border-0">Stock Real</th>
+                            <th className="text-center py-3 border-0">Enc.</th>
+                            <th className="text-end pe-4 py-3 border-0">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                        {inventory.map(part => (
+                            <React.Fragment key={part.id}>
+                                {/* ── Main row ───────────────────────────────── */}
+                                <tr className={`${expandedPartId === part.id ? 'bg-primary bg-opacity-10' : ''} shadow-sm border-bottom border-light`}>
+                                    <td className="ps-4 py-3">
+                                        {part.image_path ? (
+                                            <div className="inventory-photo-container d-inline-block">
                                                 <img
                                                     src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${part.image_path}`}
-                                                    alt={`${part.reference} - Large Preview`}
-                                                    className="w-100 h-100"
-                                                    style={{ objectFit: 'contain', backgroundColor: '#fff' }}
-                                                    onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                    alt={part.reference}
+                                                    className="inventory-photo-thumbnail rounded-3 shadow-sm border p-1 bg-white"
+                                                    style={{ width: '48px', height: '48px', objectFit: 'cover' }}
+                                                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/48x48?text=?'; }}
                                                 />
+                                                <div className="inventory-photo-large shadow-lg rounded-4 overflow-hidden">
+                                                    <img
+                                                        src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${part.image_path}`}
+                                                        alt={`${part.reference} - Large Preview`}
+                                                        className="w-100 h-100"
+                                                        style={{ objectFit: 'contain', backgroundColor: '#fff' }}
+                                                        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                                    />
+                                                </div>
                                             </div>
+                                        ) : (
+                                            <div className="bg-light rounded-3 d-flex align-items-center justify-content-center text-muted border p-1 shadow-sm" style={{ width: '48px', height: '48px', fontSize: '12px', fontWeight: 'bold' }}>
+                                                N/A
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <div className="fw-bold text-dark">{part.designation}</div>
+                                        <div className="d-flex align-items-center gap-2 mt-1">
+                                            <span className="small fw-bold text-muted font-monospace">{part.reference}</span>
+                                            {part.is_composed && (
+                                                <span className="small fw-bold text-primary" style={{ fontSize: '0.75rem' }}>[KIT]</span>
+                                            )}
                                         </div>
-                                    ) : (
-                                        <div className="bg-light rounded d-flex align-items-center justify-content-center text-muted border p-1" style={{ width: '40px', height: '40px', fontSize: '10px' }}>
-                                            N/A
+                                    </td>
+                                    <td className="text-end fw-bold text-primary pe-3">
+                                        {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(part.price || 0)}
+                                    </td>
+                                    <td className="text-center">
+                                        <div className="d-flex flex-column align-items-center gap-1">
+                                            <span className={`small fw-bold ${(part.available_quantity ?? 0) < (part.min_stock ?? 0) ? 'text-danger' : 'text-success'}`}>
+                                                {part.available_quantity ?? 0} <span className="opacity-75 ms-1" style={{ fontSize: '0.7rem' }}>G</span>
+                                            </span>
+                                            <span className={`small fw-bold ${(part.available_quantity_foss ?? 0) < (part.min_stock_foss ?? 0) ? 'text-danger' : 'text-info'}`}>
+                                                {part.available_quantity_foss ?? 0} <span className="opacity-75 ms-1" style={{ fontSize: '0.7rem' }}>F</span>
+                                            </span>
                                         </div>
-                                    )}
-                                </td>
-                                <td className="align-middle">
-                                    {part.designation}
-                                    {part.is_composed && (
-                                        <span className="badge bg-primary ms-2 shadow-sm" style={{ fontSize: '0.65rem' }}>COMPOSTO</span>
-                                    )}
-                                </td>
-                                <td className="align-middle fw-bold text-muted">{part.reference}</td>
-                                <td className="align-middle text-end fw-bold text-muted">
-                                    {new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR' }).format(part.price || 0)}
-                                </td>
-                                <td className="text-center align-middle">
-                                    <span className={`badge ${(part.available_quantity ?? 0) < (part.min_stock ?? 0) ? 'bg-danger' : 'bg-success'}`}>
-                                        {part.available_quantity ?? 0}
-                                    </span>
-                                </td>
-                                <td className="text-center align-middle">
-                                    <span className={`badge ${(part.available_quantity_foss ?? 0) < (part.min_stock_foss ?? 0) ? 'bg-danger' : 'bg-info'}`}>
-                                        {part.available_quantity_foss ?? 0}
-                                    </span>
-                                </td>
-                                <td className="text-center align-middle">
-                                    <span className="text-muted">{part.reserved_quantity || 0}</span> / <span className="text-info">{part.reserved_quantity_foss || 0}</span>
-                                </td>
-                                <td className="text-center align-middle">
-                                    {part.is_composed ? '-' : (
-                                        <>
-                                            <span className="text-muted">{part.raw_stock_quantity || 0}</span> / <span className="text-info">{part.raw_stock_foss || 0}</span>
-                                        </>
-                                    )}
-                                </td>
-                                <td className="text-center align-middle">
-                                    <span className="text-muted">{part.ordered_quantity || 0}</span> / <span className="text-info">{part.ordered_quantity_foss || 0}</span>
-                                </td>
-                                <td className="align-middle">
-                                    <div className="d-flex justify-content-end gap-1">
-                                        {/* History toggle */}
-                                        <button
-                                            className={`btn btn-sm shadow-sm ${expandedPartId === part.id ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            title="Ver Histórico de Transações"
-                                            onClick={() => toggleHistory(part.id!)}
-                                            style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            {expandedPartId === part.id ? <ChevronUp size={16} /> : <History size={16} />}
-                                        </button>
-
-                                        {!part.is_composed ? (
-                                            <button
-                                                className="btn btn-sm btn-secondary shadow-sm"
-                                                title="Ajuste Manual de Stock"
-                                                onClick={() => onOpenModal(part, 'stock')}
-                                                style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                                            >
-                                                <ArrowUpDown size={18} />
-                                            </button>
+                                    </td>
+                                    <td className="text-center">
+                                        <div className="d-flex flex-column align-items-center gap-1">
+                                            <span className="small fw-bold text-muted">{part.reserved_quantity || 0}</span>
+                                            <span className="small fw-bold text-info">{part.reserved_quantity_foss || 0}</span>
+                                        </div>
+                                    </td>
+                                    <td className="text-center">
+                                        {part.is_composed ? (
+                                            <span className="text-muted opacity-50">—</span>
                                         ) : (
-                                            <div style={{ width: '32px', height: '32px' }} />
+                                            <div className="d-flex flex-column align-items-center gap-1">
+                                                <span className="small fw-bold text-muted">{part.raw_stock_quantity || 0}</span>
+                                                <span className="small fw-bold text-info">{part.raw_stock_foss || 0}</span>
+                                            </div>
                                         )}
-
-                                        <button
-                                            className="btn btn-sm btn-primary shadow-sm"
-                                            title={part.is_composed ? 'Editar Peça/Composição' : 'Editar Item'}
-                                            onClick={() => onEditItem(part)}
-                                            style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            <Pencil size={18} />
-                                        </button>
-
-                                        {!part.is_composed ? (
+                                    </td>
+                                    <td className="text-center">
+                                        <div className="d-flex flex-column align-items-center gap-1">
+                                            <span className="small fw-bold text-muted">{part.ordered_quantity || 0}</span>
+                                            <span className="small fw-bold text-info">{part.ordered_quantity_foss || 0}</span>
+                                        </div>
+                                    </td>
+                                    <td className="pe-4">
+                                        <div className="d-flex justify-content-end gap-2">
                                             <button
-                                                className="btn btn-sm btn-warning shadow-sm"
-                                                title="Registar Encomenda"
-                                                onClick={() => onOpenModal(part, 'order')}
-                                                style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                className={`btn btn-icon rounded-circle shadow-sm transition-all ${expandedPartId === part.id ? 'btn-primary shadow-sm' : 'btn-outline-primary border-2'}`}
+                                                onClick={() => toggleHistory(part.id!)}
+                                                title="Histórico de Stock"
                                             >
-                                                <Truck size={18} />
+                                                {expandedPartId === part.id ? <ChevronUp size={18} strokeWidth={2.5} /> : <History size={18} strokeWidth={2.5} />}
                                             </button>
-                                        ) : (
-                                            <div style={{ width: '32px', height: '32px' }} />
-                                        )}
 
-                                        {!part.is_composed && ((part.ordered_quantity || 0) > 0 || (part.ordered_quantity_foss || 0) > 0) ? (
+                                            {!part.is_composed && (
+                                                <button
+                                                    className="btn btn-icon btn-outline-secondary rounded-circle shadow-sm transition-all border-2"
+                                                    onClick={() => onOpenModal(part, 'stock')}
+                                                    title="Ajuste de Stock"
+                                                >
+                                                    <ArrowUpDown size={18} strokeWidth={2.5} />
+                                                </button>
+                                            )}
+
                                             <button
-                                                className="btn btn-sm btn-info shadow-sm"
-                                                title="Receber Encomenda"
-                                                onClick={() => onOpenModal(part, 'receive')}
-                                                style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                className="btn btn-icon btn-outline-primary rounded-circle shadow-sm transition-all border-2"
+                                                onClick={() => onEditItem(part)}
+                                                title="Editar"
                                             >
-                                                <Package size={18} />
+                                                <Pencil size={18} strokeWidth={2.5} />
                                             </button>
-                                        ) : (
-                                            <div style={{ width: '32px', height: '32px' }} />
-                                        )}
 
-                                        {(part.reserved_quantity || 0) > 0 || (part.reserved_quantity_foss || 0) > 0 ? (
+                                            {!part.is_composed && (
+                                                <button
+                                                    className="btn btn-icon btn-outline-warning rounded-circle shadow-sm transition-all border-2"
+                                                    onClick={() => onOpenModal(part, 'order')}
+                                                    title="Encomendar"
+                                                >
+                                                    <Truck size={18} strokeWidth={2.5} />
+                                                </button>
+                                            )}
+
+                                            {!part.is_composed && ((part.ordered_quantity || 0) > 0 || (part.ordered_quantity_foss || 0) > 0) && (
+                                                <button
+                                                    className="btn btn-icon btn-outline-info rounded-circle shadow-sm transition-all border-2"
+                                                    onClick={() => onOpenModal(part, 'receive')}
+                                                    title="Receber Encomenda"
+                                                >
+                                                    <Package size={18} strokeWidth={2.5} />
+                                                </button>
+                                            )}
+
+                                            {((part.reserved_quantity || 0) > 0 || (part.reserved_quantity_foss || 0) > 0) && (
+                                                <button
+                                                    className="btn btn-icon btn-outline-success rounded-circle shadow-sm transition-all border-2"
+                                                    onClick={() => onViewReservations(part)}
+                                                    title="Ver Reservas"
+                                                >
+                                                    <CalendarCheck size={18} strokeWidth={2.5} />
+                                                </button>
+                                            )}
+
                                             <button
-                                                className="btn btn-sm btn-primary shadow-sm"
-                                                title="Ver Reservas"
-                                                onClick={() => onViewReservations(part)}
-                                                style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                                                className="btn btn-icon btn-outline-danger rounded-circle shadow-sm transition-all border-2"
+                                                onClick={() => onDelete(part)}
+                                                title="Apagar"
                                             >
-                                                <CalendarCheck size={18} />
+                                                <Trash2 size={18} strokeWidth={2.5} />
                                             </button>
-                                        ) : (
-                                            <div style={{ width: '32px', height: '32px' }} />
-                                        )}
+                                        </div>
+                                    </td>
+                                </tr>
 
-                                        <button
-                                            className="btn btn-sm btn-outline-danger shadow-sm"
-                                            title="Apagar Item"
-                                            onClick={() => onDelete(part)}
-                                            style={{ width: '32px', height: '32px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            {/* ── Inline history panel ───────────────────── */}
-                            {expandedPartId === part.id && (
-                                <PartHistoryPanel 
-                                    partId={part.id!} 
-                                    colSpan={TOTAL_COLS} 
-                                    onOpenDoc={onOpenDoc}
-                                />
-                            )}
-                        </React.Fragment>
-                    ))}
-                </tbody>
-            </table>
+                                {/* ── Inline history panel ───────────────────── */}
+                                {expandedPartId === part.id && (
+                                    <PartHistoryPanel 
+                                        partId={part.id!} 
+                                        colSpan={TOTAL_COLS} 
+                                        onOpenDoc={onOpenDoc}
+                                    />
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
         </div>
     );
 };

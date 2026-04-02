@@ -11,6 +11,36 @@ import logger from '../utils/logger';
 
 // DashboardStats now imported from types.ts
 
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  'preventive': 'Preventiva',
+  'corrective': 'Corretiva',
+  'maintenance': 'Manutenção',
+  'installation': 'Instalação',
+  'other': 'Outro',
+  'manutencao': 'Manutenção',
+  'assistencia': 'Assistência',
+  'remota': 'Remota'
+};
+
+const formatServiceType = (type: any) => {
+  if (!type) return '';
+  let cleanType = type;
+  if (typeof type === 'string') {
+    // Remove chavetas, parênteses retos e aspas da base de dados
+    cleanType = type.replace(/[{}[\]"]/g, '').split(',')[0].trim();
+  } else if (Array.isArray(type)) {
+    cleanType = type[0];
+  }
+  
+  if (!cleanType) return '';
+  
+  const label = SERVICE_TYPE_LABELS[cleanType.toLowerCase()];
+  if (label) return label;
+  
+  // Fallback: Primeira letra maiúscula se não estiver no dicionário
+  return cleanType.charAt(0).toUpperCase() + cleanType.slice(1);
+};
+
 interface TicketDetail {
   id: number;
   subject: string;
@@ -28,6 +58,8 @@ interface ScheduleDetail {
   hasReport?: boolean;
   clientName: string;
   technicians: string[];
+  serviceType?: string;
+  equipmentModel?: string;
 }
 
 const DistributionBar: React.FC<{
@@ -288,7 +320,9 @@ const DashboardPage: React.FC = () => {
           isCompleted: s.isCompleted,
           hasReport: s.hasReport,
           clientName: s.clientName || 'Desconhecido',
-          technicians: (s.technicians || []).map((t: any) => typeof t === 'string' ? t : (t?.name || 'Tecnico'))
+          technicians: (s.technicians || []).map((t: any) => typeof t === 'string' ? t : (t?.name || 'Tecnico')),
+          serviceType: s.serviceType,
+          equipmentModel: s.equipmentModel
         }));
         setWeeklySchedules(sortedSchedules);
 
@@ -315,7 +349,9 @@ const DashboardPage: React.FC = () => {
           isCompleted: s.isCompleted,
           hasReport: s.hasReport,
           clientName: s.clientName || 'Desconhecido',
-          technicians: (s.technicians || []).map((t: any) => typeof t === 'string' ? t : (t?.name || 'Tecnico'))
+          technicians: (s.technicians || []).map((t: any) => typeof t === 'string' ? t : (t?.name || 'Tecnico')),
+          serviceType: s.serviceType,
+          equipmentModel: s.equipmentModel
         }));
         setPendingReports(sortedReports);
       } catch (err: unknown) {
@@ -400,40 +436,40 @@ const DashboardPage: React.FC = () => {
   }
 
   return (
-    <div className="container-fluid py-5">
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-5 gap-3">
+    <div className="container-fluid mt-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-5 mt-2">
         <div>
-          <h1 className="display-4 fw-bold mb-0">Dashboard</h1>
-          <p className="text-muted mb-0">Controlo de operações e métricas de serviço.</p>
+          <h1 className="fw-bold m-0 animate__animated animate__fadeInLeft" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)', fontSize: '2.5rem' }}>Dashboard</h1>
+          <p className="text-muted m-0 animate__animated animate__fadeInLeft animate__delay-1s">Bem-vindo à sua central de controlo operacional</p>
         </div>
 
-        <div className="d-flex align-items-center gap-2 glass-panel p-2 rounded-4 shadow-sm border-0">
-          <div className="btn-group me-3">
+        <div className="d-flex align-items-center gap-2 glass-card p-2 shadow-sm border animate__animated animate__fadeInRight">
+          <div className="btn-group me-3 bg-light rounded-pill p-1">
             <button
-              className={`btn btn-sm ${viewMode === 'week' ? 'btn-primary' : 'btn-outline-secondary border-0'}`}
+              className={`btn btn-sm rounded-pill px-3 fw-bold transition-all ${viewMode === 'week' ? 'btn-primary shadow-sm' : 'btn-light text-muted border-0'}`}
               onClick={() => setViewMode('week')}
             >
               Semana
             </button>
             <button
-              className={`btn btn-sm ${viewMode === 'month' ? 'btn-primary' : 'btn-outline-secondary border-0'}`}
+              className={`btn btn-sm rounded-pill px-3 fw-bold transition-all ${viewMode === 'month' ? 'btn-primary shadow-sm' : 'btn-light text-muted border-0'}`}
               onClick={() => setViewMode('month')}
             >
               Mês
             </button>
           </div>
 
-          <div className="d-flex align-items-center gap-3 px-3 border-start">
-            <button className="btn btn-outline-primary btn-sm rounded-circle" onClick={() => navigate(-1)}>
+          <div className="d-flex align-items-center gap-2 px-3 border-start">
+            <button className="btn btn-outline-primary btn-sm rounded-circle shadow-sm" onClick={() => navigate(-1)} style={{ width: '32px', height: '32px', padding: 0 }}>
               <i className="bi bi-chevron-left"></i>
             </button>
-            <span className="fw-bold text-capitalize" style={{ minWidth: '180px', textAlign: 'center' }}>
+            <span className="fw-bold text-dark mx-2" style={{ minWidth: '160px', textAlign: 'center', fontSize: '0.9rem' }}>
               {rangeLabel}
             </span>
-            <button className="btn btn-outline-primary btn-sm rounded-circle" onClick={() => navigate(1)}>
+            <button className="btn btn-outline-primary btn-sm rounded-circle shadow-sm" onClick={() => navigate(1)} style={{ width: '32px', height: '32px', padding: 0 }}>
               <i className="bi bi-chevron-right"></i>
             </button>
-            <button className="btn btn-light btn-sm ms-2" onClick={() => setBaseDate(new Date())} title="Hoje">
+            <button className="btn btn-light btn-sm ms-2 rounded-pill px-3 fw-bold border shadow-sm" onClick={() => setBaseDate(new Date())}>
               Hoje
             </button>
           </div>
@@ -538,7 +574,7 @@ const DashboardPage: React.FC = () => {
                     />
                     <div className="mb-4"></div>
                     <PerformanceGauge
-      percentage={
+                      percentage={
                         billingStats && (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed) > 0
                           ? (billingStats.billed / (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed)) * 100
                           : 0
@@ -583,281 +619,315 @@ const DashboardPage: React.FC = () => {
 
       <div className="row g-4 transition-fade">
         {activeSection === 'tickets' && (
-          <div className="col-12">
-            <div className="card border-0 shadow-sm p-4 h-100">
-              <h3 className="h5 fw-bold mb-4">Tickets Recentes</h3>
-              <div className="table-responsive">
-                <table className="table table-hover align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th style={{ width: '40px' }}>Ver</th>
-                      <th>Estado</th>
-                      <th>Assunto</th>
-                      <th>Cliente</th>
-                      <th>Data</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentTickets.map(t => (
-                      <tr key={t.id}>
-                        <td>
-                          <Link to={`/tickets/${t.id}`} className="btn btn-sm btn-outline-primary border-0">
-                            <i className="bi bi-search"></i>
-                          </Link>
-                        </td>
-                        <td>
-                          <span className={`badge bg-${t.status === TicketStatus.CLOSED ? 'success' : t.status === TicketStatus.OPEN ? 'danger' : t.status === TicketStatus.ACKNOWLEDGED ? 'warning' : 'info'}`}>
-                            {t.status === TicketStatus.CLOSED ? 'Fechado' : t.status === TicketStatus.OPEN ? 'Aberto' : t.status === TicketStatus.ACKNOWLEDGED ? 'Em Análise' : 'Agendado'}
-                          </span>
-                        </td>
-                        <td>{t.subject}</td>
-                        <td>{t.clientName}</td>
-                        <td><div className="small text-muted">{new Date(t.date).toLocaleDateString('pt-PT')}</div></td>
+          <div className="col-12 animate__animated animate__fadeInUp">
+            <div className="glass-card border-0 mb-4 overflow-hidden">
+              <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Tickets Recentes</h5>
+                <Link to="/tickets" className="btn btn-sm btn-outline-light rounded-pill px-3">Ver Todos</Link>
+              </div>
+              <div className="p-0">
+                <div className="table-responsive">
+                  <table className="table align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="text-uppercase small fw-bold text-muted">
+                        <th className="ps-4" style={{ width: '60px' }}>ID</th>
+                        <th>Estado</th>
+                        <th>Assunto / Cliente</th>
+                        <th>Data Criação</th>
+                        <th className="text-end pe-4">Ação</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                      {recentTickets.map(t => (
+                        <tr key={t.id} className="shadow-sm">
+                          <td className="ps-4">
+                            <span className="fw-bold text-muted">#{t.id}</span>
+                          </td>
+                          <td>
+                            {(() => {
+                              let badgeClass = 'bg-info bg-opacity-15 text-info-emphasis';
+                              let label = 'Desconhecido';
+                              if (t.status === TicketStatus.CLOSED) { badgeClass = 'bg-success bg-opacity-15 text-success-emphasis'; label = 'Fechado'; }
+                              else if (t.status === TicketStatus.OPEN) { badgeClass = 'bg-danger bg-opacity-15 text-danger-emphasis'; label = 'Aberto'; }
+                              else if (t.status === TicketStatus.ACKNOWLEDGED) { badgeClass = 'bg-warning bg-opacity-15 text-warning-emphasis'; label = 'Em Análise'; }
+                              else if (t.status === TicketStatus.SCHEDULED) { badgeClass = 'bg-primary bg-opacity-15 text-primary-emphasis'; label = 'Agendado'; }
+                              return <span className={`badge border-0 rounded-pill px-3 ${badgeClass}`}>{label}</span>;
+                            })()}
+                          </td>
+                          <td>
+                            <div className="fw-bold text-dark">{t.subject}</div>
+                            <div className="small text-muted">{t.clientName}</div>
+                          </td>
+                          <td className="text-muted fw-medium">{new Date(t.date).toLocaleDateString('pt-PT')}</td>
+                          <td className="text-end pe-4">
+                            <Link to={`/tickets/${t.id}`} className="btn btn-sm btn-outline-primary border-0 rounded-pill p-0" style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <i className="bi bi-arrow-right-short fs-4"></i>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {activeSection === 'schedules' && (
-          <div className="col-12">
-            <div className="card border-0 shadow-sm p-4 h-100">
-              <h3 className="h5 fw-bold mb-4">Lista de Agendamentos ({weeklySchedules.length})</h3>
-              <div className="table-responsive">
-                <table className="table table-hover align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th style={{ width: '40px' }}>Ver</th>
-                      <th>Estado</th>
-                      <th>Data</th>
-                      <th>Cliente</th>
-                      <th>Tecnico(s)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {weeklySchedules.map(s => (
-                      <tr key={s.id}>
-                        <td>
-                          <Link
-                            to="/calendar"
-                            state={{ scheduleToEditId: s.id }}
-                            className="btn btn-sm btn-outline-primary border-0"
-                            title="Ver detalhes"
-                          >
-                            <i className="bi bi-search"></i>
-                          </Link>
-                        </td>
-                        <td>
-                          {s.hasReport ? (
-                            <span className="badge bg-success">Fechado</span>
-                          ) : s.isCompleted ? (
-                            <span className="badge bg-primary">Concluído</span>
-                          ) : s.endDate && new Date(s.endDate) < new Date() ? (
-                            <span className="badge bg-danger">Por fechar</span>
-                          ) : (
-                            <span className="badge bg-secondary">Pendente</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="small text-muted">
-                            {s.startDate ? new Date(s.startDate).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                          </div>
-                        </td>
-                        <td>{s.clientName}</td>
-                        <td>
-                          <div className="d-flex flex-wrap gap-1">
-                            {s.technicians.map((name, idx) => (
-                              <span key={idx} className="badge bg-light text-dark border shadow-sm" style={{ fontSize: '0.75rem' }}>
-                                {name}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
+          <div className="col-12 animate__animated animate__fadeInUp">
+            <div className="glass-card border-0 mb-4 overflow-hidden">
+              <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Lista de Agendamentos ({weeklySchedules.length})</h5>
+                <Link to="/calendar" className="btn btn-sm btn-outline-light rounded-pill px-3">Ir para Calendário</Link>
+              </div>
+              <div className="p-0">
+                <div className="table-responsive">
+                  <table className="table align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="text-uppercase small fw-bold text-muted">
+                        <th className="ps-4">Estado</th>
+                        <th>Data / Hora</th>
+                        <th>Cliente / Serviço / Equipamento</th>
+                        <th>Técnico(s)</th>
+                        <th className="text-end pe-4">Ação</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                      {weeklySchedules.map(s => (
+                        <tr key={s.id} className="shadow-sm">
+                          <td className="ps-4">
+                            {(() => {
+                              if (s.hasReport) return <span className="badge border-0 rounded-pill px-3 bg-success bg-opacity-15 text-success-emphasis">Fechado</span>;
+                              if (s.isCompleted) return <span className="badge border-0 rounded-pill px-3 bg-primary bg-opacity-15 text-primary-emphasis">Concluído</span>;
+                              if (s.endDate && new Date(s.endDate) < new Date()) return <span className="badge border-0 rounded-pill px-3 bg-danger bg-opacity-15 text-danger-emphasis">Por fechar</span>;
+                              return <span className="badge border-0 rounded-pill px-3 bg-secondary bg-opacity-15 text-secondary-emphasis">Pendente</span>;
+                            })()}
+                          </td>
+                          <td>
+                            <div className="fw-bold text-dark">
+                              {s.startDate ? new Date(s.startDate).toLocaleDateString('pt-PT') : 'N/A'}
+                            </div>
+                            <div className="small text-muted">
+                              {s.startDate ? new Date(s.startDate).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : ''}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="fw-bold text-dark">{s.clientName}</div>
+                            <div className="small text-muted">
+                              {formatServiceType(s.serviceType)}
+                              {formatServiceType(s.serviceType) && s.equipmentModel ? ' - ' : ''}
+                              {s.equipmentModel || ''}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="d-flex flex-wrap gap-1">
+                              {s.technicians.map((name, idx) => (
+                                <span key={idx} className="badge bg-light text-dark border-0 shadow-none px-2 py-1" style={{ fontSize: '0.7rem' }}>
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="text-end pe-4">
+                            <Link to="/calendar" state={{ scheduleToEditId: s.id }} className="btn btn-sm btn-outline-primary border-0 rounded-pill p-0" style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <i className="bi bi-arrow-right-short fs-4"></i>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {activeSection === 'reports' && (
-          <div className="col-12">
-            <div className="card border-0 shadow-sm p-4 h-100">
-              <h3 className="h5 fw-bold mb-4">Relatórios Pendentes ({pendingReports.length})</h3>
-              <div className="table-responsive">
-                <table className="table table-hover align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th style={{ width: '40px' }}>Ver</th>
-                      <th>Estado</th>
-                      <th>Data</th>
-                      <th>Cliente</th>
-                      <th>Tecnico(s)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pendingReports.map(s => (
-                      <tr key={s.id}>
-                        <td>
-                          <Link
-                            to="/calendar"
-                            state={{ scheduleToEditId: s.id }}
-                            className="btn btn-sm btn-outline-primary border-0"
-                            title="Ver detalhes"
-                          >
-                            <i className="bi bi-search"></i>
-                          </Link>
-                        </td>
-                        <td>
-                          {s.hasReport ? (
-                            <span className="badge bg-success">Com relatório</span>
-                          ) : s.isCompleted ? (
-                            <span className="badge bg-primary">Concluído</span>
-                          ) : s.endDate && new Date(s.endDate) < new Date() ? (
-                            <span className="badge bg-danger">Por fechar</span>
-                          ) : (
-                            <span className="badge bg-secondary">Pendente</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="small text-muted">
-                            {s.endDate ? new Date(s.endDate).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                          </div>
-                        </td>
-                        <td>{s.clientName}</td>
-                        <td>
-                          <div className="d-flex flex-wrap gap-1">
-                            {s.technicians.map((name, idx) => (
-                              <span key={idx} className="badge bg-light text-dark border shadow-sm" style={{ fontSize: '0.75rem' }}>
-                                {name}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
+          <div className="col-12 animate__animated animate__fadeInUp">
+            <div className="glass-card border-0 mb-4 overflow-hidden">
+              <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Relatórios Pendentes ({pendingReports.length})</h5>
+              </div>
+              <div className="p-0">
+                <div className="table-responsive">
+                  <table className="table align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="text-uppercase small fw-bold text-muted">
+                        <th className="ps-4">Estado</th>
+                        <th>Data</th>
+                        <th>Cliente / Serviço / Equipamento</th>
+                        <th>Técnico(s)</th>
+                        <th className="text-end pe-4">Ação</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                      {pendingReports.map(s => (
+                        <tr key={s.id} className="shadow-sm">
+                          <td className="ps-4">
+                            {s.hasReport ? (
+                              <span className="badge border-0 rounded-pill px-3 bg-success bg-opacity-15 text-success-emphasis">Com relatório</span>
+                            ) : s.isCompleted ? (
+                              <span className="badge border-0 rounded-pill px-3 bg-primary bg-opacity-15 text-primary-emphasis">Concluído</span>
+                            ) : s.endDate && new Date(s.endDate) < new Date() ? (
+                              <span className="badge border-0 rounded-pill px-3 bg-danger bg-opacity-15 text-danger-emphasis">Por fechar</span>
+                            ) : (
+                              <span className="badge border-0 rounded-pill px-3 bg-secondary bg-opacity-15 text-secondary-emphasis">Pendente</span>
+                            )}
+                          </td>
+                          <td>
+                            <div className="fw-bold text-dark">{s.endDate ? new Date(s.endDate).toLocaleDateString('pt-PT') : 'N/A'}</div>
+                          </td>
+                          <td>
+                            <div className="fw-bold text-dark">{s.clientName}</div>
+                            <div className="small text-muted">
+                              {formatServiceType(s.serviceType)}
+                              {formatServiceType(s.serviceType) && s.equipmentModel ? ' - ' : ''}
+                              {s.equipmentModel || ''}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="d-flex flex-wrap gap-1">
+                              {s.technicians.map((name, idx) => (
+                                <span key={idx} className="badge bg-light text-dark border-0 px-2 py-1" style={{ fontSize: '0.7rem' }}>
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="text-end pe-4">
+                            <Link to="/calendar" state={{ scheduleToEditId: s.id }} className="btn btn-sm btn-outline-primary border-0 rounded-pill p-0" style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <i className="bi bi-arrow-right-short fs-4"></i>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {activeSection === 'billing' && (
-          <div className="col-12">
-            <div className="card border-0 shadow-sm p-4 h-100">
-              <h3 className="h5 fw-bold mb-4">Tarefas de Faturação ({billingTasks.length})</h3>
-              <div className="table-responsive">
-                <table className="table table-hover align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th style={{ width: '100px' }}>Nº Rel.</th>
-                      <th style={{ width: '110px' }}>Data</th>
-                      <th>Cliente</th>
-                      <th style={{ width: '150px' }}>Estado</th>
-                      <th style={{ width: '350px' }}>Notas</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {billingTasks.length === 0 ? (
-                      <tr><td colSpan={5} className="text-center py-4 text-muted">Nenhuma tarefa encontrada.</td></tr>
-                    ) : (
-                      billingTasks.map(task => (
-                        <tr key={task.id}>
-                          <td>
-                            <Link to={`/report/print/${task.report_id}`} target="_blank" className="text-decoration-none fw-bold">
-                              {(task as any).reports?.report_number || `#${task.report_id}`}
-                            </Link>
-                          </td>
-                          <td>
-                            <div className="small text-muted">
+          <div className="col-12 animate__animated animate__fadeInUp">
+            <div className="glass-card border-0 mb-4 overflow-hidden">
+              <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Tarefas de Faturação ({billingTasks.length})</h5>
+              </div>
+              <div className="p-0">
+                <div className="table-responsive">
+                  <table className="table align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="text-uppercase small fw-bold text-muted">
+                        <th className="ps-4">Nº Rel.</th>
+                        <th>Estado</th>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Notas</th>
+                      </tr>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                      {billingTasks.length === 0 ? (
+                        <tr><td colSpan={5} className="text-center py-4 text-muted">Nenhuma tarefa encontrada.</td></tr>
+                      ) : (
+                        billingTasks.map(task => (
+                          <tr key={task.id} className="shadow-sm">
+                            <td className="ps-4">
+                              <Link to={`/report/print/${task.report_id}`} target="_blank" className="text-decoration-none fw-bold text-primary">
+                                {(task as any).reports?.report_number || `#${task.report_id}`}
+                              </Link>
+                            </td>
+                            <td>
+                              {task.status === BillingStatus.PENDING_COMPLETION && <span className="badge border-0 rounded-pill px-3 bg-info bg-opacity-15 text-info-emphasis">Pendente Finalização</span>}
+                              {task.status === BillingStatus.REPORT_ISSUED && <span className="badge border-0 rounded-pill px-3 bg-secondary bg-opacity-15 text-secondary-emphasis">Relatório Emitido</span>}
+                              {task.status === BillingStatus.READY_FOR_BILLING && <span className="badge border-0 rounded-pill px-3 bg-warning bg-opacity-15 text-warning-emphasis">Pronto para Faturação</span>}
+                              {task.status === BillingStatus.BILLED && <span className="badge border-0 rounded-pill px-3 bg-success bg-opacity-15 text-success-emphasis">Faturado</span>}
+                            </td>
+                            <td className="text-muted fw-medium">
                               {new Date((task as any).reports?.serviceDate || task.created_at).toLocaleDateString('pt-PT')}
-                            </div>
-                          </td>
-                          <td>
-                            {(() => {
-                              const r = Array.isArray((task as any).reports) ? (task as any).reports[0] : (task as any).reports;
-                              if (!r) return (task as any).clientName || (task as any).client_name || 'Cliente';
-                              const client = r?.clients;
-                              const c = Array.isArray(client) ? client[0] : client;
-                              return c?.name || r?.clientName || (r as any)?.client_name || (task as any).clientName || 'Cliente';
-                            })()}
-                          </td>
-                          <td>
-                            {task.status === BillingStatus.PENDING_COMPLETION && <span className="badge bg-info text-dark">Pendente Finalização</span>}
-                            {task.status === BillingStatus.REPORT_ISSUED && <span className="badge bg-secondary">Relatório Emitido</span>}
-                            {task.status === BillingStatus.READY_FOR_BILLING && <span className="badge bg-warning text-dark">Pronto para Faturação</span>}
-                            {task.status === BillingStatus.BILLED && <span className="badge bg-success">Faturado</span>}
-                          </td>
-                          <td>
-                            <span className="text-truncate d-inline-block" style={{ maxWidth: '350px' }} title={task.billing_notes}>
-                              {task.billing_notes || '-'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                            </td>
+                            <td className="fw-bold text-dark">
+                              {(() => {
+                                const report = Array.isArray((task as any).reports) ? (task as any).reports[0] : (task as any).reports;
+                                const reportClient = report?.clients?.name || report?.clientName;
+                                return reportClient || (task as any).clientName || (task as any).client_name || 'Cliente';
+                              })()}
+                            </td>
+                            <td>
+                              <div className="text-truncate small text-muted" style={{ maxWidth: '250px' }} title={task.billing_notes}>
+                                {task.billing_notes || '-'}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
         )}
 
         {activeSection === 'tasks' && (
-          <div className="col-12">
-            <div className="card border-0 shadow-sm p-4 h-100">
-              <h3 className="h5 fw-bold mb-4">Lista de Tarefas ({dashboardTasks.length})</h3>
-              <div className="table-responsive">
-                <table className="table table-hover align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th style={{ width: '40px' }}>Ver</th>
-                      <th>Estado</th>
-                      <th>Tarefa</th>
-                      <th>Cliente</th>
-                      <th>Prioridade</th>
-                      <th>Data</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dashboardTasks.length === 0 ? (
-                      <tr><td colSpan={6} className="text-center py-4 text-muted">Nenhuma tarefa encontrada neste período.</td></tr>
-                    ) : (
-                      dashboardTasks.map((task: any) => (
-                        <tr key={task.id}>
-                          <td>
-                            <Link to="/tasks" className="btn btn-sm btn-outline-primary border-0">
-                              <i className="bi bi-search"></i>
-                            </Link>
-                          </td>
-                          <td>
-                            <span className={`badge bg-${task.completed ? 'success' : 'warning text-dark'}`}>
-                              {task.completed ? 'Concluída' : 'Pendente'}
-                            </span>
-                          </td>
-                          <td>{task.title}</td>
-                          <td>{task.clientName || '-'}</td>
-                          <td>
-                            <span className={`badge bg-${task.priority === 'high' ? 'danger' : task.priority === 'medium' ? 'warning text-dark' : 'info'}`}>
-                              {task.priority || 'medium'}
-                            </span>
-                          </td>
-                          <td>
-                            <div className="small text-muted">
+          <div className="col-12 animate__animated animate__fadeInUp">
+            <div className="glass-card border-0 mb-4 overflow-hidden">
+              <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Lista de Tarefas ({dashboardTasks.length})</h5>
+                <Link to="/tasks" className="btn btn-sm btn-outline-light rounded-pill px-3">Gestão de Tarefas</Link>
+              </div>
+              <div className="p-0">
+                <div className="table-responsive">
+                  <table className="table align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="text-uppercase small fw-bold text-muted">
+                        <th className="ps-4">Estado</th>
+                        <th>Tarefa / Prioridade</th>
+                        <th>Cliente / Equipamento</th>
+                        <th>Data</th>
+                        <th className="text-end pe-4">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                      {dashboardTasks.length === 0 ? (
+                        <tr><td colSpan={5} className="text-center py-4 text-muted">Nenhuma tarefa encontrada neste período.</td></tr>
+                      ) : (
+                        dashboardTasks.map((task: any) => (
+                          <tr key={task.id} className="shadow-sm">
+                            <td className="ps-4">
+                              <span className={`badge border-0 rounded-pill px-3 ${task.completed ? 'bg-success bg-opacity-15 text-success-emphasis' : 'bg-warning bg-opacity-15 text-warning-emphasis'}`}>
+                                {task.completed ? 'Concluída' : 'Pendente'}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="fw-bold text-dark">{task.title}</div>
+                              <div className="small text-muted">{task.priority || 'Normal'}</div>
+                            </td>
+                            <td>
+                              <div className="fw-bold text-dark">
+                                {task.clients?.name || task.clientName || '-'}
+                              </div>
+                              <div className="small text-muted">
+                                {task.equipments?.model || (task.equipmentInfo || '-')}
+                              </div>
+                            </td>
+                            <td className="text-muted fw-medium">
                               {task.created_at ? new Date(task.created_at).toLocaleDateString('pt-PT') : '-'}
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                            </td>
+                            <td className="text-end pe-4">
+                              <Link to="/tasks" state={{ taskToEditId: task.id }} className="btn btn-sm btn-outline-primary border-0 rounded-pill p-0" style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <i className="bi bi-arrow-right-short fs-4"></i>
+                              </Link>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>

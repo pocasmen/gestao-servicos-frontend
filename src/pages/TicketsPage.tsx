@@ -112,20 +112,31 @@ const TicketsPage: React.FC = () => {
   const renderPagination = () => {
     if (pagination.totalPages <= 1) return null;
     return (
-      <div className="d-flex justify-content-between align-items-center p-3 border-top">
-        <div className="text-muted small">Mostrando {tickets.length} de {pagination.total} tickets</div>
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center p-4 bg-white border-top gap-3">
+        <div className="text-muted small fw-bold text-uppercase" style={{ letterSpacing: '0.05em' }}>
+          Mostrando <span className="text-primary">{tickets.length}</span> de <span className="text-dark">{pagination.total}</span> tickets
+        </div>
         <nav>
-          <ul className="pagination pagination-sm mb-0">
+          <ul className="pagination pagination-sm mb-0 gap-2">
             <li className={`page-item ${pagination.page === 1 ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={() => setPage(pagination.page - 1)}>Anterior</button>
+              <button className="page-link rounded-pill border-light shadow-sm px-4 fw-bold transition-all" onClick={() => setPage(pagination.page - 1)}>
+                <i className="bi bi-chevron-left me-1"></i> Anterior
+              </button>
             </li>
             {[...Array(pagination.totalPages)].map((_, i) => (
               <li key={i} className={`page-item ${pagination.page === i + 1 ? 'active' : ''}`}>
-                <button className="page-link" onClick={() => setPage(i + 1)}>{i + 1}</button>
+                <button
+                  className={`page-link rounded-pill border-0 shadow-sm px-3 fw-bold transition-all ${pagination.page === i + 1 ? 'bg-primary text-white scale-up' : 'text-muted hover-bg-light'}`}
+                  onClick={() => setPage(i + 1)}
+                >
+                  {i + 1}
+                </button>
               </li>
             ))}
             <li className={`page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}`}>
-              <button className="page-link" onClick={() => setPage(pagination.page + 1)}>Próximo</button>
+              <button className="page-link rounded-pill border-light shadow-sm px-4 fw-bold transition-all" onClick={() => setPage(pagination.page + 1)}>
+                Próximo <i className="bi bi-chevron-right ms-1"></i>
+              </button>
             </li>
           </ul>
         </nav>
@@ -134,51 +145,73 @@ const TicketsPage: React.FC = () => {
   };
 
   const renderTicketsTable = () => (
-    <div className="card">
-      <div className="card-header bg-light">
-        <div className="d-flex justify-content-between align-items-center">
-          <span className="fw-bold">Lista de Tickets</span>
-          <span className="badge bg-secondary">{pagination.total} Total</span>
-        </div>
-      </div>
-      <div className="card-body p-0">
-        <div className="table-responsive">
-          <table className="table table-hover mb-0">
-            <thead className="table-light">
+    <div className="glass-card border-0 shadow-lg overflow-hidden animate__animated animate__fadeInUp" style={{ borderRadius: '24px' }}>
+      <div className="table-responsive">
+        <table className="table table-hover align-middle mb-0">
+          <thead className="bg-dark text-white">
+            <tr className="text-uppercase small fw-bold" style={{ letterSpacing: '0.1em' }}>
+              <th className="ps-4 py-3 border-0">Data/Hora</th>
+              <th className="py-3 border-0">Cliente / Equipamento</th>
+              <th className="py-3 border-0">Utilizador</th>
+              <th className="text-end pe-4 py-3 border-0">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white">
+            {tickets.length === 0 ? (
               <tr>
-                <th>Data/Hora</th>
-                <th>Cliente</th>
-                <th>Utilizador</th>
-                <th>Equipamento</th>
-                <th className="text-end">Ações</th>
+                <td colSpan={4} className="text-center py-5">
+                  <div className="text-muted py-4">
+                    <Search size={64} className="opacity-10 mb-4" />
+                    <h5 className="fw-bold text-dark opacity-50 mb-1">Sem resultados</h5>
+                    <p className="m-0 fw-medium small">Não existem tickets para o filtro selecionado.</p>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {tickets.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center py-4 text-muted">Não existem tickets neste estado.</td>
-                </tr>
-              ) : (
-                tickets.map(ticket => (
-                  <tr key={ticket.id}>
-                    <td>{new Date(ticket.createdAt).toLocaleString('pt-PT')}</td>
-                    <td>{ticket.clientName}</td>
-                    <td>{ticket.userFirstName ? `${ticket.userFirstName} ${ticket.userLastName}` : `Ticket #${ticket.id}`}</td>
-                    <td>{ticket.equipmentInfo}</td>
-                    <td className="text-end">
+            ) : (
+              tickets.map(ticket => (
+                <tr key={ticket.id} className="transition-all hover-bg-light">
+                  <td className="ps-4 py-4">
+                    <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
+                      {new Date(ticket.createdAt).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
+                    </div>
+                    <div className="small text-muted font-monospace" style={{ fontSize: '0.8rem' }}>
+                      {new Date(ticket.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </td>
+                  <td className="py-4">
+                    <div className="fw-bold text-primary mb-1" style={{ fontSize: '0.95rem' }}>{ticket.clientName}</div>
+                    <div className="small text-muted d-flex align-items-center gap-1 fw-medium">
+                      <FileText size={12} className="text-primary opacity-50" />
+                      <span className="text-truncate" style={{ maxWidth: '250px' }}>{ticket.equipmentInfo || 'S/ Equipamento'}</span>
+                    </div>
+                  </td>
+                  <td className="py-4">
+                    <div className="d-flex align-items-center gap-3">
+                      <div className="bg-gradient-primary rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow-sm transition-all hover-scale"
+                        style={{ width: '36px', height: '36px', fontSize: '0.8rem' }}>
+                        {ticket.userFirstName?.charAt(0) || ticket.id}
+                      </div>
+                      <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
+                        {ticket.userFirstName ? `${ticket.userFirstName} ${ticket.userLastName}` : `Ticket #${ticket.id}`}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="text-end pe-4 py-4">
+                    <div className="d-flex justify-content-end gap-2">
                       {(activeTab === TicketStatus.OPEN || activeTab === TicketStatus.ACKNOWLEDGED) && (
                         <button
-                          className="btn btn-sm btn-outline-primary me-2"
+                          className="btn btn-icon btn-outline-primary rounded-circle shadow-sm"
                           onClick={() => handleScheduleTicket(ticket)}
                           title="Agendar"
                         >
                           <CalendarPlus size={18} />
                         </button>
                       )}
+
                       {activeTab === TicketStatus.SCHEDULED && (
                         ticket.scheduleId ? (
                           <button
-                            className="btn btn-sm btn-outline-secondary me-2"
+                            className="btn btn-icon btn-outline-secondary rounded-circle shadow-sm"
                             onClick={() => handleEditSchedule(ticket)}
                             title="Editar Agendamento"
                           >
@@ -186,7 +219,7 @@ const TicketsPage: React.FC = () => {
                           </button>
                         ) : (
                           <button
-                            className="btn btn-sm btn-outline-primary me-2"
+                            className="btn btn-icon btn-outline-primary rounded-circle shadow-sm"
                             onClick={() => handleScheduleTicket(ticket)}
                             title="Agendar"
                           >
@@ -194,74 +227,88 @@ const TicketsPage: React.FC = () => {
                           </button>
                         )
                       )}
-                      {(activeTab === TicketStatus.SCHEDULED || activeTab === TicketStatus.OPEN || activeTab === TicketStatus.ACKNOWLEDGED || activeTab === TicketStatus.CLOSED) && (
-                        <button
-                          className="btn btn-sm btn-outline-info me-2"
-                          onClick={() => navigate(`/tickets/${ticket.id}`)}
-                          title="Ver Detalhes"
-                        >
-                          <Eye size={18} />
-                        </button>
-                      )}
+
+                      <button
+                        className="btn btn-icon btn-outline-info rounded-circle shadow-sm"
+                        onClick={() => navigate(`/tickets/${ticket.id}`)}
+                        title="Ver Detalhes"
+                      >
+                        <Eye size={18} />
+                      </button>
+
                       {activeTab === TicketStatus.CLOSED && (
                         <button
-                          className="btn btn-sm btn-outline-success me-2"
+                          className="btn btn-icon btn-outline-success rounded-circle shadow-sm"
                           onClick={() => handleCreateReportFromTicket(ticket)}
                           title="Gerar Relatório"
                         >
                           <FileText size={18} />
                         </button>
                       )}
+
                       {activeTab !== TicketStatus.CLOSED && activeTab !== TicketStatus.DELETED && (
                         <button
-                          className="btn btn-sm btn-outline-danger"
+                          className="btn btn-icon btn-outline-danger rounded-circle shadow-sm"
                           onClick={() => handleDeleteTicket(ticket.id)}
                           title="Eliminar Ticket"
                         >
                           <Trash2 size={18} />
                         </button>
                       )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
       {renderPagination()}
     </div>
   );
 
   return (
-    <div className="container-fluid mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h1>Gestão de Tickets</h1>
+    <div className="container-fluid py-4 min-vh-100 bg-light animate__animated animate__fadeIn">
+      {/* Premium Header */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-4 mb-5 px-2">
+        <div>
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Tickets</h1>
+          <p className="text-muted m-0 fw-medium mt-1">
+            Central de atendimento: acompanhe e gira os novos pedidos de assistência.
+          </p>
+        </div>
+        <div className="d-flex align-items-center">
+          <div className="glass-card p-1 rounded-pill d-flex gap-1 shadow-sm border bg-white overflow-hidden">
+            {[
+              { id: TicketStatus.OPEN, label: 'Abertos', icon: 'bi-envelope' },
+              { id: TicketStatus.SCHEDULED, label: 'Agendados', icon: 'bi-calendar-check' },
+              { id: TicketStatus.CLOSED, label: 'Fechados', icon: 'bi-check-circle' },
+              { id: TicketStatus.DELETED, label: 'Arquivo', icon: 'bi-archive' }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                className={`btn rounded-pill px-4 py-2 fw-bold border-0 d-flex align-items-center gap-2 transition-all ${activeTab === tab.id ? 'btn-primary shadow-md' : 'btn-light text-muted opacity-75 hover-opacity-100'}`}
+                onClick={() => { setActiveTab(tab.id as TicketStatus); setPage(1); }}
+                style={{ fontSize: '0.85rem' }}
+              >
+                <i className={`bi ${tab.icon}`}></i>
+                <span className="d-none d-sm-inline">{tab.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <ul className="nav nav-tabs mb-3">
-        <li className="nav-item">
-          <button className={`nav-link ${activeTab === TicketStatus.OPEN ? 'active' : ''}`} onClick={() => { setActiveTab(TicketStatus.OPEN); setPage(1); }}>Abertos</button>
-        </li>
-        <li className="nav-item">
-          <button className={`nav-link ${activeTab === TicketStatus.SCHEDULED ? 'active' : ''}`} onClick={() => { setActiveTab(TicketStatus.SCHEDULED); setPage(1); }}>Agendados</button>
-        </li>
-        <li className="nav-item">
-          <button className={`nav-link ${activeTab === TicketStatus.CLOSED ? 'active' : ''}`} onClick={() => { setActiveTab(TicketStatus.CLOSED); setPage(1); }}>Fechados</button>
-        </li>
-        <li className="nav-item">
-          <button className={`nav-link ${activeTab === TicketStatus.DELETED ? 'active' : ''}`} onClick={() => { setActiveTab(TicketStatus.DELETED); setPage(1); }}>Eliminados</button>
-        </li>
-      </ul>
-
       {isLoading ? (
-        <div className="text-center py-5">
+        <div className="text-center py-5 glass-card shadow-sm border-0">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Carregando...</span>
           </div>
+          <p className="mt-3 text-muted fw-medium">A carregar tickets...</p>
         </div>
       ) : isError ? (
-        <div className="alert alert-danger">
+        <div className="alert alert-danger rounded-4 shadow-sm border-0 animate__animated animate__shakeX">
+          <X className="me-2" />
           Erro ao carregar tickets: {(error as any)?.message || 'Erro desconhecido'}
         </div>
       ) : (

@@ -59,13 +59,17 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
     }, [title, description, isOpen]);
 
     useEffect(() => {
-        apiClient.get('/api/clients').then(res => setClients(res.data)).catch(err => logger.error(err));
-        apiClient.get('/api/technicians').then(res => {
-            setTechnicians((res.data || []).filter((t: any) =>
-                t.role === UserRole.TECHNICIAN || t.role === UserRole.ADMIN || t.role === UserRole.SUPER_ADMIN || t.role === UserRole.OFFICE_STAFF
-            ));
-        }).catch(err => logger.error(err));
-    }, []);
+        if (isOpen && clients.length === 0) {
+            apiClient.get('/api/clients').then(res => setClients(res.data)).catch(err => logger.error(err));
+        }
+        if (isOpen && technicians.length === 0) {
+            apiClient.get('/api/technicians').then(res => {
+                setTechnicians((res.data || []).filter((t: any) =>
+                    t.role === UserRole.TECHNICIAN || t.role === UserRole.ADMIN || t.role === UserRole.SUPER_ADMIN || t.role === UserRole.OFFICE_STAFF
+                ));
+            }).catch(err => logger.error(err));
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         if (clientId) {
@@ -238,38 +242,45 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
     if (!isOpen) return null;
 
     return (
-        <div className="modal show fade" tabIndex={-1} style={{ display: 'block' }}>
-            <div className="modal-dialog modal-lg">
-                <div className="modal-content">
-                    <form onSubmit={handleSave}>
-                        <div className="modal-header">
-                            <h5 className="modal-title">{task ? 'Editar Tarefa' : 'Nova Tarefa'}</h5>
-                            <button type="button" className="btn-close" onClick={onClose}></button>
-                        </div>
-                        <div className="modal-body">
-                            <div className="row mb-3">
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}>
+            <div className="glass-card glass-card--solid border-0 shadow-lg overflow-hidden animate__animated animate__zoomIn w-100" style={{ maxWidth: '800px', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
+                <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+                    <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                        <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>
+                            {task ? 'Editar Tarefa' : 'Nova Tarefa'}
+                        </h5>
+                        <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
+                    </div>
+                    <div className="modal-body p-4" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+                        <div className="row g-3 mb-3">
                                 {/* Título */}
                                 <div className="col-md-8">
-                                    <div className="form-group">
-                                        <label className="text-secondary fw-bold">Título *</label>
+                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
+                                        <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                            <i className="bi bi-fonts me-2 text-primary opacity-50"></i>
+                                            Título *
+                                        </label>
                                         <textarea
                                             ref={titleRef}
-                                            className="form-control"
+                                            className="form-control form-control-sm border-light bg-light rounded-4 px-3 py-2 shadow-none fw-medium"
                                             value={title}
                                             onChange={(e) => setTitle(e.target.value)}
                                             rows={1}
                                             placeholder="O que precisa de ser feito?"
                                             required
-                                            style={{ resize: 'none' }}
+                                            style={{ resize: 'none', overflow: 'hidden' }}
                                         />
                                     </div>
                                 </div>
                                 {/* Atribuição */}
                                 <div className="col-md-4">
-                                    <div className="form-group">
-                                        <label className="text-secondary fw-bold">Atribuído a *</label>
+                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
+                                        <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                            <i className="bi bi-person-fill me-2 text-primary opacity-50"></i>
+                                            Atribuído a *
+                                        </label>
                                         <select
-                                            className="form-control"
+                                            className="form-select form-select-sm border-light bg-white rounded-pill px-3 shadow-none fw-medium"
                                             value={assignedUserId}
                                             onChange={(e) => setAssignedUserId(e.target.value)}
                                             required
@@ -284,27 +295,33 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                             </div>
 
                             {/* Descrição */}
-                            <div className="form-group mb-3">
-                                <label className="text-secondary fw-bold">Descrição *</label>
+                            <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light mb-3">
+                                <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                    <i className="bi bi-card-text me-2 text-primary opacity-50"></i>
+                                    Descrição *
+                                </label>
                                 <textarea
                                     ref={descRef}
-                                    className="form-control"
-                                    rows={2}
+                                    className="form-control form-control-sm border-light bg-light rounded-4 px-3 py-2 shadow-none fw-medium"
+                                    rows={1}
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                     placeholder="Detalhes adicionais..."
                                     required
-                                    style={{ resize: 'none' }}
+                                    style={{ resize: 'none', overflow: 'hidden' }}
                                 ></textarea>
                             </div>
 
                             <div className="row mb-3">
                                 {/* Tipo */}
                                 <div className="col-md-6">
-                                    <div className="form-group">
-                                        <label className="text-secondary fw-bold">Tipo de Tarefa</label>
+                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
+                                        <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                            <i className="bi bi-tag-fill me-2 text-primary opacity-50"></i>
+                                            Tipo de Tarefa
+                                        </label>
                                         <select
-                                            className="form-control"
+                                            className="form-select form-select-sm border-light bg-white rounded-pill px-3 shadow-none fw-medium"
                                             value={type}
                                             onChange={(e) => setType(e.target.value)}
                                         >
@@ -319,10 +336,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                 </div>
                                 {/* Prioridade */}
                                 <div className="col-md-6">
-                                    <div className="form-group">
-                                        <label className="text-secondary fw-bold">Prioridade</label>
+                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
+                                        <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                            <i className="bi bi-flag-fill me-2 text-primary opacity-50"></i>
+                                            Prioridade
+                                        </label>
                                         <select
-                                            className={`form-select priority-select-${priority}`}
+                                            className={`form-select form-select-sm border-light bg-white rounded-pill px-3 shadow-none fw-medium priority-select-${priority}`}
                                             value={priority}
                                             onChange={(e) => setPriority(e.target.value)}
                                             required
@@ -353,17 +373,20 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                 <div className="row g-2">
                                     {showClientSearch && (
                                         <div className="col-md-6">
-                                            <div className="form-group">
-                                                <label className="text-secondary fw-bold">Cliente</label>
-                                                <div className="input-group">
+                                            <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
+                                                <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                                    <i className="bi bi-building-fill me-2 text-primary opacity-50"></i>
+                                                    Cliente
+                                                </label>
+                                                <div className="input-group input-group-sm">
                                                     <input
-                                                        className="form-control"
+                                                        className="form-control border-light bg-light rounded-start-pill px-3 py-2 shadow-none fw-medium"
                                                         list="taskClientOptions"
                                                         value={clientSearch}
                                                         onChange={e => setClientSearch(e.target.value)}
                                                         placeholder="Pesquisar cliente..."
                                                     />
-                                                    <button type="button" className="btn btn-outline-danger" onClick={() => { setShowClientSearch(false); setClientSearch(''); setClientId(null); }}>
+                                                    <button type="button" className="btn btn-outline-danger border-light rounded-end-pill px-3" onClick={() => { setShowClientSearch(false); setClientSearch(''); setClientId(null); }}>
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </div>
@@ -376,11 +399,14 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
 
                                     {showEquipmentSelect && clientId && (
                                         <div className="col-md-6">
-                                            <div className="form-group">
-                                                <label className="text-secondary fw-bold">Equipamento</label>
-                                                <div className="input-group">
+                                            <div className="p-3 bg-white bg-opacity-50 border rounded-4 h-100 shadow-sm border-light">
+                                                <label className="text-muted fw-bold text-uppercase d-block mb-2" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                                    <i className="bi bi-tools me-2 text-primary opacity-50"></i>
+                                                    Equipamento
+                                                </label>
+                                                <div className="input-group input-group-sm">
                                                     <select
-                                                        className="form-control"
+                                                        className="form-select border-light bg-light rounded-start-pill px-3 py-2 shadow-none fw-medium"
                                                         value={equipmentId || ''}
                                                         onChange={e => setEquipmentId(e.target.value ? Number(e.target.value) : null)}
                                                     >
@@ -391,7 +417,7 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                                             </option>
                                                         ))}
                                                     </select>
-                                                    <button type="button" className="btn btn-outline-danger" onClick={() => { setShowEquipmentSelect(false); setEquipmentId(null); }}>
+                                                    <button type="button" className="btn btn-outline-danger border-light rounded-end-pill px-3" onClick={() => { setShowEquipmentSelect(false); setEquipmentId(null); }}>
                                                         <Trash2 size={16} />
                                                     </button>
                                                 </div>
@@ -402,45 +428,54 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                             </div>
 
                             {/* Configurações de exibição */}
-                            <div className="row mb-3">
+                            <div className="row g-3 mb-3">
                                 <div className="col-md-6">
-                                    <div className="form-check form-switch border p-2 rounded bg-light">
-                                        <input
-                                            className="form-check-input ms-0 me-2"
-                                            type="checkbox"
-                                            id="isPrivateSwitch"
-                                            checked={isPrivate}
-                                            onChange={(e) => setIsPrivate(e.target.checked)}
-                                        />
-                                        <label className="form-check-label fw-bold" htmlFor="isPrivateSwitch">
-                                            {isPrivate ? 'Privada' : 'Pública'}
-                                        </label>
+                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light h-100 d-flex align-items-center">
+                                        <div className="form-check form-switch w-100 d-flex align-items-center mb-0 p-0">
+                                            <label className="text-muted fw-bold text-uppercase d-flex align-items-center m-0 flex-grow-1" htmlFor="isPrivateSwitch" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                                <i className="bi bi-lock-fill me-2 text-primary opacity-50"></i>
+                                                {isPrivate ? 'Tarefa Privada' : 'Tarefa Pública'}
+                                            </label>
+                                            <input
+                                                className="form-check-input ms-0 me-2"
+                                                type="checkbox"
+                                                id="isPrivateSwitch"
+                                                checked={isPrivate}
+                                                onChange={(e) => setIsPrivate(e.target.checked)}
+                                                style={{ width: '2.5rem', height: '1.25rem', marginTop: 0 }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="col-md-6">
-                                    <div className="form-check form-switch border p-2 rounded bg-light">
-                                        <input
-                                            className="form-check-input ms-0 me-2"
-                                            type="checkbox"
-                                            id="calendarSwitch"
-                                            checked={showOnCalendar}
-                                            onChange={(e) => setShowOnCalendar(e.target.checked)}
-                                        />
-                                        <label className="form-check-label fw-bold" htmlFor="calendarSwitch">
-                                            No Calendário
-                                        </label>
+                                    <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light h-100 d-flex align-items-center">
+                                        <div className="form-check form-switch w-100 d-flex align-items-center mb-0 p-0">
+                                            <label className="text-muted fw-bold text-uppercase d-flex align-items-center m-0 flex-grow-1" htmlFor="calendarSwitch" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                                <i className="bi bi-calendar-check-fill me-2 text-primary opacity-50"></i>
+                                                Visível no Calendário
+                                            </label>
+                                            <input
+                                                className="form-check-input ms-0 me-2"
+                                                type="checkbox"
+                                                id="calendarSwitch"
+                                                checked={showOnCalendar}
+                                                onChange={(e) => setShowOnCalendar(e.target.checked)}
+                                                style={{ width: '2.5rem', height: '1.25rem', marginTop: 0 }}
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                             </div>
 
                             {/* Blocos de Tempo */}
-                            <div className="mb-3">
-                                <div className="d-flex justify-content-between align-items-center mb-2">
-                                    <label className="text-secondary fw-bold m-0 d-flex align-items-center gap-2">
-                                        <Clock size={18} /> Agendamento e Horários
+                            <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light mb-3">
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <label className="text-muted fw-bold text-uppercase d-block mb-0" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                        <Clock size={16} className="me-2 text-primary opacity-50 d-inline" /> 
+                                        Agendamento e Horários
                                     </label>
-                                    <button type="button" className="btn btn-outline-primary btn-sm fw-bold" onClick={handleAddBlock}>
-                                        <Plus size={16} className="me-1" /> Adicionar Bloco
+                                    <button type="button" className="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-bold border-2 d-flex align-items-center gap-1" onClick={handleAddBlock} style={{ fontSize: '0.75rem' }}>
+                                        <Plus size={14} /> Adicionar
                                     </button>
                                 </div>
 
@@ -451,30 +486,30 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                         </div>
                                     ) : (
                                         timeBlocks.map((block, index) => (
-                                            <div key={index} className="p-3 bg-white border rounded d-flex align-items-center gap-3">
+                                            <div key={index} className="p-3 bg-light rounded-4 border border-light d-flex align-items-center gap-3">
                                                 <div className="flex-grow-1">
-                                                    <label className="text-muted small fw-bold mb-1 d-block">Início</label>
+                                                    <label className="text-muted small fw-bold mb-1 d-block text-uppercase" style={{ fontSize: '0.7rem' }}>Início</label>
                                                     <DatePicker
                                                         selected={block.start_time}
                                                         onChange={(date) => handleBlockChange(index, 'start_time', date)}
                                                         showTimeSelect
                                                         dateFormat="Pp"
                                                         locale="pt"
-                                                        className="form-control form-control-sm border-0 p-0 fw-bold bg-transparent"
+                                                        className="form-control form-control-sm border-0 p-0 fw-bold bg-transparent shadow-none"
                                                     />
                                                 </div>
-                                                <div className="flex-grow-1 border-start ps-3">
-                                                    <label className="text-muted small fw-bold mb-1 d-block">Fim</label>
+                                                <div className="flex-grow-1 border-start ps-3 border-light">
+                                                    <label className="text-muted small fw-bold mb-1 d-block text-uppercase" style={{ fontSize: '0.7rem' }}>Fim</label>
                                                     <DatePicker
                                                         selected={block.end_time}
                                                         onChange={(date) => handleBlockChange(index, 'end_time', date)}
                                                         showTimeSelect
                                                         dateFormat="Pp"
                                                         locale="pt"
-                                                        className="form-control form-control-sm border-0 p-0 fw-bold bg-transparent"
+                                                        className="form-control form-control-sm border-0 p-0 fw-bold bg-transparent shadow-none"
                                                     />
                                                 </div>
-                                                <button type="button" className="btn btn-outline-danger btn-sm border-0" onClick={() => handleRemoveBlock(index)}>
+                                                <button type="button" className="btn btn-link text-danger p-0" onClick={() => handleRemoveBlock(index)}>
                                                     <Trash2 size={18} />
                                                 </button>
                                             </div>
@@ -484,19 +519,22 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                             </div>
 
                             {estimatedHours !== null && timeBlocks.length > 0 && (
-                                <div className="text-end">
-                                    <div className="d-inline-flex px-3 py-1 bg-primary bg-opacity-10 border border-primary border-opacity-10 rounded">
-                                        <span className="text-primary fw-bold small">TOTAL ESTIMADO: {estimatedHours}h</span>
+                                <div className="text-end mt-3 border-top border-light pt-3">
+                                    <div className="d-inline-flex px-3 py-1 bg-primary bg-opacity-10 border border-primary border-opacity-25 rounded-pill shadow-sm">
+                                        <span className="text-primary fw-bold text-uppercase d-flex align-items-center" style={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}>
+                                            <i className="bi bi-hourglass-split me-2"></i>
+                                            Estimativa: {estimatedHours}h
+                                        </span>
                                     </div>
                                 </div>
                             )}
                         </div>
-                        <div className="modal-footer d-flex justify-content-between align-items-center">
-                            <div>
+                    <div className="px-4 py-3 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                            <div className="d-flex align-items-center gap-3">
                                 {task && (
                                     <button
                                         type="button"
-                                        className={`btn ${isCompleted ? 'btn-success' : 'btn-outline-success'} d-flex align-items-center gap-2`}
+                                        className={`btn ${isCompleted ? 'btn-success' : 'btn-outline-success border-0'} d-flex align-items-center gap-2 rounded-pill px-3 fw-medium mb-1`}
                                         onClick={() => {
                                             const checked = !isCompleted;
                                             setIsCompleted(checked);
@@ -512,22 +550,33 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                         {isCompleted ? 'Concluída' : 'Concluir'}
                                     </button>
                                 )}
+                                {task && task.created_at && (
+                                    <div className="text-muted d-flex flex-column justify-content-center" style={{ fontSize: '0.7rem' }}>
+                                        <div className="fw-bold d-flex align-items-center gap-1 mb-1" title="Criado por">
+                                            <UserIcon size={12} className="opacity-75" />
+                                            <span>
+                                                {technicians.find(t => t.id === task.created_by)?.name || 
+                                                 task.users?.name || 
+                                                 'Sistema / Desconhecido'}
+                                            </span>
+                                        </div>
+                                        <div className="d-flex align-items-center gap-1 opacity-75" title="Data de criação">
+                                            <CalendarIcon size={12} />
+                                            <span>{new Date(task.created_at).toLocaleString('pt-PT')}</span>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
-                            <div>
-                                <button type="button" className="btn btn-secondary me-2" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
-                                <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
-                                    {isSubmitting ? (
-                                        <>
-                                            <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                                            {task ? 'A guardar...' : 'A criar...'}
-                                        </>
-                                    ) : (task ? 'Guardar' : 'Criar')}
+                            <div className="d-flex gap-2 justify-content-end">
+                                <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+                                <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" disabled={isSubmitting}>
+                                    {isSubmitting && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>}
+                                    {isSubmitting ? (task ? 'A guardar...' : 'A criar...') : (task ? 'Guardar Tarefa' : 'Criar Tarefa')}
                                 </button>
                             </div>
                         </div>
                     </form>
                 </div>
-            </div>
             <style>{`
                     .priority-select-high { color: #dc3545 !important; font-weight: bold; }
                     .priority-select-medium { color: #fd7e14 !important; font-weight: bold; }

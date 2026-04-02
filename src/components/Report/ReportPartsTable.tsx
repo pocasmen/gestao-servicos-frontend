@@ -113,33 +113,31 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
     };
 
     return (
-        <div className="form-group mb-2 p-2 border rounded bg-light">
-            <div className="d-flex justify-content-between align-items-center mb-1">
-                <label className="form-label fw-bold mb-0 d-flex align-items-center small">
-                    <i className="bi bi-box-seam-fill me-2 text-primary"></i>
-                    Peças Utilizadas
+        <div className="p-3 bg-white bg-opacity-50 border rounded-4 shadow-sm border-light mb-3 text-start">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+                <label className="text-muted fw-bold text-uppercase d-block mb-0" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                    <i className="bi bi-basket-fill me-2 text-primary opacity-50"></i>
+                    Peças / Artigos
                 </label>
                 <div className="d-flex gap-2">
-                    <div className="btn-group btn-group-sm">
-                        <button
-                            type="button"
-                            className="btn btn-outline-info d-flex align-items-center gap-1"
-                            onClick={handleCopyParts}
-                            title="Copiar Peças"
-                            style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}
-                        >
-                            <Copy size={12} /> Copiar
-                        </button>
-                        <button
-                            type="button"
-                            className="btn btn-outline-info d-flex align-items-center gap-1"
-                            onClick={handlePasteParts}
-                            title="Colar Peças"
-                            style={{ fontSize: '0.7rem', padding: '0.1rem 0.4rem' }}
-                        >
-                            <Clipboard size={12} /> Colar
-                        </button>
-                    </div>
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-outline-info rounded-pill px-3 py-1 fw-bold border-2 d-flex align-items-center gap-1"
+                        onClick={handleCopyParts}
+                        title="Copiar Peças"
+                        style={{ fontSize: '0.75rem' }}
+                    >
+                        <Copy size={12} /> Copiar
+                    </button>
+                    <button
+                        type="button"
+                        className="btn btn-sm btn-outline-info rounded-pill px-3 py-1 fw-bold border-2 d-flex align-items-center gap-1"
+                        onClick={handlePasteParts}
+                        title="Colar Peças"
+                        style={{ fontSize: '0.75rem' }}
+                    >
+                        <Clipboard size={12} /> Colar
+                    </button>
                 </div>
             </div>
 

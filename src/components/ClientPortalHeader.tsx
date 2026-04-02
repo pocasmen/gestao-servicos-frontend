@@ -50,6 +50,12 @@ const ClientPortalHeader: React.FC = () => {
       <div className="container-fluid">
         <div className="navbar-brand d-flex align-items-center gap-2">
           <img src="/logo512.png" alt="Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+
+          <div className="d-flex flex-column lh-sm ms-1 me-3 border-end pe-3 d-none d-sm-flex">
+            <span className="fw-bold h5 mb-0" style={{ color: '#1e3a8a', fontFamily: 'var(--font-family-title)', letterSpacing: '-0.02em' }}>MySupport</span>
+            <span className="text-muted fw-bold" style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>By Micro Atomo</span>
+          </div>
+
           {location.pathname !== '/portal' && activeClient && hasMultipleCompanies && (
             <button
               className="btn btn-sm btn-outline-primary d-flex align-items-center border-0"
@@ -60,7 +66,6 @@ const ClientPortalHeader: React.FC = () => {
               <ArrowLeft size={18} />
             </button>
           )}
-          <span className="fw-bold text-primary text-truncate" style={{ maxWidth: '200px' }}>{clientName}</span>
         </div>
 
         <button
@@ -76,6 +81,7 @@ const ClientPortalHeader: React.FC = () => {
 
         <div className={`collapse navbar-collapse ${expanded ? 'show' : ''}`} id="portal-navbar-nav">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
+            {/* Nav items remain the same */}
             <li className="nav-item">
               <NavLink to="/portal/dashboard" onClick={closeMenu} className="nav-link d-flex align-items-center gap-2">
                 <LayoutDashboard size={18} /> Dashboard
@@ -113,8 +119,13 @@ const ClientPortalHeader: React.FC = () => {
                 data-bs-toggle="dropdown"
                 aria-expanded="false"
               >
-                <User size={18} />
-                <span className="d-none d-lg-inline">{displayName}</span>
+                <div className="d-flex flex-column text-end me-2 d-none d-lg-flex lh-1">
+                  <span className="fw-bold text-primary" style={{ fontSize: '1rem' }}>{clientName}</span>
+                  <span className="small text-muted fw-semibold" style={{ fontSize: '0.8rem' }}>{displayName}</span>
+                </div>
+                <div className="rounded-circle bg-primary bg-opacity-10 p-2 d-flex align-items-center justify-content-center" style={{ width: '38px', height: '38px' }}>
+                  <User size={20} className="text-primary" />
+                </div>
               </a>
               <ul className="dropdown-menu dropdown-menu-end shadow" aria-labelledby="portal-nav-dropdown">
                 <li>

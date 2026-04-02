@@ -8,7 +8,7 @@ import { SmartInput } from '../components/SmartInput';
 import { Equipment, Client } from '../types';
 import { EquipmentSchema, ClientSchema } from '../schemas';
 import logger from '../utils/logger';
-import { Pencil, Trash2, History, Plus, X, Check } from 'lucide-react';
+import { Pencil, Trash2, History, Plus, X, Check, Search } from 'lucide-react';
 
 // Formulário de Criação (com estilo Bootstrap Card)
 const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipmentAdded }) => {
@@ -67,29 +67,30 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
   };
 
   return (
-    <div className="card mb-4">
-      <div className="card-header bg-primary text-white">Novo Equipamento</div>
-      <div className="card-body">
+    <div className="glass-card border-0 mb-4 overflow-hidden animate__animated animate__fadeIn rounded-4">
+      <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25">
+        <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', letterSpacing: '0.02em' }}>Novo Equipamento</h5>
+      </div>
+      <div className="p-4" style={{ backgroundColor: 'rgba(255,255,255,0.4)' }}>
         <form onSubmit={handleSubmit}>
-          <div className="d-flex flex-wrap">
-            <div className="pe-2" style={{ flex: '1', minWidth: '200px' }}>
-              <div className="d-flex flex-column" style={{ marginBottom: '1rem' }}>
-                <label className="form-label mb-2" style={{ fontWeight: 500, color: '#374151' }}>Cliente (Proprietário)</label>
+          <div className="row g-3">
+            <div className="col-md-5">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2 mb-1 d-block" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Cliente (Proprietário)</label>
+              <div className="input-group shadow-sm rounded-3 overflow-hidden border">
                 <input
-                  className="form-control"
-                  style={{ padding: '0.5rem 0.75rem' }}
+                  className="form-control border-0 py-2 ps-3"
                   list="clientOptions"
                   value={clientName}
                   onChange={e => setClientName(e.target.value)}
                   placeholder="Pesquisar cliente..."
                   required
                 />
-                <datalist id="clientOptions">
-                  {clients.map(client => <option key={client.id} value={client.name} />)}
-                </datalist>
               </div>
+              <datalist id="clientOptions">
+                {clients.map(client => <option key={client.id} value={client.name} />)}
+              </datalist>
             </div>
-            <div className="pe-2" style={{ width: '175px' }}>
+            <div className="col-md-2">
               <SmartInput
                 label="Marca"
                 value={brand}
@@ -99,7 +100,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
                 placeholder="Ex: Bosch"
               />
             </div>
-            <div className="pe-2" style={{ width: '210px' }}>
+            <div className="col-md-3">
               <SmartInput
                 label="Modelo"
                 value={model}
@@ -109,7 +110,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
                 placeholder="Ex: WineScan"
               />
             </div>
-            <div style={{ width: '140px' }}>
+            <div className="col-md-2">
               <SmartInput
                 label="Nº de Série"
                 value={serialNumber}
@@ -119,24 +120,22 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
                 placeholder="SN-123"
               />
             </div>
-          </div>
-          <div className="mt-3">
-            <label className="form-label" style={{ fontWeight: 500, color: '#374151' }}>Notas:</label>
-            <textarea
-              className="form-control"
-              rows={2}
-              value={additionalInfo}
-              onChange={e => setAdditionalInfo(e.target.value)}
-              placeholder="Informações adicionais sobre o equipamento..."
-              style={{ padding: '0.5rem 0.75rem' }}
-            />
-          </div>
-          <div className="row mt-2">
-            <div className="col-md-12 text-end">
-              <button type="submit" className="btn btn-success" disabled={isSubmitting} title="Adicionar Equipamento">
+            <div className="col-12">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2 mb-1 d-block" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Notas do Equipamento</label>
+              <textarea
+                className="form-control shadow-sm border rounded-3"
+                rows={2}
+                value={additionalInfo}
+                onChange={e => setAdditionalInfo(e.target.value)}
+                placeholder="Peculiaridades, histórico rápido ou detalhes técnicos..."
+              />
+            </div>
+            <div className="col-12 d-flex justify-content-end mt-4">
+              <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                ) : <Check size={20} />}
+                ) : <Check size={18} strokeWidth={2.5} />}
+                Registar Equipamento
               </button>
             </div>
           </div>
@@ -241,33 +240,41 @@ const EditEquipmentModal: React.FC<{
   if (!isOpen || !equipment) return null;
 
   return (
-    <div className="modal" style={{ display: 'block', backgroundColor: 'rgba(0,0,0,0.5)' }}>
-      <div className="modal-dialog">
-        <div className="modal-content">
-          <form onSubmit={handleSubmit}>
-            <div className="modal-header">
-              <h5 className="modal-title">Editar Equipamento</h5>
-              <button type="button" className="btn-close" onClick={onClose}></button>
-            </div>
-            <div className="modal-body">
-              <div className="mb-3">
-                <label className="form-label" style={{ fontWeight: 500 }}>Cliente (Proprietário)</label>
+    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(8px)' }}>
+      <div className="glass-card glass-card--solid border-0 shadow-lg p-0 overflow-hidden animate__animated animate__zoomIn rounded-4" style={{ width: '90%', maxWidth: '600px' }} role="dialog" aria-modal="true">
+        <form onSubmit={handleSubmit}>
+          <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25">
+            <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', letterSpacing: '0.02em' }}>
+              Editar Equipamento
+            </h5>
+            <button type="button" className="btn-close btn-close-white opacity-75 hover-opacity-100 transition-all" onClick={onClose} aria-label="Close"></button>
+          </div>
+          <div className="p-4" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
+            <div className="mb-4">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2 d-block" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Cliente (Proprietário)</label>
+              <div className="input-group shadow-sm rounded-3 overflow-hidden border bg-white">
+                <span className="input-group-text bg-transparent border-0 pe-0 ps-3">
+                  <Search size={16} className="text-muted opacity-50" />
+                </span>
                 <input
-                  className="form-control"
+                  className="form-control border-0 py-2 ps-2 shadow-none"
                   list="editClientOptions"
                   value={clientSearch}
                   onChange={e => setClientSearch(e.target.value)}
                   placeholder="Pesquisar cliente..."
                   required
                 />
-                <datalist id="editClientOptions">
-                  {clients.map(client => <option key={client.id} value={client.name} />)}
-                </datalist>
-                {!clientId && clientSearch.trim() !== '' && (
-                  <div className="form-text text-danger small">Cliente não encontrado. Selecione um cliente da lista.</div>
-                )}
               </div>
-              <div className="mb-3">
+              <datalist id="editClientOptions">
+                {clients.map(client => <option key={client.id} value={client.name} />)}
+              </datalist>
+              {!clientId && clientSearch.trim() !== '' && (
+                <div className="form-text text-danger small mt-1 animate__animated animate__headShake">Cliente não encontrado. Selecione um cliente da lista.</div>
+              )}
+            </div>
+            
+            <div className="row g-3">
+              <div className="col-md-6 mb-3">
                 <SmartInput
                   label="Marca"
                   value={brand}
@@ -276,7 +283,7 @@ const EditEquipmentModal: React.FC<{
                   options={{ minLength: 2 }}
                 />
               </div>
-              <div className="mb-3">
+              <div className="col-md-6 mb-3">
                 <SmartInput
                   label="Modelo"
                   value={model}
@@ -285,38 +292,40 @@ const EditEquipmentModal: React.FC<{
                   options={{ minLength: 2 }}
                 />
               </div>
-              <div className="mb-3">
-                <SmartInput
-                  label="Nº de Série"
-                  value={serialNumber}
-                  onChange={setSerialNumber}
-                  required
-                  options={{ minLength: 3, disableHeuristics: true }}
-                />
-              </div>
-              <div className="mb-3">
-                <label className="form-label" style={{ fontWeight: 500 }}>Notas:</label>
-                <textarea
-                  className="form-control"
-                  rows={3}
-                  value={additionalInfo}
-                  onChange={e => setAdditionalInfo(e.target.value)}
-                  placeholder="Informações adicionais..."
-                />
-              </div>
             </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose} disabled={isSaving} title="Cancelar">
-                <X size={20} />
-              </button>
-              <button type="submit" className="btn btn-primary" disabled={isSaving} title="Guardar Alterações">
-                {isSaving ? (
-                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                ) : <Check size={20} />}
-              </button>
+            <div className="mb-3">
+              <SmartInput
+                label="Nº de Série"
+                value={serialNumber}
+                onChange={setSerialNumber}
+                required
+                options={{ minLength: 3, disableHeuristics: true }}
+              />
             </div>
-          </form>
-        </div>
+            <div className="mb-2">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2 d-block" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Notas:</label>
+              <textarea
+                className="form-control shadow-sm border border-light-subtle rounded-3 bg-white"
+                rows={3}
+                value={additionalInfo}
+                onChange={e => setAdditionalInfo(e.target.value)}
+                placeholder="Informações adicionais..."
+                style={{ fontSize: '0.9rem' }}
+              />
+            </div>
+          </div>
+          <div className="px-4 py-3 bg-light bg-opacity-75 border-top d-flex justify-content-end gap-2">
+            <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium hover-bg-light transition-all" onClick={onClose} disabled={isSaving}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all" disabled={isSaving || !clientId}>
+              {isSaving ? (
+                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+              ) : <Check size={18} strokeWidth={2.5} />}
+              Guardar Alterações
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
@@ -330,49 +339,73 @@ const EquipmentList: React.FC<{
   onDelete: (eq: Equipment) => void
 }> = ({ equipments, onEdit, onDelete }) => {
   return (
-    <div className="card">
-      <div className="card-header">Equipamentos Registados</div>
-      <div className="card-body p-0">
-        <div className="table-responsive">
-          <table className="table table-hover mb-0">
-            <thead className="table-light">
+    <div className="glass-card border-0 shadow-sm overflow-hidden animate__animated animate__fadeIn rounded-4">
+      <div className="table-responsive">
+        <table className="table align-middle mb-0">
+          <thead className="bg-dark text-white">
+            <tr className="text-uppercase small fw-bold" style={{ letterSpacing: '0.05em', fontFamily: 'var(--font-family-title)' }}>
+              <th className="ps-4 py-3 border-0">Proprietário</th>
+              <th className="py-3 border-0">Marca / Modelo</th>
+              <th className="py-3 border-0">Nº de Série</th>
+              <th className="text-end pe-4 py-3 border-0">Ações</th>
+            </tr>
+          </thead>
+          <tbody className="border-0">
+            {equipments.length === 0 ? (
               <tr>
-                <th>Proprietário</th>
-                <th>Marca</th>
-                <th>Modelo</th>
-                <th>Nº de Série</th>
-                <th className="text-end">Ações</th>
+                <td colSpan={4} className="text-center py-5">
+                  <div className="py-4">
+                    <Search size={48} className="text-primary opacity-25 mb-3" />
+                    <p className="m-0 fw-medium text-muted h5">Nenhum equipamento encontrado.</p>
+                    <small className="text-muted opacity-75">Tente ajustar os termos de pesquisa.</small>
+                  </div>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {equipments.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="text-center py-4 text-muted">Nenhum equipamento encontrado.</td>
-                </tr>
-              ) : (
-                equipments.map(equipment => (
-                  <tr key={equipment.id}>
-                    <td>{equipment.clientName}</td>
-                    <td>{equipment.brand}</td>
-                    <td>{equipment.model}</td>
-                    <td>{equipment.serialNumber}</td>
-                    <td className="text-end">
-                      <Link to={`/equipments/${equipment.id}/history`} className="btn btn-sm btn-outline-info me-2" title="Ver Histórico">
-                        <History size={18} />
+            ) : (
+              equipments.map(equipment => (
+                <tr key={equipment.id} className="hover-bg-light transition-all border-bottom border-light">
+                  <td className="ps-4 py-3">
+                    <div className="fw-bold text-dark h6 m-0" style={{ fontFamily: 'var(--font-family-title)' }}>{equipment.clientName}</div>
+                  </td>
+                  <td className="py-3">
+                    <div className="fw-semibold text-dark">{equipment.model}</div>
+                    <div className="small text-muted mt-1">
+                      <span className="fw-bold text-primary small">{equipment.brand}</span>
+                    </div>
+                  </td>
+                  <td className="py-3 text-dark">
+                    {equipment.serialNumber}
+                  </td>
+                  <td className="text-end pe-4 py-3">
+                    <div className="d-flex justify-content-end gap-2">
+                      <Link 
+                        to={`/equipments/${equipment.id}/history`} 
+                        className="btn btn-icon btn-outline-info rounded-circle border-2 shadow-sm transition-all" 
+                        title="Ver Histórico"
+                      >
+                        <History size={18} strokeWidth={2.5} />
                       </Link>
-                      <button className="btn btn-sm btn-outline-warning me-2" onClick={() => onEdit(equipment)} title="Editar Equipamento">
-                        <Pencil size={18} />
+                      <button 
+                        className="btn btn-icon btn-outline-warning rounded-circle border-2 shadow-sm transition-all" 
+                        onClick={() => onEdit(equipment)} 
+                        title="Editar Equipamento"
+                      >
+                        <Pencil size={18} strokeWidth={2.5} />
                       </button>
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => onDelete(equipment)} title="Apagar Equipamento">
-                        <Trash2 size={18} />
+                      <button 
+                        className="btn btn-icon btn-outline-danger rounded-circle border-2 shadow-sm transition-all" 
+                        onClick={() => onDelete(equipment)} 
+                        title="Apagar Equipamento"
+                      >
+                        <Trash2 size={18} strokeWidth={2.5} />
                       </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -463,14 +496,26 @@ const EquipmentsPage: React.FC = () => {
 
   return (
     <div className="container-fluid mt-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h1>Gestão de Equipamentos</h1>
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 mt-2">
+        <div>
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Equipamentos</h1>
+          <p className="text-muted m-0" style={{ fontFamily: 'var(--font-family-body)' }}>Consulte e gira o parque de equipamentos instalados</p>
+        </div>
         <button
-          className={`btn ${showNewEquipmentForm ? 'btn-secondary' : 'btn-success'}`}
+          className={`btn ${showNewEquipmentForm ? 'btn-secondary' : 'btn-primary'} rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all`}
           onClick={() => setShowNewEquipmentForm(!showNewEquipmentForm)}
-          title={showNewEquipmentForm ? 'Cancelar' : 'Novo Equipamento'}
         >
-          {showNewEquipmentForm ? <X size={20} /> : <Plus size={20} />}
+          {showNewEquipmentForm ? (
+            <>
+              <X size={18} strokeWidth={2.5} />
+              <span>Cancelar</span>
+            </>
+          ) : (
+            <>
+              <Plus size={18} strokeWidth={2.5} />
+              <span>Novo Equipamento</span>
+            </>
+          )}
         </button>
       </div>
 
@@ -481,14 +526,22 @@ const EquipmentsPage: React.FC = () => {
         }} />
       )}
 
-      <div className="mb-4">
-        <input
-          type="text"
-          className="form-control form-control-lg"
-          placeholder="🔍 Pesquisar por proprietário, marca, modelo ou nº série..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="glass-card border-0 mb-4 overflow-hidden rounded-pill">
+        <div className="p-2">
+          <div className="input-group shadow-none bg-white rounded-pill ps-3">
+            <span className="bg-transparent border-0 d-flex align-items-center text-muted pe-2">
+              <Search size={18} className="opacity-50" />
+            </span>
+            <input
+              type="text"
+              className="form-control border-0 bg-transparent py-2 shadow-none"
+              placeholder="Pesquisar por proprietário, marca, modelo ou nº série..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ fontSize: '0.95rem' }}
+            />
+          </div>
+        </div>
       </div>
 
       {isLoading ? (
