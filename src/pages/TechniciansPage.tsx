@@ -21,6 +21,9 @@ export interface AppUser {
   notification_time?: string;
   phone?: string;
   google_calendar_color_id?: string;
+  has_password?: boolean;
+  is_profile_complete?: boolean;
+  has_signature?: boolean;
 }
 
 // New form to invite users (technicians, admins, or clients)

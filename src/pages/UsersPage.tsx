@@ -10,52 +10,91 @@ import { AppUser } from './TechniciansPage'; // Reusing interface
 
 const UserList: React.FC<{ users: AppUser[], onSelectUser: (user: AppUser) => void }> = ({ users, onSelectUser }) => {
   return (
-    <div>
-      <div className="d-flex align-items-center gap-3">
-        <UserCircle size={40} strokeWidth={2.5} className="text-primary" />
-        <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Utilizadores (Clientes)</h1>
+    <div className="glass-card border-0 mb-4 overflow-hidden shadow-sm">
+      <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+        <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Utilizadores (Clientes)</h5>
       </div>
-      <p className="text-muted small m-0 fst-italic">Listagem de todos os utilizadores registados.</p>
-      <p></p>
-      <table className="table table-hover">
-        <thead>
-          <tr>
-            <th>Nome</th>
-            <th>Email</th>
-            <th>Empresa</th>
-            <th>Ação</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map(user => {
-            // extract client logic if any, currently we send 'client_users' object
-            const clientUsers = (user as any).client_users || [];
-            const companyName = clientUsers.length > 0 ? clientUsers[0].name : '-';
-
-            return (
-              <tr key={user.id} onClick={() => onSelectUser(user)} style={{ cursor: 'pointer' }}>
-                <td>{user.name}</td>
-                <td>{user.email}</td>
-                <td>{companyName}</td>
-                <td>
-                  {(user.role === UserRole.CLIENT) && (
-                    <button
-                      className="btn btn-sm btn-outline-warning"
-                      onClick={(e) => {
-                        e.stopPropagation(); // Evitar abrir o modal
-                        document.dispatchEvent(new CustomEvent('initImpersonate', { detail: user }));
-                      }}
-                      title="Simular Conta"
-                    >
-                      <i className="bi bi-person-lines-fill"></i> Simular
-                    </button>
-                  )}
-                </td>
+      <div className="p-0">
+        <div className="table-responsive">
+          <table className="table align-middle mb-0 table-hover">
+            <thead>
+              <tr className="bg-dark text-white text-uppercase small fw-bold" style={{ letterSpacing: '0.05em', fontFamily: 'var(--font-family-title)' }}>
+                <th className="ps-4 py-3 border-0">Nome</th>
+                <th className="py-3 border-0">Email</th>
+                <th className="py-3 border-0">Empresa</th>
+                <th className="py-3 border-0 text-center">Password</th>
+                <th className="py-3 border-0 text-center">Perfil</th>
+                <th className="py-3 border-0 text-center">Assinatura</th>
+                <th className="text-end pe-4 py-3 border-0">Ação</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
+            </thead>
+            <tbody style={{ borderTop: 'none' }}>
+              {users.map(user => {
+                const clientUsers = (user as any).client_users || [];
+                const companyName = clientUsers.length > 0 ? clientUsers[0].name : '-';
+                const hasPassword = (user as any).has_password;
+                const isProfileComplete = (user as any).is_profile_complete;
+                const hasSignature = (user as any).has_signature;
+
+                return (
+                  <tr key={user.id} onClick={() => onSelectUser(user)} style={{ cursor: 'pointer' }}>
+                    <td className="ps-4 py-3 fw-bold">{user.name || `${user.first_name} ${user.last_name}`}</td>
+                    <td className="text-muted small">{user.email}</td>
+                    <td className="small">{companyName}</td>
+                    <td className="text-center">
+                      {hasPassword ? (
+                        <i className="bi bi-check-circle-fill text-success fs-5" title="Password definida"></i>
+                      ) : (
+                        <i className="bi bi-x-circle-fill text-danger fs-5" title="Password não definida (Convite pendente)"></i>
+                      )}
+                    </td>
+                    <td className="text-center">
+                      {isProfileComplete ? (
+                        <i className="bi bi-person-check-fill text-success fs-5" title="Perfil Completo"></i>
+                      ) : (
+                        <i className="bi bi-person-x-fill text-warning fs-5" title="Perfil Incompleto (Faltam dados ou associação)"></i>
+                      )}
+                    </td>
+                    <td className="text-center">
+                      {hasSignature ? (
+                        <i className="bi bi-pen-fill text-success fs-5" title="Assinatura definida"></i>
+                      ) : (
+                        <i className="bi bi-dash-circle text-muted fs-5" title="Sem assinatura"></i>
+                      )}
+                    </td>
+                    <td className="text-end pe-4">
+                      <div className="d-flex justify-content-end gap-2">
+                        {(user.role === UserRole.CLIENT) && (
+                          <button
+                            className="btn btn-sm btn-outline-warning border-0 rounded-pill px-3 shadow-none"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              document.dispatchEvent(new CustomEvent('initImpersonate', { detail: user }));
+                            }}
+                            title="Simular Conta"
+                          >
+                            <i className="bi bi-person-lines-fill me-1"></i> Simular
+                          </button>
+                        )}
+                        <button
+                          className="btn btn-sm btn-outline-primary border-0 rounded-pill p-0 shadow-none"
+                          style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSelectUser(user);
+                          }}
+                        >
+                          <i className="bi bi-eye fs-5"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
