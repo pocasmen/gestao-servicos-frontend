@@ -98,6 +98,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectP
     return <Navigate to={redirectPath} replace state={{ from: location }} />;
   }
 
+  // Enforce password setting if required
+  if (mustSetPassword(user) && !location.pathname.includes('/complete-registration')) {
+    return <Navigate to="/complete-registration" replace />;
+  }
+
   // Redirection for Incomplete Profiles (Client Portal only)
   if (isProfileIncomplete(user) && !location.pathname.includes('/portal/profile') && !location.pathname.includes('/complete-registration') && userHasRole(user, UserRole.CLIENT)) {
     return <Navigate to="/portal/profile" replace />;

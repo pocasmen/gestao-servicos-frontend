@@ -517,11 +517,21 @@ const ReportModal: React.FC<ReportModalProps> = ({
                 internalNotes={internalNotes} setInternalNotes={setInternalNotes} internalNotesRef={internalNotesRef}
               />
               <ReportPhotos reportId={reportToEdit?.id ?? null} />
-              <ReportSignaturesSection
-                signature={signature} setSignature={setSignature}
-                clientSignerName={clientSignerName} setClientSignerName={setClientSignerName}
-                clientUsers={clientUsers}
-              />
+              {/* Secção de Assinaturas */}
+              <div className="mt-4">
+                <h5 className="text-secondary border-bottom pb-2 mb-3">
+                  <i className="bi bi-pencil-square me-2"></i>
+                  Assinaturas
+                </h5>
+                
+                <ReportSignaturesSection
+                  signature={signature}
+                  setSignature={setSignature}
+                  clientSignerName={clientSignerName}
+                  setClientSignerName={setClientSignerName}
+                  clientUsers={clientUsers}
+                />
+              </div>
             </div>
           <div className="px-4 py-3 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <div className="d-flex flex-column align-items-start">

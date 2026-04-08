@@ -124,75 +124,97 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClear, initial
         }, 150);
     };
 
-    // Efeito para configurar o canvas e lidar com a imagem inicial
-    useEffect(() => {
+    const setupCanvas = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        const drawStoredSignature = (currentCtx: CanvasRenderingContext2D, width: number, height: number) => {
-            if (initialSignature && initialSignature.length > 10 && !hasBeenClearedRef.current) {
-                if (imgCacheRef.current && imgCacheRef.current.complete) {
-                    currentCtx.drawImage(imgCacheRef.current, 0, 0, width, height);
-                    setIsEmpty(false);
-                } else if (!isLoadingImgRef.current) {
-                    isLoadingImgRef.current = true;
-                    const img = new Image();
-                    img.onload = () => {
-                        imgCacheRef.current = img;
-                        isLoadingImgRef.current = false;
-                        // Redesenha apenas se ainda não foi substituído por desenho manual ou limpeza
-                        if (!hasBeenClearedRef.current && canvasRef.current) {
-                            const freshCtx = canvasRef.current.getContext('2d');
-                            const freshRect = canvasRef.current.getBoundingClientRect();
-                            if (freshCtx && freshRect.width > 0) {
-                                freshCtx.drawImage(img, 0, 0, freshRect.width, freshRect.height);
-                                setIsEmpty(false);
-                            }
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) return;
+
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+
+        // Sempre garantir fundo branco (essencial para compatibilidade com JPEG)
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, rect.width, rect.height);
+
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+
+        if (initialSignature && !hasBeenClearedRef.current) {
+            if (imgCacheRef.current && imgCacheRef.current.complete) {
+                ctx.drawImage(imgCacheRef.current, 0, 0, rect.width, rect.height);
+                setIsEmpty(false);
+            } else if (!isLoadingImgRef.current) {
+                isLoadingImgRef.current = true;
+                const img = new Image();
+                img.onload = () => {
+                    imgCacheRef.current = img;
+                    isLoadingImgRef.current = false;
+                    if (!hasBeenClearedRef.current && canvasRef.current) {
+                        const freshCtx = canvasRef.current.getContext('2d');
+                        const freshRect = canvasRef.current.getBoundingClientRect();
+                        if (freshCtx && freshRect.width > 0) {
+                            freshCtx.drawImage(img, 0, 0, freshRect.width, freshRect.height);
+                            setIsEmpty(false);
                         }
-                    };
-                    img.onerror = () => {
-                        isLoadingImgRef.current = false;
-                        logger.error("Erro ao carregar imagem da assinatura inicial");
-                    };
-                    img.src = initialSignature;
+                    }
+                };
+                img.onerror = () => {
+                    isLoadingImgRef.current = false;
+                    logger.error("Erro ao carregar imagem da assinatura inicial");
+                };
+                img.src = initialSignature;
+            }
+        }
+    };
+
+    // Effect to reset internal state when initialSignature changes
+    useEffect(() => {
+        if (initialSignature && initialSignature.length > 10) {
+            hasBeenClearedRef.current = false;
+            imgCacheRef.current = null;
+            isLoadingImgRef.current = false; // Reset loading state
+            setIsEmpty(false);
+            
+            // Re-setup canvas to trigger draw
+            if (canvasRef.current) {
+                setupCanvas();
+            }
+        } else if (!initialSignature) {
+            setIsEmpty(true);
+            const canvas = canvasRef.current;
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
                 }
             }
-        };
+        }
+    }, [initialSignature]);
 
-        const setupCanvas = () => {
-            const rect = canvas.getBoundingClientRect();
-            if (rect.width === 0 || rect.height === 0) return;
-
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
-
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.scale(dpr, dpr);
-
-            // Sempre garantir fundo branco (essencial para compatibilidade com JPEG)
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, rect.width, rect.height);
-
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 2.5;
-            ctx.lineCap = 'round';
-            ctx.lineJoin = 'round';
-
-            if (initialSignature && !hasBeenClearedRef.current) {
-                drawStoredSignature(ctx, rect.width, rect.height);
-            }
-        };
-
-        // Configuração inicial
-        setupCanvas();
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
 
         const resizeObserver = new ResizeObserver(() => {
-            setupCanvas();
+            if (canvas.offsetParent !== null) { // Only setup if visible
+                setupCanvas();
+            }
         });
-        resizeObserver.observe(canvas.parentElement || containerRef.current || document.body);
+
+        resizeObserver.observe(canvas.parentElement || canvas);
+        
+        // Initial setup
+        const timeoutId = setTimeout(setupCanvas, 50);
 
         const handleMouseMove = (e: MouseEvent) => draw(e);
         const handleTouchMove = (e: TouchEvent) => draw(e);
@@ -213,15 +235,6 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ onConfirm, onClear, initial
     }, [initialSignature]);
 
     // Resetar refs quando a assinatura de entrada muda drasticamente
-    useEffect(() => {
-        if (initialSignature && initialSignature.length > 10) {
-            hasBeenClearedRef.current = false;
-            imgCacheRef.current = null;
-            setIsEmpty(false); // Pressupomos que não está vazio se há assinatura inicial válida
-        } else {
-            setIsEmpty(true);
-        }
-    }, [initialSignature]);
 
     return (
         <div className={`signature-pad-container ${isFullscreen ? 'fullscreen' : ''}`} ref={containerRef}>

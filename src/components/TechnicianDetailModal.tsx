@@ -133,6 +133,27 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
     }
   };
 
+  const handleResendInvite = async () => {
+    if (await confirm({
+      message: `Deseja reenviar o convite de ativação para ${user?.email}? Um novo link será gerado e enviado por email.`,
+      title: 'Reenviar Convite',
+      variant: 'primary',
+      confirmText: 'Reenviar'
+    })) {
+      setIsSubmitting(true);
+      apiClient.post(`/api/auth/admin/resend-invite/${user?.id}`)
+        .then(async (res) => {
+          await alert(res.data.message, 'Sucesso');
+        })
+        .catch(async (err: any) => {
+          logger.error(err, "Erro ao reenviar convite:");
+          const msg = err.response?.data?.error || 'Erro ao reenviar convite.';
+          await alert(msg, 'Erro');
+        })
+        .finally(() => setIsSubmitting(false));
+    }
+  };
+
   const isStaff = role === UserRole.TECHNICIAN || role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN || role === UserRole.OFFICE_STAFF;
 
   return (
@@ -158,6 +179,11 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
                 <div className="mb-4">
                   <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem' }}>Identificação (Email)</label>
                   <input type="email" className="form-control rounded-pill bg-light border-0 px-3 fw-medium text-muted" value={user.email} disabled readOnly />
+                  {user.has_password === false && (
+                    <div className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill small mt-2 d-inline-flex align-items-center">
+                      <i className="bi bi-shield-lock-fill me-1"></i> Aguarda Password
+                    </div>
+                  )}
                   <div className="form-text x-small opacity-75 mt-1 ms-2">O email é o identificador único e não pode ser alterado.</div>
                 </div>
 
@@ -329,6 +355,16 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
             </button>
             
             <div className="d-flex gap-2">
+              {user.has_password === false && (
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold shadow-sm"
+                  onClick={handleResendInvite}
+                  disabled={isSubmitting}
+                >
+                  <i className="bi bi-envelope-paper-fill me-1"></i> Reenviar Convite
+                </button>
+              )}
               {role === UserRole.CLIENT && currentUserRole === UserRole.SUPER_ADMIN && (
                 <button
                   type="button"
