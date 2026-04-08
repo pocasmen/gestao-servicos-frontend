@@ -14,7 +14,7 @@ interface ClientSchedule {
   isCompleted: boolean;
   hasReport: boolean;
   serviceType: string;
-  technicians: string[];
+  technicians: { id: string; name: string; color: string }[];
   equipmentInfo: string;
 }
 
@@ -93,7 +93,7 @@ const ClientSchedulesListPage: React.FC = () => {
                       </td>
                       <td>{schedule.title}</td>
                       <td>{schedule.equipmentInfo}</td>
-                      <td>{schedule.technicians.join(', ') || 'N/A'}</td>
+                      <td>{schedule.technicians?.map(t => t.name).join(', ') || 'N/A'}</td>
                       <td><span className="badge bg-warning text-dark">Pendente</span></td>
                     </tr>
                   ))}
