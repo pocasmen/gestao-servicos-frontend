@@ -9,6 +9,7 @@ import { SERVICE_TYPE_LABELS, STOCK_TYPE_LABELS, SERVICE_CLASSIFICATION_LABELS }
 import { StockType, ServiceClassification } from '../constants/enums';
 import { logger } from '../utils/logger';
 import { calculateHours } from '../utils/dateCalculations';
+import { format, parseISO } from 'date-fns';
 
 
 interface DetailedReport {
@@ -151,7 +152,14 @@ const ReportPrintPage: React.FC = () => {
                             </div>
                             <div className="report-date">
                                 <Calendar className="calendar-icon" />
-                                {new Date(report.serviceDate).toLocaleDateString('pt-PT')}
+                                {(() => {
+                                    const blocks: any[] = (report as any).timeBlocks || (report as any).time_blocks || [];
+                                    if (blocks.length > 0) {
+                                        const startStr = blocks[0].start || blocks[0].start_time;
+                                        if (startStr) return format(parseISO(startStr), 'dd/MM/yyyy');
+                                    }
+                                    return report.serviceDate ? format(parseISO(report.serviceDate), 'dd/MM/yyyy') : 'N/A';
+                                })()}
                             </div>
                         </div>
                     </div>
@@ -338,14 +346,16 @@ const ReportPrintPage: React.FC = () => {
                                         const blocks = report.timeBlocks || (report as any).time_blocks || [];
                                         if (blocks.length > 0) {
                                             return blocks.map((block: any, idx: number) => {
-                                                const start = new Date(block.start || block.start_time);
-                                                const end = new Date(block.end || block.end_time);
+                                                const startStr = block.start || block.start_time;
+                                                const endStr = block.end || block.end_time;
+                                                const start = parseISO(startStr);
+                                                const end = parseISO(endStr);
                                                 const hours = calculateHours(start, end);
                                                 return (
                                                     <tr key={idx}>
-                                                        <td>{start.toLocaleDateString('pt-PT')}</td>
-                                                        <td>{start.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</td>
-                                                        <td>{end.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</td>
+                                                        <td>{format(start, 'dd/MM/yyyy')}</td>
+                                                        <td>{format(start, 'HH:mm')}</td>
+                                                        <td>{format(end, 'HH:mm')}</td>
                                                         <td className="hours-total">{hours}h</td>
                                                     </tr>
                                                 );
@@ -353,7 +363,7 @@ const ReportPrintPage: React.FC = () => {
                                         } else {
                                             return (
                                                 <tr>
-                                                    <td>{new Date(report.serviceDate).toLocaleDateString('pt-PT')}</td>
+                                                    <td>{report.serviceDate ? format(parseISO(report.serviceDate), 'dd/MM/yyyy') : 'N/A'}</td>
                                                     <td>-</td>
                                                     <td>-</td>
                                                     <td className="hours-total">{report.hours}h</td>

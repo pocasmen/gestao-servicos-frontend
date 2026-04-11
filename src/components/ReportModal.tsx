@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useRef, useCallback } from 'react';
-import { addHours } from 'date-fns';
+import { addHours, format, parseISO } from 'date-fns';
 import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 import apiClient from '../apiClient';
 import { AuthContext } from '../contexts/AuthContext';
@@ -99,12 +99,12 @@ const ReportModal: React.FC<ReportModalProps> = ({
         setClientId(fullReport.clientId);
         setEquipmentId(fullReport.equipmentId);
         setTechnicianIds(fullReport.technicians?.map((t: any) => t.id) || []);
-        setServiceDate(new Date(fullReport.serviceDate).toISOString().slice(0, 16));
+        setServiceDate(format(parseISO(fullReport.serviceDate), "yyyy-MM-dd'T'HH:mm"));
         setHours(fullReport.hours);
         setDescription(fullReport.description);
         setDamage(fullReport.damage || '');
         setServiceTypes(fullReport.serviceType || []);
-        setInternalNotes(fullReport.internalNotes || '');
+        setInternalNotes(fullReport.internalNotes || fullReport.internal_notes || '');
         setParts(fullReport.parts && fullReport.parts.length > 0 ? fullReport.parts : []);
         setSignature(fullReport.signature);
 
@@ -137,12 +137,12 @@ const ReportModal: React.FC<ReportModalProps> = ({
         setClientId(reportToEdit.clientId);
         setEquipmentId(reportToEdit.equipmentId);
         setTechnicianIds(reportToEdit.technicians?.map(t => t.id) || []);
-        setServiceDate(new Date(reportToEdit.serviceDate).toISOString().slice(0, 16));
+        setServiceDate(format(parseISO(reportToEdit.serviceDate), "yyyy-MM-dd'T'HH:mm"));
         setHours(reportToEdit.hours);
         setDescription(reportToEdit.description);
         setDamage(reportToEdit.damage || '');
         setServiceTypes(reportToEdit.serviceType || []);
-        setInternalNotes(reportToEdit.internalNotes || '');
+        setInternalNotes(reportToEdit.internalNotes || reportToEdit.internal_notes || '');
         setParts(reportToEdit.parts && reportToEdit.parts.length > 0 ? reportToEdit.parts : []);
         setSignature(reportToEdit.signature);
         setTechnicianSignature(reportToEdit.technician_signature);
@@ -178,7 +178,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
         serviceStartDate = new Date();
       }
 
-      setServiceDate(serviceStartDate.toISOString().slice(0, 16));
+      setServiceDate(format(serviceStartDate, "yyyy-MM-dd'T'HH:mm"));
       setHours(totalCalculatedHours);
       if (blocksFromSchedule.length > 0) {
         setTimeBlocks(blocksFromSchedule.map((tb: any) => ({ 
@@ -194,7 +194,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
       setDescription('');
       setDamage('');
       setServiceTypes(schedule.serviceType ? (Array.isArray(schedule.serviceType) ? schedule.serviceType : [schedule.serviceType as string]) : []);
-      setInternalNotes(schedule.internalNotes || '');
+      setInternalNotes(schedule.internalNotes || schedule.internal_notes || '');
       setIncludesTravel(schedule.includes_travel || false);
       setClassification(schedule.classification || ServiceClassification.GERAL);
       setIsBillingPending(false);
@@ -316,7 +316,13 @@ const ReportModal: React.FC<ReportModalProps> = ({
       newStart = new Date(lastBlock.end);
     }
     const newEnd = addHours(newStart, 1);
-    setTimeBlocks([...timeBlocks, { start: newStart, end: newEnd }]);
+    const newBlocks = [...timeBlocks, { start: newStart, end: newEnd }];
+    setTimeBlocks(newBlocks);
+    
+    // Sync serviceDate if it's the first block being added and date is empty
+    if (newBlocks.length === 1 && !serviceDate) {
+      setServiceDate(format(newStart, "yyyy-MM-dd'T'HH:mm"));
+    }
   };
 
   const handleRemoveBlock = (index: number) => {
@@ -338,6 +344,11 @@ const ReportModal: React.FC<ReportModalProps> = ({
     newBlocks[index] = currentBlock;
     setTimeBlocks(newBlocks);
     updateTotalHours(newBlocks);
+
+    // Sync main serviceDate with the first block's start date
+    if (index === 0 && field === 'start') {
+      setServiceDate(format(value, "yyyy-MM-dd'T'HH:mm"));
+    }
   };
 
   const updateTotalHours = (blocks: { start: Date; end: Date }[]) => {

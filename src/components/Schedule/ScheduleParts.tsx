@@ -68,7 +68,7 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
                 )}
             </div>
 
-            <div className="table-responsive rounded-3 overflow-hidden border border-light shadow-sm mb-3">
+            <div className="rounded-3 border border-light shadow-sm mb-3 bg-white" style={{ overflow: 'visible' }}>
                 <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
                     <thead className="table-light">
                         <tr className="text-uppercase small fw-bold text-muted" style={{ letterSpacing: '0.02em' }}>

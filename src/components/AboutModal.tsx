@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Info, Cpu, Database, Activity, Clock, Globe } from 'lucide-react';
+import { Info, Cpu, Database, Activity, Clock, Globe, Zap } from 'lucide-react';
 import apiClient from '../apiClient';
 import { logger } from '../utils/logger';
+import whatsNewData from '../data/whats-new.json';
 
 interface SystemStatus {
     version: string;
@@ -21,13 +22,21 @@ interface SystemStatus {
 interface AboutModalProps {
     show: boolean;
     onClose: () => void;
+    initialTab?: 'status' | 'whats-new';
 }
 
-const AboutModal: React.FC<AboutModalProps> = ({ show, onClose }) => {
+const AboutModal: React.FC<AboutModalProps> = ({ show, onClose, initialTab = 'status' }) => {
     const [status, setStatus] = useState<SystemStatus | null>(null);
     const [loading, setLoading] = useState(false);
     const [latency, setLatency] = useState<number | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<'status' | 'whats-new'>(initialTab);
+
+    useEffect(() => {
+        if (show) {
+            setActiveTab(initialTab);
+        }
+    }, [show, initialTab]);
 
     const fetchStatus = async () => {
         setLoading(true);
@@ -95,101 +104,148 @@ const AboutModal: React.FC<AboutModalProps> = ({ show, onClose }) => {
                         </h5>
                         <button type="button" className="btn-close btn-close-white" onClick={onClose} aria-label="Close"></button>
                     </div>
-                    <div className="modal-body p-4">
-                        {loading && !status ? (
-                            <div className="text-center py-5">
+                    <div className="modal-body p-0">
+                        {/* Tab Headers */}
+                        <div className="d-flex border-bottom border-secondary border-opacity-25 bg-secondary bg-opacity-10">
+                            <button 
+                                className={`flex-fill py-3 border-0 bg-transparent text-light fw-bold transition-all ${activeTab === 'status' ? 'border-bottom border-primary border-3 bg-primary bg-opacity-10' : 'opacity-50'}`}
+                                onClick={() => setActiveTab('status')}
+                            >
+                                <Activity size={16} className="me-2" /> Estado do Sistema
+                            </button>
+                            <button 
+                                className={`flex-fill py-3 border-0 bg-transparent text-light fw-bold transition-all ${activeTab === 'whats-new' ? 'border-bottom border-primary border-3 bg-primary bg-opacity-10' : 'opacity-50'}`}
+                                onClick={() => setActiveTab('whats-new')}
+                            >
+                                <Zap size={16} className="me-2" /> O que há de novo
+                            </button>
+                        </div>
+
+                        <div className="p-4">
+                            {activeTab === 'status' ? (
+                                loading && !status ? (
+                                    <div className="text-center py-5">
                                 <div className="spinner-border text-info" role="status">
                                     <span className="visually-hidden">Loading...</span>
                                 </div>
-                                <p className="mt-3 text-secondary">A obter informações...</p>
-                            </div>
-                        ) : error ? (
-                            <div className="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger">
-                                {error}
-                            </div>
-                        ) : (
-                            <div className="row g-4">
-                                <div className="col-12">
-                                    <div className="p-3 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-10">
-                                        <h6 className="text-secondary text-uppercase small fw-bold mb-3 d-flex align-items-center gap-2">
-                                            <Cpu size={14} /> Versões
-                                        </h6>
-                                        <div className="d-flex justify-content-between mb-2">
-                                            <span className="text-secondary">Frontend</span>
-                                            <span className="badge bg-primary px-3">v{__APP_VERSION__}</span>
+                                        <div className="spinner-border text-info" role="status">
+                                            <span className="visually-hidden">Loading...</span>
                                         </div>
-                                        <div className="d-flex justify-content-between">
-                                            <span className="text-secondary">Backend</span>
-                                            <span className="badge bg-info px-3 text-dark">v{status?.version || '...'}</span>
-                                        </div>
+                                        <p className="mt-3 text-secondary">A obter informações...</p>
                                     </div>
-                                </div>
+                                ) : error ? (
+                                    <div className="alert alert-danger bg-danger bg-opacity-10 border-danger border-opacity-25 text-danger">
+                                        {error}
+                                    </div>
+                                ) : (
+                                    <div className="row g-4">
+                                        <div className="col-12">
+                                            <div className="p-3 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-10">
+                                                <h6 className="text-secondary text-uppercase small fw-bold mb-3 d-flex align-items-center gap-2">
+                                                    <Cpu size={14} /> Versões
+                                                </h6>
+                                                <div className="d-flex justify-content-between mb-2">
+                                                    <span className="text-secondary">Frontend</span>
+                                                    <span className="badge bg-primary px-3">v{__APP_VERSION__}</span>
+                                                </div>
+                                                <div className="d-flex justify-content-between">
+                                                    <span className="text-secondary">Backend</span>
+                                                    <span className="badge bg-info px-3 text-dark">v{status?.version || '...'}</span>
+                                                </div>
+                                            </div>
+                                        </div>
 
-                                <div className="col-6">
-                                    <div className="p-3 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-10 h-100">
-                                        <h6 className="text-secondary text-uppercase small fw-bold mb-3 d-flex align-items-center gap-2">
-                                            <Database size={14} /> Base de Dados
-                                        </h6>
-                                        <div className={`fw-bold d-flex align-items-center gap-2 ${status?.dbStatus === 'Connected' ? 'text-success' : 'text-danger'}`}>
-                                            <div className={`rounded-circle ${status?.dbStatus === 'Connected' ? 'bg-success' : 'bg-danger'}`} style={{ width: 8, height: 8 }}></div>
-                                            {status?.dbStatus || 'Desconhecido'}
+                                        <div className="col-6">
+                                            <div className="p-3 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-10 h-100">
+                                                <h6 className="text-secondary text-uppercase small fw-bold mb-3 d-flex align-items-center gap-2">
+                                                    <Database size={14} /> Base de Dados
+                                                </h6>
+                                                <div className={`fw-bold d-flex align-items-center gap-2 ${status?.dbStatus === 'Connected' ? 'text-success' : 'text-danger'}`}>
+                                                    <div className={`rounded-circle ${status?.dbStatus === 'Connected' ? 'bg-success' : 'bg-danger'}`} style={{ width: 8, height: 8 }}></div>
+                                                    {status?.dbStatus || 'Desconhecido'}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
 
-                                <div className="col-6">
-                                    <div className="p-3 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-10 h-100">
-                                        <h6 className="text-secondary text-uppercase small fw-bold mb-3 d-flex align-items-center gap-2">
-                                            <Activity size={14} /> Latência
-                                        </h6>
-                                        <div className={`fw-bold ${latency && latency < 200 ? 'text-success' : latency && latency < 500 ? 'text-warning' : 'text-danger'}`}>
-                                            {latency ? `${latency} ms` : '...'}
+                                        <div className="col-6">
+                                            <div className="p-3 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-10 h-100">
+                                                <h6 className="text-secondary text-uppercase small fw-bold mb-3 d-flex align-items-center gap-2">
+                                                    <Activity size={14} /> Latência
+                                                </h6>
+                                                <div className={`fw-bold ${latency && latency < 200 ? 'text-success' : latency && latency < 500 ? 'text-warning' : 'text-danger'}`}>
+                                                    {latency ? `${latency} ms` : '...'}
+                                                </div>
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>
 
-                                <div className="col-12">
-                                    <div className="p-3 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-10">
-                                        <h6 className="text-secondary text-uppercase small fw-bold mb-3 d-flex align-items-center gap-2">
-                                            <Globe size={14} /> Ambiente e Sistema
-                                        </h6>
-                                        <div className="small">
-                                            <div className="d-flex justify-content-between mb-2">
-                                                <span className="text-secondary">Node.js</span>
-                                                <span className="text-light fw-medium">{status?.nodeVersion}</span>
-                                            </div>
-                                            <div className="d-flex justify-content-between mb-2">
-                                                <span className="text-secondary">Ambiente</span>
-                                                <span className="text-light text-capitalize fw-medium">{status?.environment}</span>
-                                            </div>
-                                            <div className="d-flex justify-content-between mb-2">
-                                                <span className="text-secondary">Memória (RSS)</span>
-                                                <span className="text-light fw-medium">{status ? formatBytes(status.memoryUsage.rss) : '...'}</span>
-                                            </div>
-                                            <div className="d-flex justify-content-between mb-2">
-                                                <span className="text-secondary">Uptime</span>
-                                                <span className="text-light fw-medium">{status ? formatUptime(status.uptime) : '...'}</span>
-                                            </div>
-                                            <div className="d-flex justify-content-between">
-                                                <span className="text-secondary">Último Build</span>
-                                                <span className="text-light" style={{ fontSize: '0.75rem' }}>{new Date(__BUILD_TIME__).toLocaleString('pt-PT')}</span>
+                                        <div className="col-12">
+                                            <div className="p-3 rounded bg-secondary bg-opacity-10 border border-secondary border-opacity-10">
+                                                <h6 className="text-secondary text-uppercase small fw-bold mb-3 d-flex align-items-center gap-2">
+                                                    <Globe size={14} /> Ambiente e Sistema
+                                                </h6>
+                                                <div className="small">
+                                                    <div className="d-flex justify-content-between mb-2">
+                                                        <span className="text-secondary">Node.js</span>
+                                                        <span className="text-light fw-medium">{status?.nodeVersion}</span>
+                                                    </div>
+                                                    <div className="d-flex justify-content-between mb-2">
+                                                        <span className="text-secondary">Ambiente</span>
+                                                        <span className="text-light text-capitalize fw-medium">{status?.environment}</span>
+                                                    </div>
+                                                    <div className="d-flex justify-content-between mb-2">
+                                                        <span className="text-secondary">Memória (RSS)</span>
+                                                        <span className="text-light fw-medium">{status ? formatBytes(status.memoryUsage.rss) : '...'}</span>
+                                                    </div>
+                                                    <div className="d-flex justify-content-between mb-2">
+                                                        <span className="text-secondary">Uptime</span>
+                                                        <span className="text-light fw-medium">{status ? formatUptime(status.uptime) : '...'}</span>
+                                                    </div>
+                                                    <div className="d-flex justify-content-between">
+                                                        <span className="text-secondary">Último Build</span>
+                                                        <span className="text-light" style={{ fontSize: '0.75rem' }}>{new Date(__BUILD_TIME__).toLocaleString('pt-PT')}</span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                )
+                            ) : (
+                                <div className="whats-new-list" style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
+                                    {whatsNewData.map((item, index) => (
+                                        <div key={item.version} className={`mb-4 pb-4 ${index !== whatsNewData.length - 1 ? 'border-bottom border-secondary border-opacity-25' : ''}`}>
+                                            <div className="d-flex justify-content-between align-items-center mb-3">
+                                                <div>
+                                                    <h6 className="m-0 fw-bold text-info fs-5">{item.title || `Versão ${item.version}`}</h6>
+                                                    <small className="text-secondary">Lançamento: {new Date(item.date).toLocaleDateString('pt-PT')}</small>
+                                                </div>
+                                                <span className="badge bg-primary rounded-pill px-3">v{item.version}</span>
+                                            </div>
+                                            <ul className="list-unstyled m-0">
+                                                {item.notes.map((note, i) => (
+                                                    <li key={i} className="mb-2 d-flex gap-2 align-items-start">
+                                                        <div className="mt-1.5 rounded-circle bg-info" style={{ width: 6, height: 6, minWidth: 6, marginTop: '8px' }}></div>
+                                                        <span className="text-light opacity-75 small">{note}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ))}
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-                    <div className="modal-footer border-secondary border-opacity-25">
-                        <button type="button" className="btn btn-outline-secondary px-4" onClick={onClose}>Fechar</button>
-                        <button
-                            type="button"
-                            className="btn btn-primary d-flex align-items-center gap-2 px-4"
-                            onClick={(e) => { e.stopPropagation(); fetchStatus(); }}
-                            disabled={loading}
-                        >
-                            <Clock size={16} /> Atualizar
-                        </button>
+                    <div className="modal-footer border-secondary border-opacity-25 pb-3">
+                        <button type="button" className="btn btn-outline-secondary px-4 rounded-pill" onClick={onClose}>Fechar</button>
+                        {activeTab === 'status' && (
+                            <button
+                                type="button"
+                                className="btn btn-info d-flex align-items-center gap-2 px-4 rounded-pill text-dark fw-bold"
+                                onClick={(e) => { e.stopPropagation(); fetchStatus(); }}
+                                disabled={loading}
+                            >
+                                <Clock size={16} /> Atualizar
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>

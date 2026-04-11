@@ -28,6 +28,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
     const { alert } = useConfirm();
     const [documentNumber, setDocumentNumber] = useState('');
     const [notes, setNotes] = useState('');
+    const [orderStockType, setOrderStockType] = useState<StockType>(StockType.GENERAL);
     const [items, setItems] = useState<OrderItem[]>([{ quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL }]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { searchResults, searchParts } = usePartSearch();
@@ -53,10 +54,15 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
     }, []);
 
     const handleReferenceBlur = async (index: number) => {
-        const reference = items[index].reference;
-        if (reference?.trim()) {
+        let reference = items[index].reference;
+        if (reference) {
+            reference = reference.trim().replace(/\s+/g, ' ');
+            handlePartChange(index, 'reference', reference);
+        }
+
+        if (reference) {
             try {
-                const part = await searchPartByReference(reference.trim());
+                const part = await searchPartByReference(reference);
                 setItems(prev => {
                     const next = [...prev];
                     if (part) {
@@ -76,15 +82,15 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
         e.preventDefault();
         if (!documentNumber.trim()) return alert('Número do documento é obrigatório.');
 
-        const validItems = items.filter(i => i.partId && i.quantity > 0);
-        if (validItems.length === 0) return alert('É necessário selecionar pelo menos um item válido do inventário.');
+        const validItems = items.filter(i => i.reference && i.reference.trim() !== '' && i.quantity > 0);
+        if (validItems.length === 0) return alert('É necessário incluir pelo menos um artigo válido (com referência) na encomenda.');
 
         setIsSubmitting(true);
         try {
             await apiClient.post('/api/inventory/orders', {
                 document_number: documentNumber.trim(),
                 notes: notes.trim(),
-                items: validItems
+                items: validItems.map(i => ({ ...i, stockType: orderStockType }))
             });
             onSuccess();
         } catch (err: any) {
@@ -102,7 +108,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
             {/* Backdrop */}
             <div
                 className="modal-backdrop fade show"
-                style={{ zIndex: 1050 }}
+                style={{ zIndex: 1050, opacity: 1, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
                 onClick={!isSubmitting ? onClose : undefined}
             />
             {/* Modal */}
@@ -114,11 +120,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
             >
                 <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                     <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
-                        <form onSubmit={handleSubmit}>
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                             {/* Header */}
                             <div className="modal-header border-0 px-4 pt-4 pb-3">
-                                <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'Montserrat, sans-serif', color: '#111827' }}>
-                                    <span className="p-2 rounded-3 d-flex align-items-center justify-content-center" style={{ background: 'rgba(79,70,229,0.1)', color: '#4f46e5' }}>
+                                <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'var(--font-family-title)', color: '#111827' }}>
+                                    <span className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary">
                                         <Package size={22} />
                                     </span>
                                     Nova Encomenda
@@ -127,15 +133,15 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                             </div>
 
                             {/* Body */}
-                            <div className="modal-body px-4 py-3 bg-light bg-opacity-50">
-                                <div className="row g-3 mb-4">
+                            <div className="modal-body px-4 py-3 bg-light bg-opacity-50" style={{ overflowY: 'visible' }}>
+                                <div className="row g-3 mb-3">
                                     <div className="col-md-6">
-                                        <label className="form-label fw-semibold small text-uppercase text-muted mb-1" style={{ letterSpacing: '0.04em' }}>
+                                        <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                             Nº Documento <span className="text-danger">*</span>
                                         </label>
                                         <input
                                             type="text"
-                                            className="form-control border-0 bg-white shadow-sm rounded-3"
+                                            className="form-control border-0 bg-white shadow-sm rounded-3 py-2 px-3 fw-medium"
                                             placeholder="Ex: PO-2024-001"
                                             value={documentNumber}
                                             onChange={e => setDocumentNumber(e.target.value)}
@@ -144,12 +150,29 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                         />
                                     </div>
                                     <div className="col-md-6">
-                                        <label className="form-label fw-semibold small text-uppercase text-muted mb-1" style={{ letterSpacing: '0.04em' }}>
+                                        <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                            Stock de Destino
+                                        </label>
+                                        <select
+                                            className="form-select border-0 bg-white shadow-sm rounded-3 py-2 px-3 fw-medium"
+                                            value={orderStockType}
+                                            onChange={e => setOrderStockType(e.target.value as StockType)}
+                                        >
+                                            <option value={StockType.GENERAL}>{STOCK_TYPE_LABELS[StockType.GENERAL]}</option>
+                                            <option value={StockType.FOSS}>{STOCK_TYPE_LABELS[StockType.FOSS]}</option>
+                                            <option value={StockType.MSD}>{STOCK_TYPE_LABELS[StockType.MSD]}</option>
+                                            <option value={StockType.CONTRACT}>{STOCK_TYPE_LABELS[StockType.CONTRACT]}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="row g-3 mb-4">
+                                    <div className="col-12">
+                                        <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                             Notas
                                         </label>
                                         <input
                                             type="text"
-                                            className="form-control border-0 bg-white shadow-sm rounded-3"
+                                            className="form-control border-0 bg-white shadow-sm rounded-3 py-2 px-3 fw-medium"
                                             placeholder="Observações internas..."
                                             value={notes}
                                             onChange={e => setNotes(e.target.value)}
@@ -157,49 +180,64 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                     </div>
                                 </div>
 
+                                <h6 className="fw-bold text-dark mb-3 text-uppercase" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                    <i className="bi bi-basket-fill me-2 text-primary opacity-50"></i>
+                                    Artigos a Encomendar
+                                </h6>
+
                                 {/* Items table */}
-                                <div className="rounded-4 overflow-hidden border border-light shadow-sm bg-white" style={{ minHeight: '160px' }}>
-                                    <table className="table table-hover align-middle mb-0">
+                                <div className="rounded-3 border border-light shadow-sm mb-3 bg-white" style={{ minHeight: '160px', overflow: 'visible' }}>
+                                    <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
                                         <thead className="table-light">
-                                            <tr className="text-uppercase small fw-bold text-muted">
-                                                <th className="ps-3" style={{ width: '44px' }}></th>
-                                                <th style={{ width: '72px' }}>Qt</th>
-                                                <th>Referência</th>
-                                                <th>Designação</th>
-                                                <th style={{ width: '155px' }}>Stock</th>
-                                                <th className="pe-3" style={{ width: '44px' }}></th>
+                                            <tr className="text-uppercase small fw-bold text-muted" style={{ letterSpacing: '0.02em' }}>
+                                                <th className="ps-3 py-2 text-center" style={{ width: '50px' }}>Img</th>
+                                                <th className="text-center py-2" style={{ width: '70px' }}>Qt</th>
+                                                <th className="py-2" style={{ width: '150px' }}>Referência</th>
+                                                <th className="py-2">Designação</th>
+                                                <th className="pe-3 py-2" style={{ width: '40px' }}></th>
                                             </tr>
                                         </thead>
-                                        <tbody>
+                                        <tbody className="bg-white">
                                             {items.map((item, index) => (
-                                                <tr key={index}>
-                                                    <td className="ps-3 text-center">
+                                                <tr key={index} className="border-bottom border-light">
+                                                    <td className="ps-3 py-2 text-center">
                                                         {item.image_path ? (
-                                                            <img
-                                                                src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`}
-                                                                className="rounded border"
-                                                                style={{ width: '30px', height: '30px', objectFit: 'cover' }}
-                                                                alt=""
-                                                            />
+                                                            <div className="inventory-photo-container d-inline-block text-start">
+                                                                <img
+                                                                    src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`}
+                                                                    className="rounded shadow-sm border p-1"
+                                                                    style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                                                                    alt={item.reference}
+                                                                />
+                                                                <div className="inventory-photo-large shadow-lg rounded overflow-hidden">
+                                                                    <img 
+                                                                        src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`} 
+                                                                        alt={`${item.reference} - Grande`}
+                                                                        className="w-100 h-100"
+                                                                        style={{ objectFit: 'contain', backgroundColor: '#fff' }}
+                                                                    />
+                                                                </div>
+                                                            </div>
                                                         ) : (
-                                                            <div className="bg-light text-muted d-flex align-items-center justify-content-center rounded border" style={{ width: '30px', height: '30px', fontSize: '9px' }}>?</div>
+                                                            <div className="bg-light text-muted border rounded d-flex align-items-center justify-content-center m-auto" style={{ width: '32px', height: '32px' }}>
+                                                                <i className="bi bi-image" style={{ fontSize: '12px' }}></i>
+                                                            </div>
                                                         )}
                                                     </td>
-                                                    <td>
+                                                    <td className="py-2">
                                                         <input
                                                             type="number"
-                                                            className="form-control form-control-sm border-0 bg-transparent fw-bold text-center p-0"
+                                                            className="form-control form-control-sm text-center border-0 bg-light rounded-pill p-1 shadow-none fw-bold"
                                                             value={item.quantity}
                                                             onChange={e => handlePartChange(index, 'quantity', parseInt(e.target.value) || 1)}
                                                             min="1"
                                                             required
-                                                            style={{ width: '56px' }}
                                                         />
                                                     </td>
-                                                    <td>
+                                                    <td className="py-2 text-start">
                                                         <input
                                                             type="text"
-                                                            className="form-control form-control-sm border-0 bg-transparent p-0"
+                                                            className="form-control form-control-sm border-0 bg-light rounded-pill px-3 shadow-none fw-medium"
                                                             list="orderPartRefSuggestions"
                                                             value={item.reference}
                                                             onChange={e => {
@@ -213,14 +251,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                                                 searchParts(val);
                                                             }}
                                                             onBlur={() => handleReferenceBlur(index)}
-                                                            placeholder="Ref. Peça"
+                                                            placeholder="Ref..."
                                                             required
                                                         />
                                                     </td>
-                                                    <td>
+                                                    <td className="py-2 text-start">
                                                         <input
                                                             type="text"
-                                                            className="form-control form-control-sm border-0 bg-transparent p-0"
+                                                            className="form-control form-control-sm border-0 bg-light rounded-pill px-3 shadow-none fw-medium"
                                                             list="orderPartDesigSuggestions"
                                                             value={item.designation}
                                                             onChange={e => {
@@ -233,25 +271,18 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                                                 }
                                                                 searchParts(val);
                                                             }}
-                                                            placeholder="Designação"
+                                                            onBlur={() => {
+                                                                if (item.designation) {
+                                                                    handlePartChange(index, 'designation', item.designation.trim().replace(/\s+/g, ' '));
+                                                                }
+                                                            }}
+                                                            placeholder="Designação..."
                                                             disabled={item.isDesignationLocked}
                                                         />
                                                     </td>
-                                                    <td>
-                                                        <select
-                                                            className="form-select form-select-sm border-0 bg-transparent p-0"
-                                                            value={item.stockType}
-                                                            onChange={e => handlePartChange(index, 'stockType', e.target.value)}
-                                                        >
-                                                            <option value={StockType.GENERAL}>{STOCK_TYPE_LABELS[StockType.GENERAL]}</option>
-                                                            <option value={StockType.FOSS}>{STOCK_TYPE_LABELS[StockType.FOSS]}</option>
-                                                            <option value={StockType.MSD}>{STOCK_TYPE_LABELS[StockType.MSD]}</option>
-                                                            <option value={StockType.CONTRACT}>{STOCK_TYPE_LABELS[StockType.CONTRACT]}</option>
-                                                        </select>
-                                                    </td>
-                                                    <td className="pe-3 text-center">
-                                                        <button type="button" className="btn btn-link link-danger p-0 shadow-none" onClick={() => handleRemovePart(index)}>
-                                                            <Trash2 size={15} />
+                                                    <td className="pe-3 py-2 text-end">
+                                                        <button type="button" className="btn btn-sm btn-outline-danger border-0 rounded-circle shadow-none p-1" onClick={() => handleRemovePart(index)} style={{ width: '28px', height: '28px' }}>
+                                                            <Trash2 size={16} />
                                                         </button>
                                                     </td>
                                                 </tr>
@@ -260,16 +291,18 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                     </table>
                                 </div>
 
-                                <button type="button" className="btn btn-link btn-sm text-primary fw-semibold p-0 mt-3 d-flex align-items-center gap-1 shadow-none" onClick={handleAddPart}>
-                                    <Plus size={15} /> Adicionar Linha
-                                </button>
+                                <div className="d-flex justify-content-end">
+                                    <button type="button" className="btn btn-sm btn-outline-primary rounded-pill px-4 fw-bold shadow-sm mt-1" onClick={handleAddPart}>
+                                        <i className="bi bi-plus-circle me-1"></i> Adicionar Peça
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Footer */}
-                            <div className="modal-footer border-0 px-4 py-3">
-                                <button type="button" className="btn btn-light border rounded-pill px-4 fw-medium" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
-                                <button type="submit" className="btn btn-primary rounded-pill px-5 fw-semibold d-flex align-items-center gap-2" disabled={isSubmitting}>
-                                    {isSubmitting ? <span className="spinner-border spinner-border-sm" /> : <Save size={17} />}
+                            <div className="modal-footer px-4 py-3 bg-light bg-opacity-50 border-top mt-auto">
+                                <button type="button" className="btn btn-light border rounded-pill px-4 fw-medium shadow-sm" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+                                <button type="submit" className="btn btn-primary rounded-pill px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm" disabled={isSubmitting}>
+                                    {isSubmitting ? <span className="spinner-border spinner-border-sm" /> : <Save size={16} />}
                                     Registar Encomenda
                                 </button>
                             </div>

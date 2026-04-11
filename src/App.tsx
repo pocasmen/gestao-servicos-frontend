@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet, useNavigate } from 'react-router-dom';
+import AboutModal from './components/AboutModal';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 
@@ -129,6 +130,8 @@ const AppRoutes: React.FC = () => {
   const [urlError, setUrlError] = useState<string | null>(null);
   const { confirm } = useConfirm();
   const [hasShownUpgrade, setHasShownUpgrade] = useState(false);
+  const [showAbout, setShowAbout] = useState(false);
+  const [aboutTab, setAboutTab] = useState<'status' | 'whats-new'>('status');
 
   useEffect(() => {
     const checkUpgrade = async () => {
@@ -153,6 +156,11 @@ const AppRoutes: React.FC = () => {
               title: 'Atualização de Sistema',
               message: `Olá ${firstName}, está a usar pela primeira vez a nova versão ${currentVersion}. Se notar alguma dificuldade ou tiver uma sugestão, informe para pedro@microatomo.pt`,
               confirmText: 'Entendido',
+              extraText: 'Whats New',
+              onExtra: () => {
+                setAboutTab('whats-new');
+                setShowAbout(true);
+              },
               isAlert: true
             });
             localStorage.setItem(storageKey, currentVersion);
@@ -241,6 +249,7 @@ const AppRoutes: React.FC = () => {
         </div>
       )}
       {renderHeader()}
+      <AboutModal show={showAbout} onClose={() => setShowAbout(false)} initialTab={aboutTab} />
       <main className="app-main">
         {urlError && (
           <div className="container mt-3">

@@ -15,6 +15,7 @@ import { Pencil, Trash2, UserPlus, Plus, X, Check, Send, Search, Users } from 'l
 
 const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) => {
   const [name, setName] = useState('');
+  const [nickname, setNickname] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [postCode, setPostCode] = useState('');
@@ -27,10 +28,11 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
     if (isSubmitting) return;
 
     setIsSubmitting(true);
-    apiClient.post('/api/clients', { name, address, city, postCode, nif })
+    apiClient.post('/api/clients', { name, nickname, address, city, postCode, nif })
       .then(async () => {
         // Limpa o formulário e notifica o componente pai
         setName('');
+        setNickname('');
         setAddress('');
         setCity('');
         setPostCode('');
@@ -60,14 +62,23 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
       <div className="p-4" style={{ backgroundColor: 'rgba(255,255,255,0.4)' }}>
         <form onSubmit={handleSubmit}>
           <div className="row g-3">
-            <div className="col-md-9">
+            <div className="col-md-6">
               <SmartInput
-                label="Nome"
+                label="Nome do Registo (Oficial)"
                 value={name}
                 onChange={setName}
                 required
                 options={{ minLength: 3, blockScripts: true }}
-                placeholder="Nome do Cliente ou Empresa"
+                placeholder="Ex: Nome da Empresa Lda"
+              />
+            </div>
+            <div className="col-md-3">
+              <SmartInput
+                label="Alcunha / Nome Curto"
+                value={nickname}
+                onChange={setNickname}
+                options={{ blockScripts: true }}
+                placeholder="Como é conhecida"
               />
             </div>
             <div className="col-md-3">
@@ -143,7 +154,7 @@ const ClientList: React.FC<{
         <table className="table align-middle mb-0">
           <thead className="bg-dark text-white">
             <tr className="text-uppercase small fw-bold" style={{ letterSpacing: '0.05em', fontFamily: 'var(--font-family-title)' }}>
-              <th className="ps-4 py-3 border-0">Nome</th>
+              <th className="ps-4 py-3 border-0">Cliente / Alcunha</th>
               <th className="py-3 border-0">Morada / Detalhes</th>
               <th className="py-3 border-0">NIF / Identificação</th>
               <th className="text-end pe-4 py-3 border-0">Ações</th>
@@ -165,6 +176,9 @@ const ClientList: React.FC<{
                 <tr key={client.id} className="hover-bg-light transition-all border-bottom border-light">
                   <td className="ps-4 py-3">
                     <div className="fw-bold text-dark h6 mb-0" style={{ fontFamily: 'var(--font-family-title)' }}>{client.name}</div>
+                    {client.nickname && (
+                      <small className="text-muted">{client.nickname}</small>
+                    )}
                   </td>
                   <td className="py-3">
                     <div className="fw-medium text-dark">{client.address}</div>
@@ -218,6 +232,7 @@ const EditClientModal: React.FC<{
   onSave: (updatedClient: Client) => Promise<void>;
 }> = ({ isOpen, onClose, client, onSave }) => {
   const [name, setName] = useState('');
+  const [nickname, setNickname] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [postCode, setPostCode] = useState('');
@@ -227,6 +242,7 @@ const EditClientModal: React.FC<{
   useEffect(() => {
     if (client) {
       setName(client.name);
+      setNickname(client.nickname || '');
       setAddress(client.address || '');
       setCity(client.city || '');
       setPostCode(client.postCode || '');
@@ -239,7 +255,7 @@ const EditClientModal: React.FC<{
     if (client) {
       setIsSaving(true);
       try {
-        await onSave({ ...client, name, address, city, postCode, nif });
+        await onSave({ ...client, name, nickname, address, city, postCode, nif });
       } finally {
         setIsSaving(false);
       }
@@ -259,11 +275,19 @@ const EditClientModal: React.FC<{
           <div className="p-4" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
             <div className="mb-4">
               <SmartInput
-                label="Nome"
+                label="Nome do Registo (Oficial)"
                 value={name}
                 onChange={setName}
                 required
                 options={{ minLength: 3, blockScripts: true }}
+              />
+            </div>
+            <div className="mb-4">
+              <SmartInput
+                label="Alcunha / Nome Curto"
+                value={nickname}
+                onChange={setNickname}
+                options={{ blockScripts: true }}
               />
             </div>
             <div className="mb-4">
@@ -465,10 +489,10 @@ const ClientsPage: React.FC = () => {
     <div className="container-fluid mt-4">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 mt-2">
         <div>
-        <div className="d-flex align-items-center gap-3">
-          <Users size={40} strokeWidth={2.5} className="text-primary" />
-          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Clientes</h1>
-        </div>
+          <div className="d-flex align-items-center gap-3">
+            <Users size={40} strokeWidth={2.5} className="text-primary" />
+            <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Clientes</h1>
+          </div>
           <p className="text-muted small m-0 fst-italic">Registe e gira a sua base de dados de clientes</p>
         </div>
         <button
@@ -505,7 +529,7 @@ const ClientsPage: React.FC = () => {
             <input
               type="text"
               className="form-control border-0 bg-transparent py-2 shadow-none"
-              placeholder="Pesquisar por nome, NIF ou morada..."
+              placeholder="Pesquisar por nome, alcunha, NIF ou morada..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ fontSize: '0.95rem' }}

@@ -21,7 +21,7 @@ import ScheduleDetailModal from '../components/ScheduleDetailModal';
 import ReportModal from '../components/ReportModal';
 import TaskModal from '../components/TaskModal';
 import { SERVICE_TYPE_LABELS, SCHEDULE_PRIORITY_LABELS } from '../constants';
-import { ScheduleStatus, SchedulePriority } from '../constants/enums';
+import { ScheduleStatus, SchedulePriority, UserRole } from '../constants/enums';
 
 const locales = { 'pt-PT': pt };
 
@@ -76,6 +76,10 @@ const CalendarPage: React.FC = () => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<InternalTask | null>(null);
 
+  // Filter States
+  const [filterType, setFilterType] = useState<'all' | 'schedules' | 'tasks'>('all');
+  const [selectedTechIds, setSelectedTechIds] = useState<Set<string>>(new Set());
+
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -91,6 +95,14 @@ const CalendarPage: React.FC = () => {
     queryFn: async () => {
       const response = await apiClient.get('/api/schedules', { params: { includeCompleted: true, limit: 1000 } });
       return response.data.data || [];
+    }
+  });
+
+  const { data: technicians = [] } = useQuery<Technician[]>({
+    queryKey: ['technicians'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/technicians');
+      return response.data;
     }
   });
 
@@ -161,9 +173,54 @@ const CalendarPage: React.FC = () => {
   const events = eventsState;
   const backlog = processedSchedules.backlog;
 
+  // Apply filters to events
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      // 1. Type Filter
+      if (filterType === 'schedules' && event.isTask) return false;
+      if (filterType === 'tasks' && !event.isTask) return false;
+
+      // 2. Technician Filter
+      if (selectedTechIds.size > 0) {
+        if (!event.technicians || event.technicians.length === 0) return false;
+        // Se o evento tem múltiplos técnicos, ele aparece se QUALQUER um dos selecionados estiver no evento
+        return event.technicians.some(t => selectedTechIds.has(t.id));
+      }
+
+      return true;
+    });
+  }, [events, filterType, selectedTechIds]);
+
+  const toggleTechFilter = (techId: string) => {
+    setSelectedTechIds(prev => {
+      const next = new Set(prev);
+      if (next.has(techId)) {
+        next.delete(techId);
+      } else {
+        next.add(techId);
+      }
+      return next;
+    });
+  };
+
   const filteredBacklog = useMemo(() => {
     return backlog
-      .filter(item => !showOnlyMyBacklog || (item.technicians && item.technicians.some(t => t.id === currentUserId)))
+      .filter(item => {
+        // 1. My Backlog Toggle
+        if (showOnlyMyBacklog && !(item.technicians && item.technicians.some(t => t.id === currentUserId))) return false;
+
+        // 2. Type Filter
+        if (filterType === 'schedules' && item.isTask) return false;
+        if (filterType === 'tasks' && !item.isTask) return false;
+
+        // 3. Technician Filter
+        if (selectedTechIds.size > 0) {
+          if (!item.technicians || item.technicians.length === 0) return false;
+          return item.technicians.some(t => selectedTechIds.has(t.id));
+        }
+
+        return true;
+      })
       .sort((a, b) => {
         if (backlogSortMode === 'date') {
           const aDate = new Date(a.id as number).getTime();
@@ -183,7 +240,7 @@ const CalendarPage: React.FC = () => {
           return aDate - bDate;
         }
       });
-  }, [backlog, showOnlyMyBacklog, currentUserId, backlogSortMode]);
+  }, [backlog, showOnlyMyBacklog, currentUserId, backlogSortMode, filterType, selectedTechIds]);
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
@@ -587,13 +644,80 @@ const CalendarPage: React.FC = () => {
   return (
     <div className="container-fluid py-4 min-vh-100 bg-light animate__animated animate__fadeIn">
       {/* Premium Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4 px-2">
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-4 mb-4 px-2">
         <div>
-        <div className="d-flex align-items-center gap-3">
-          <CalendarLucide size={40} strokeWidth={2.5} className="text-primary" />
-          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Agenda Técnica</h1>
-        </div>
+          <div className="d-flex align-items-center gap-3">
+            <CalendarLucide size={40} strokeWidth={2.5} className="text-primary" />
+            <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Agenda Técnica</h1>
+          </div>
           <p className="text-muted small m-0 fst-italic">Gestão inteligente de intervenções e backlog de serviços.</p>
+        </div>
+
+        {/* Desktop Filters (Header) */}
+        <div className="d-flex flex-wrap align-items-center gap-3">
+          {/* Type Filter */}
+          <div className="btn-group btn-group-sm p-1 bg-white rounded-pill shadow-sm border border-light" role="group">
+            <button
+              type="button"
+              className={`btn rounded-pill border-0 fw-bold px-3 transition-all ${filterType === 'all' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+              onClick={() => setFilterType('all')}
+            >
+              Todos
+            </button>
+            <button
+              type="button"
+              className={`btn rounded-pill border-0 fw-bold px-3 transition-all ${filterType === 'schedules' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+              onClick={() => setFilterType('schedules')}
+            >
+              Agendamentos
+            </button>
+            <button
+              type="button"
+              className={`btn rounded-pill border-0 fw-bold px-3 transition-all ${filterType === 'tasks' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+              onClick={() => setFilterType('tasks')}
+            >
+              Tarefas
+            </button>
+          </div>
+
+          <div className="vr d-none d-lg-block mx-2 opacity-10"></div>
+
+          {/* Technician Filter (Circles) */}
+          <div className="d-flex align-items-center gap-2 bg-white bg-opacity-75 p-1 rounded-pill shadow-sm border border-light overflow-hidden">
+            <button
+              className={`btn btn-sm rounded-pill fw-bold px-3 border-0 transition-all ${selectedTechIds.size === 0 ? 'btn-dark text-white shadow-sm' : 'btn-light text-muted'}`}
+              onClick={() => setSelectedTechIds(new Set())}
+              style={{ fontSize: '0.75rem' }}
+            >
+              Equipa
+            </button>
+            <div className="d-flex gap-1 pe-2">
+              {technicians
+                .filter(t => t.isActive !== false && t.role !== UserRole.OFFICE_STAFF && t.role !== UserRole.CLIENT)
+                .map(tech => (
+                  <button
+                    key={tech.id}
+                    className={`rounded-circle border-0 p-0 transition-all shadow-sm position-relative ${selectedTechIds.has(tech.id) ? 'scale-110' : 'opacity-40 grayscale'}`}
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: tech.color || '#3174ad',
+                      transform: selectedTechIds.has(tech.id) ? 'scale(1.15)' : 'scale(1)',
+                      zIndex: selectedTechIds.has(tech.id) ? 2 : 1,
+                      border: selectedTechIds.has(tech.id) ? '2px solid #fff' : 'none'
+                    }}
+                    title={tech.name}
+                    onClick={() => toggleTechFilter(tech.id)}
+                  >
+                    {selectedTechIds.has(tech.id) && (
+                      <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+                        <i className="bi bi-check-lg text-white" style={{ fontSize: '12px' }}></i>
+                      </div>
+                    )}
+                  </button>
+                ))}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -720,9 +844,10 @@ const CalendarPage: React.FC = () => {
         </div>
         <div className="col-md-9 mt-0">
           <div className="glass-card border-0 shadow-sm p-4 overflow-hidden" style={{ borderRadius: '24px' }}>
+
             <DragAndDropCalendar
               localizer={localizer}
-              events={events}
+              events={filteredEvents}
               onEventDrop={handleEventDrop}
               onEventResize={handleEventResize}
               resizable

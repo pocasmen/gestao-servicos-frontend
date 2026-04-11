@@ -148,8 +148,8 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
     const TOTAL_COLS = 11; // foto + 8 data cols + ações + 1 for history
 
     return (
-        <div className="glass-card border-0 shadow-sm overflow-hidden animate__animated animate__fadeIn rounded-4 mb-4">
-            <div className="table-responsive">
+        <div className="glass-card border-0 shadow-sm animate__animated animate__fadeIn rounded-4 mb-4" style={{ overflow: 'visible' }}>
+            <div style={{ overflow: 'visible' }}>
                 <table className="table align-middle mb-0">
                     <thead className="bg-dark text-white">
                         <tr className="text-uppercase small fw-bold" style={{ letterSpacing: '0.05em', fontFamily: 'var(--font-family-title)' }}>

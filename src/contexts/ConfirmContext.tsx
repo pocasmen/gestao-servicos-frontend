@@ -8,6 +8,8 @@ export interface ConfirmOptions {
     cancelText?: string;
     variant?: 'danger' | 'primary' | 'warning' | 'info';
     isAlert?: boolean; // Se true, mostra apenas botão OK
+    extraText?: string;
+    onExtra?: () => void;
 }
 
 interface ConfirmContextType {
@@ -85,6 +87,8 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     cancelText={options.cancelText}
                     variant={options.variant}
                     isAlert={options.isAlert}
+                    extraText={options.extraText}
+                    onExtra={options.onExtra}
                     onConfirm={handleConfirm}
                     onCancel={handleCancel}
                 />

@@ -68,6 +68,7 @@ export const ScheduleEventSchema = z.object({
     equipmentInfo: z.string().optional().nullable().transform(v => v ?? undefined),
     equipmentModel: z.string().optional().nullable().transform(v => v ?? undefined),
     timeBlocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
+    time_blocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
     includes_travel: z.boolean().optional().nullable().transform(v => v ?? undefined),
     classification: z.nativeEnum(ServiceClassification).optional().nullable().transform(v => v ?? undefined),
     priority: SchedulePrioritySchema.optional().nullable().transform(v => v ?? undefined),
@@ -99,6 +100,7 @@ export const PartSchema = z.object({
 export const ClientSchema = z.object({
     id: z.number(),
     name: z.string(),
+    nickname: z.string().optional().nullable().transform(v => v ?? ''),
     address: z.string().optional().nullable().transform(v => v ?? ''),
     city: z.string().optional().nullable().transform(v => v ?? ''),
     postCode: z.string().optional().nullable().transform(v => v ?? ''),
@@ -136,6 +138,7 @@ export const TicketSchema = z.object({
     startDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : undefined),
     endDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : undefined),
     internalNotes: z.string().optional().nullable().transform(v => v ?? undefined),
+    internal_notes: z.string().optional().nullable().transform(v => v ?? undefined),
     hasReport: z.boolean().optional().nullable().transform(v => v ?? undefined),
 });
 
@@ -155,6 +158,7 @@ export const ReportSchema = z.object({
     serviceType: z.array(z.string()).default([]),
     damage: z.string().optional().nullable().transform(v => v ?? undefined),
     internalNotes: z.string().optional().nullable().transform(v => v ?? undefined),
+    internal_notes: z.string().optional().nullable().transform(v => v ?? undefined),
     signature: z.string().optional().nullable().transform(v => v ?? undefined),
     technician_signature: z.string().optional().nullable().transform(v => v ?? undefined),
     includes_travel: z.boolean().optional().nullable().transform(v => v ?? undefined),
@@ -166,6 +170,7 @@ export const ReportSchema = z.object({
     equipmentModel: z.string().optional().nullable().transform(v => v ?? undefined),
     equipmentSerialNumber: z.string().optional().nullable().transform(v => v ?? undefined),
     timeBlocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
+    time_blocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
     billing_status: z.nativeEnum(BillingStatus).optional().nullable().transform(v => v ?? undefined),
 });
 

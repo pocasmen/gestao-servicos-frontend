@@ -59,6 +59,7 @@ export interface ScheduleEvent {
   hasReport: boolean;
   ticketId?: number;
   internalNotes?: string;
+  internal_notes?: string;
   serviceType?: string | string[];
   acknowledgementState?: ScheduleStatus;
   parts?: PartItem[]; // Adicionado
@@ -89,7 +90,7 @@ export interface Client {
 
   name: string;
 
-
+  nickname?: string;
 
   address: string;
 
@@ -274,6 +275,7 @@ export interface Ticket {
   startDate?: string;
   endDate?: string;
   internalNotes?: string;
+  internal_notes?: string;
   hasReport?: boolean;
   isSigned?: boolean;
 }
@@ -363,6 +365,7 @@ export interface Report {
   serviceType: string[];
   damage?: string;
   internalNotes?: string;
+  internal_notes?: string;
   signature?: string; // Campo para armazenar a assinatura em Base64 ou URL
   technician_signature?: string; // Assinatura do técnico no momento do relatório
   includes_travel?: boolean; // Indica se o serviço incluiu deslocação
@@ -375,6 +378,7 @@ export interface Report {
   equipmentModel?: string;
   equipmentSerialNumber?: string;
   timeBlocks?: TimeBlock[];
+  time_blocks?: any[];
   clients?: { name: string };
   billing_status?: BillingStatus;
   client_signer_name?: string;

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import apiClient, { createReport, searchPartByReference, createPart, getTechnicians } from '../apiClient';
 import { Link } from 'react-router-dom';
 import { Report, Client, Equipment, PartItem, Technician } from '../types';
+import { format, parseISO } from 'date-fns';
 import { UserRole } from '../constants/enums';
 import ReportModal from '../components/ReportModal';
 import DeleteReportModal from '../components/DeleteReportModal';
@@ -446,14 +447,21 @@ const ReportList: React.FC<{
                   <div className="small text-muted">{report.equipmentBrand} {report.equipmentModel}</div>
                 </td>
                 <td>
-                  <span className="badge bg-light text-dark border fw-medium px-2 py-1">
-                    {report.technicians && report.technicians.length > 1
-                      ? 'Equipa'
-                      : report.technicians?.map(t => t.name).join(', ') || 'N/A'}
-                  </span>
+                  <div className="small fw-medium text-dark">
+                    {report.technicians?.length 
+                      ? report.technicians.map(t => t.name).join(', ') 
+                      : 'N/A'}
+                  </div>
                 </td>
                 <td className="text-muted fw-medium">
-                  {new Date(report.serviceDate).toLocaleDateString('pt-PT')}
+                  {(() => {
+                    const blocks = report.timeBlocks || report.time_blocks || [];
+                    if (blocks.length > 0) {
+                      const startStr = blocks[0].start || blocks[0].start_time;
+                      if (startStr) return format(parseISO(startStr), 'dd/MM/yyyy');
+                    }
+                    return report.serviceDate ? format(parseISO(report.serviceDate), 'dd/MM/yyyy') : 'N/A';
+                  })()}
                 </td>
                 <td>
                   <span className="small fw-semibold text-primary">

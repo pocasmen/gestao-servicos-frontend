@@ -8,6 +8,8 @@ interface ConfirmModalProps {
     cancelText?: string;
     variant?: 'danger' | 'primary' | 'warning' | 'info';
     isAlert?: boolean;
+    extraText?: string;
+    onExtra?: () => void;
     onConfirm: () => void;
     onCancel: () => void;
 }
@@ -20,6 +22,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
     cancelText = 'Cancelar',
     variant = 'primary',
     isAlert = false,
+    extraText,
+    onExtra,
     onConfirm,
     onCancel,
 }) => {
@@ -49,6 +53,17 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                             onClick={onCancel}
                         >
                             {cancelText}
+                        </button>
+                    )}
+                    {extraText && (
+                        <button
+                            className="btn btn-outline-info rounded-pill px-4 fw-medium me-auto"
+                            onClick={() => {
+                                onExtra?.();
+                                onCancel(); // Close the modal
+                            }}
+                        >
+                            {extraText}
                         </button>
                     )}
                     <button
