@@ -151,8 +151,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
 
     const handleSaveNewItems = async () => {
         const orderStockType = order?.items?.[0]?.stock_type || StockType.GENERAL;
-        const validItems = newItems.filter(i => i.partId && i.quantity > 0).map(i => ({ ...i, stockType: orderStockType }));
-        if (validItems.length === 0) return alert('É necessário selecionar pelo menos um item válido do inventário.');
+        const validItems = newItems.filter(i => i.reference && i.reference.trim() !== '' && i.quantity > 0).map(i => ({ ...i, stockType: orderStockType }));
+        if (validItems.length === 0) return alert('É necessário incluir pelo menos um artigo válido (com referência) na encomenda.');
 
         setIsSubmitting(true);
         try {
@@ -403,12 +403,22 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                                             <tr key={index} className="border-bottom border-light">
                                                                 <td className="ps-3 py-2 text-center">
                                                                     {item.image_path ? (
-                                                                        <img
-                                                                            src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`}
-                                                                            className="rounded shadow-sm border p-1"
-                                                                            style={{ width: '32px', height: '32px', objectFit: 'cover' }}
-                                                                            alt=""
-                                                                        />
+                                                                        <div className="inventory-photo-container d-inline-block text-start">
+                                                                            <img
+                                                                                src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`}
+                                                                                className="rounded shadow-sm border p-1"
+                                                                                style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                                                                                alt={item.reference}
+                                                                            />
+                                                                            <div className="inventory-photo-large shadow-lg rounded overflow-hidden">
+                                                                                <img 
+                                                                                    src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`} 
+                                                                                    alt={`${item.reference} - Grande`}
+                                                                                    className="w-100 h-100"
+                                                                                    style={{ objectFit: 'contain', backgroundColor: '#fff' }}
+                                                                                />
+                                                                            </div>
+                                                                        </div>
                                                                     ) : (
                                                                         <div className="bg-light text-muted border rounded d-flex align-items-center justify-content-center m-auto" style={{ width: '32px', height: '32px' }}>
                                                                             <i className="bi bi-image" style={{ fontSize: '12px' }}></i>
@@ -450,9 +460,25 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                                                     <input
                                                                         type="text"
                                                                         className="form-control form-control-sm border-0 bg-light rounded-pill px-3 shadow-none fw-medium"
+                                                                        list="orderPartDesigSuggestionsModal"
                                                                         value={item.designation}
+                                                                        onChange={e => {
+                                                                            const val = e.target.value;
+                                                                            const match = searchResults.find((p, i) => (p.designation + '\u200B'.repeat(i)) === val);
+                                                                            if (match) {
+                                                                                handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, isDesignationLocked: true, image_path: match.image_path });
+                                                                            } else {
+                                                                                handlePartChange(index, 'designation', val);
+                                                                            }
+                                                                            searchParts(val);
+                                                                        }}
+                                                                        onBlur={() => {
+                                                                            if (item.designation) {
+                                                                                handlePartChange(index, 'designation', item.designation.trim().replace(/\s+/g, ' '));
+                                                                            }
+                                                                        }}
                                                                         placeholder="Designação..."
-                                                                        disabled
+                                                                        disabled={item.isDesignationLocked}
                                                                     />
                                                                 </td>
                                                                 <td className="pe-3 py-2 text-end">
@@ -522,6 +548,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
 
                 <datalist id="orderPartRefSuggestionsModal">
                     {searchResults.map((p, i) => <option key={i} value={p.reference + '\u200B'.repeat(i)}>{p.designation}</option>)}
+                </datalist>
+                <datalist id="orderPartDesigSuggestionsModal">
+                    {searchResults.map((p, i) => <option key={i} value={p.designation + '\u200B'.repeat(i)}>{p.reference}</option>)}
                 </datalist>
             </div>
         </>
