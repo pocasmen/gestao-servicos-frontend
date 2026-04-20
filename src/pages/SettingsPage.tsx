@@ -3,7 +3,8 @@ import DOMPurify from 'dompurify';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
-import { Settings } from 'lucide-react';
+import { Settings, Box } from 'lucide-react';
+import VirtualPartsSettings from '../components/Settings/VirtualPartsSettings';
 
 const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<Record<string, string>>({
@@ -240,6 +241,8 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
+      <VirtualPartsSettings />
+      
       <div className="card mb-4 border-info">
         <div className="card-header bg-info text-white">
           Configuração de Imagens (Relatórios/Tarefas)

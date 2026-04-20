@@ -50,20 +50,41 @@ const ClientTicketsPage: React.FC = () => {
   }, [fetchClientData]);
 
   useEffect(() => {
-    const channel = supabase
+    // 1. Listen for explicit ticket broadcasts (Fast)
+    const ticketChannel = supabase
+      .channel('ticket_updates')
+      .on('broadcast', { event: 'ticket_changed' }, (payload) => {
+        logger.debug(payload, '[DEBUG:REALTIME] Client Ticket broadcast received:');
+        fetchClientData(1);
+      })
+      .subscribe();
+
+    // 2. Listen for calendar broadcasts (Related to tickets)
+    const calendarChannel = supabase
+      .channel('calendar_updates')
+      .on('broadcast', { event: 'schedule_changed' }, (payload) => {
+        logger.debug(payload, '[DEBUG:REALTIME] Calendar broadcast received (updating client tickets):');
+        fetchClientData(1);
+      })
+      .subscribe();
+
+    // 3. PostgreSQL Changes Backup (Standard)
+    const dbChannel = supabase
       .channel('public:tickets:client')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'tickets' },
         (payload) => {
-          logger.info(payload, 'Client Ticket table changed:');
+          logger.info(payload, 'Client Ticket table changed (DB):');
           fetchClientData(1);
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ticketChannel);
+      supabase.removeChannel(calendarChannel);
+      supabase.removeChannel(dbChannel);
     };
   }, [fetchClientData]);
   // ... handleSubmitTicket, handleViewReport unchanged ...

@@ -345,34 +345,38 @@ const ClientTicketDetailPage: React.FC = () => {
     const text = ticket?.faultDescription || '';
     const lines = text.split('\n').filter((l: string) => l.trim().length > 0 && !l.startsWith('[Título]'));
     const clientName = `${ticket?.userFirstName || ''} ${ticket?.userLastName || ''}`.trim() || 'Cliente';
-    const clientMsgs = lines.map((l: string, idx: number) => {
-      const isClient = l.includes('Resposta do cliente') || (!l.includes('Resposta do gestor') && idx === 0);
-      const m = l.match(/em\s(\d{2}\/\d{2}\/\d{4})\s(\d{2}:\d{2})(?::\d{2})?/);
-      let dateMs = NaN;
-      if (m) {
-        try {
-          const [d, t] = [m[1], m[2]];
-          const [day, month, year] = d.split('/').map(Number);
-          const [hour, minute] = t.split(':').map(Number);
-          const parsedDate = new Date(year, month - 1, day, hour, minute);
-          if (!isNaN(parsedDate.getTime())) {
-            dateMs = parsedDate.getTime();
+    
+    // Only include lines from faultDescription in the chat if they are marked as legacy responses.
+    const clientMsgs = lines
+      .filter((l: string) => l.includes('Resposta do cliente') || l.includes('Resposta do gestor'))
+      .map((l: string) => {
+        const isClient = l.includes('Resposta do cliente');
+        const m = l.match(/em\s(\d{2}\/\d{2}\/\d{4})\s(\d{2}:\d{2})(?::\d{2})?/);
+        let dateMs = NaN;
+        if (m) {
+          try {
+            const [d, t] = [m[1], m[2]];
+            const [day, month, year] = d.split('/').map(Number);
+            const [hour, minute] = t.split(':').map(Number);
+            const parsedDate = new Date(year, month - 1, day, hour, minute);
+            if (!isNaN(parsedDate.getTime())) {
+              dateMs = parsedDate.getTime();
+            }
+          } catch (e) {
+            logger.error(e, `Error parsing date from line: ${l}`);
           }
-        } catch (e) {
-          logger.error(e, `Error parsing date from line: ${l}`);
+        } else if (ticket?.createdAt) {
+          dateMs = new Date(ticket.createdAt).getTime();
         }
-      } else if (idx === 0 && ticket?.createdAt) {
-        dateMs = new Date(ticket.createdAt).getTime();
-      }
-      if (!Number.isFinite(dateMs)) {
-        dateMs = 0;
-      }
-      const content = l.replace(/^\[.*?\]\s?/, '');
-      const displayTs = isFinite(dateMs) ? format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }) : '';
-      const authorName = isClient ? clientName : 'Gestor';
-      const avatarText = authorName.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2);
-      return { isClient, authorName, avatarText, content, dateMs, displayTs, role: UserRole.CLIENT, authorId: ticket?.created_by_user_id };
-    });
+        if (!Number.isFinite(dateMs)) {
+          dateMs = 0;
+        }
+        const content = l.replace(/^\[.*?\]\s?/, '').replace('Resposta do cliente:', '').replace('Resposta do gestor:', '').trim();
+        const displayTs = isFinite(dateMs) ? format(new Date(dateMs), 'dd/MM/yyyy HH:mm', { locale: pt }) : '';
+        const authorName = isClient ? clientName : 'Gestor';
+        const avatarText = authorName.split(' ').map(s => s[0]).join('').toUpperCase().slice(0, 2);
+        return { isClient, authorName, avatarText, content, dateMs, displayTs, role: isClient ? UserRole.CLIENT : UserRole.ADMIN, authorId: ticket?.created_by_user_id };
+      });
 
     const techMsgs = (ticket?.responses || []).map((r: TicketResponse) => {
       let dateMs = new Date(r.created_at).getTime();

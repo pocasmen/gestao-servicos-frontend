@@ -133,7 +133,13 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
                                             const val = e.target.value;
                                             const match = searchResults.find((p, i) => (p.reference + '\u200B'.repeat(i)) === val);
                                             if (match) {
-                                                handlePartChange(index, { reference: match.reference, designation: match.designation, image_path: match.image_path });
+                                                handlePartChange(index, { 
+                                                    reference: match.reference, 
+                                                    designation: match.designation, 
+                                                    image_path: match.image_path,
+                                                    track_stock: match.track_stock,
+                                                    isDesignationLocked: match.track_stock !== false
+                                                });
                                             } else {
                                                 handlePartChange(index, 'reference', val);
                                             }
@@ -154,7 +160,13 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
                                             const val = e.target.value;
                                             const match = searchResults.find((p, i) => (p.designation + '\u200B'.repeat(i)) === val);
                                             if (match) {
-                                                handlePartChange(index, { reference: match.reference, designation: match.designation, image_path: match.image_path });
+                                                handlePartChange(index, { 
+                                                    reference: match.reference, 
+                                                    designation: match.designation, 
+                                                    image_path: match.image_path,
+                                                    track_stock: match.track_stock,
+                                                    isDesignationLocked: match.track_stock !== false
+                                                });
                                             } else {
                                                 handlePartChange(index, 'designation', val);
                                             }
@@ -164,32 +176,40 @@ const ScheduleParts: React.FC<SchedulePartsProps> = ({
                                     />
                                 </td>
                                 <td className="text-center py-2">
-                                    <div className="form-check form-check-inline m-0 custom-checkbox">
-                                        <input
-                                            type="checkbox"
-                                            className="form-check-input shadow-none"
-                                            checked={part.isApplied !== false}
-                                            onChange={e => handlePartChange(index, 'isApplied', e.target.checked)}
-                                            disabled={isPastOrCompleted}
-                                            style={{ width: '1.2rem', height: '1.2rem', position: 'relative', top: '1px' }}
-                                        />
-                                    </div>
+                                    {part.track_stock !== false ? (
+                                        <div className="form-check form-check-inline m-0 custom-checkbox">
+                                            <input
+                                                type="checkbox"
+                                                className="form-check-input shadow-none"
+                                                checked={part.isApplied !== false}
+                                                onChange={e => handlePartChange(index, 'isApplied', e.target.checked)}
+                                                disabled={isPastOrCompleted}
+                                                style={{ width: '1.2rem', height: '1.2rem', position: 'relative', top: '1px' }}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <span className="text-muted opacity-50">—</span>
+                                    )}
                                 </td>
                                 <td className="py-2">
-                                    <select
-                                        className="form-select form-select-sm border-0 bg-light rounded-pill px-3 shadow-none fw-semibold"
-                                        style={{ fontSize: '0.75rem' }}
-                                        value={part.stockType || StockType.GENERAL}
-                                        onChange={e => handlePartChange(index, 'stockType', e.target.value)}
-                                        disabled={isPastOrCompleted}
-                                    >
-                                        <option value={StockType.GENERAL}>{STOCK_TYPE_LABELS[StockType.GENERAL]}</option>
-                                        <option value={StockType.FOSS}>{STOCK_TYPE_LABELS[StockType.FOSS]}</option>
-                                        <option value={StockType.MSD}>{STOCK_TYPE_LABELS[StockType.MSD]}</option>
-                                        <option value={StockType.CONTRACT}>{STOCK_TYPE_LABELS[StockType.CONTRACT]}</option>
-                                        <option value={StockType.CLIENT}>{STOCK_TYPE_LABELS[StockType.CLIENT]}</option>
-                                        <option value={StockType.WARRANTY}>{STOCK_TYPE_LABELS[StockType.WARRANTY]}</option>
-                                    </select>
+                                    {part.track_stock !== false ? (
+                                        <select
+                                            className="form-select form-select-sm border-0 bg-light rounded-pill px-3 shadow-none fw-semibold"
+                                            style={{ fontSize: '0.75rem' }}
+                                            value={part.stockType || StockType.GENERAL}
+                                            onChange={e => handlePartChange(index, 'stockType', e.target.value)}
+                                            disabled={isPastOrCompleted}
+                                        >
+                                            <option value={StockType.GENERAL}>{STOCK_TYPE_LABELS[StockType.GENERAL]}</option>
+                                            <option value={StockType.FOSS}>{STOCK_TYPE_LABELS[StockType.FOSS]}</option>
+                                            <option value={StockType.MSD}>{STOCK_TYPE_LABELS[StockType.MSD]}</option>
+                                            <option value={StockType.CONTRACT}>{STOCK_TYPE_LABELS[StockType.CONTRACT]}</option>
+                                            <option value={StockType.CLIENT}>{STOCK_TYPE_LABELS[StockType.CLIENT]}</option>
+                                            <option value={StockType.WARRANTY}>{STOCK_TYPE_LABELS[StockType.WARRANTY]}</option>
+                                        </select>
+                                    ) : (
+                                        <span className="text-muted opacity-50 ps-3">—</span>
+                                    )}
                                 </td>
                                 <td className="pe-3 py-2 text-end">
                                     {!isPastOrCompleted && (

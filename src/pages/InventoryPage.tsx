@@ -44,7 +44,8 @@ const InventoryPage: React.FC = () => {
     min_stock: 0,
     min_stock_foss: 0,
     price: 0,
-    notes: ''
+    notes: '',
+    track_stock: true
   });
 
   // Modals for history links
@@ -187,7 +188,8 @@ const InventoryPage: React.FC = () => {
       min_stock: 0,
       min_stock_foss: 0,
       price: 0,
-      notes: ''
+      notes: '',
+      track_stock: true
     });
     setReservations([]);
     setIsComposed(false);
@@ -383,6 +385,7 @@ const InventoryPage: React.FC = () => {
       min_stock_foss: part.min_stock_foss,
       price: part.price,
       notes: part.notes,
+      track_stock: part.track_stock ?? true,
       id: part.id
     });
 

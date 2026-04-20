@@ -408,6 +408,7 @@ const CalendarPage: React.FC = () => {
   const handleScheduleUpdated = useCallback((savedSchedule?: ScheduleEvent) => {
     queryClient.invalidateQueries({ queryKey: ['schedules'] });
     queryClient.invalidateQueries({ queryKey: ['inventory'] });
+    queryClient.invalidateQueries({ queryKey: ['tickets'] });
     handleCloseModal();
   }, [queryClient, handleCloseModal]);
 

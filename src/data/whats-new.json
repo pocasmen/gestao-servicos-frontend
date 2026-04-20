@@ -1,40 +1,106 @@
 [
   {
+    "version": "1.1.9",
+    "date": "2026-04-16",
+    "staff": {
+      "title": "Ecossistema de Itens Virtuais e UI Simplificada",
+      "notes": [
+        "Nova gestão centralizada de 'Itens Virtuais' (texto livre) na página de Configurações.",
+        "Inventário principal agora focado exclusivamente em peças físicas com controlo de stock.",
+        "Simplificação das tabelas de peças: colunas 'Aplicada' e 'Origem' são ocultadas automaticamente para itens manuais.",
+        "Pesquisa inteligente unificada em agendamentos e relatórios (encontra peças e serviços genéricos).",
+        "Melhoria na persistência de designações personalizadas para relatórios técnicos."
+      ]
+    }
+  },
+  {
+    "version": "1.1.8",
+    "date": "2026-04-15",
+    "client": {
+      "title": "Configurações de Notificações e Perfil",
+      "notes": [
+        "Adicionado painel de preferências de notificações: escolha como quer ser alertado (Email e Telegram).",
+        "Integração direta com Telegram para notificações instantâneas de serviços e relatórios.",
+        "Melhoria na interface do perfil com validação de dados obrigatórios."
+      ]
+    },
+    "staff": {
+      "title": "Gestão Avançada de Notificações e Infraestrutura",
+      "notes": [
+        "Implementado sistema de templates de email configuráveis via base de dados.",
+        "Nova lógica de gatekeeper no backend para respeitar as preferências de notificação dos utilizadores.",
+        "Scripts de migração para gestão de backups e defaults de perfis."
+      ]
+    }
+  },
+  {
+    "version": "1.1.7",
+    "date": "2026-04-14",
+    "client": {
+      "title": "Histórico de Equipamentos Personalizado",
+      "notes": [
+        "Privacidade de dados garantida: agora apenas visualiza o histórico de assistências do período em que o equipamento foi seu.",
+        "Nova visualização detalhada da ficha do equipamento."
+      ]
+    },
+    "staff": {
+      "title": "Ciclo de Vida do Equipamento e Propriedade",
+      "notes": [
+        "Implementado isolamento de dados por período de posse (Ownership Timeline).",
+        "Funcionalidade de 'Transferir Dono' para agilizar trocas de equipamentos entre clientes.",
+        "Novo estado operacional 'Inativo' para bloqueio de serviços em máquinas descontinuadas.",
+        "Restrições automáticas em dropdowns de Tickets e Agendamentos."
+      ]
+    }
+  },
+  {
+    "version": "1.1.6",
+    "date": "2026-04-13",
+    "staff": {
+      "title": "Controlo de Faturação: Para Revisão",
+      "notes": [
+        "Novo estado 'Para Revisão' para relatórios faturados que sofreram edições posteriores.",
+        "Deteção automática de alterações em horas, deslocação e peças.",
+        "Dashboard com destaque visual para revisões pendentes."
+      ]
+    }
+  },
+  {
     "version": "1.1.5",
     "date": "2026-04-10",
-    "title": "Melhorias no Sistema de Histórico e Calendário e Encomendas",
-    "notes": [
-      "Adicionado sistema de 'O que há de novo' nas atualizações.",
-      "Novo modal informativo 'Acerca do Sistema' com histórico de versões.",
-      "Melhoria na comunicação de novas funcionalidades aos utilizadores.",
-      "Tarefas antigas e concluidas continuam a aparecer no calendário a cinza",
-      "Fltros na página do calendário, por técnico e por agendamentos/tarefas",
-      "Possibilidade de adicionar peças a uma encomenda existente",
-      "Possibilidade de remover peças de uma encomenda existente",
-      "Possibilidade de alterar a quantidade de peças numa encomenda existente",
-      "Possibilidade de eliminar uma encomenda existente desde que não tenha peças recebidas"
-    ]
+    "client": {
+      "title": "Melhorias de Navegação",
+      "notes": [
+        "Introduzido o sistema de 'O que há de novo' para comunicação de novidades.",
+        "Novo modal 'Acerca do Sistema' com informações de versão."
+      ]
+    },
+    "staff": {
+      "title": "Melhorias no Calendário e Encomendas",
+      "notes": [
+        "Sistema de versionamento e histórico de alterações.",
+        "Filtros avançados no calendário por técnico e tipo de tarefa.",
+        "Gestão completa de peças em encomendas existentes (adicionar/remover/editar)."
+      ]
+    }
   },
   {
     "version": "1.1.4",
     "date": "2026-04-04",
-    "title": "Melhorias no portal do cliente",
-    "notes": [
-      "Melhorias de autenticação e segurança",
-      "Possibilidade de assinar relatórios",
-      "Possibilidade de registar um utilizador em varios clientes",
-      "Possibilidade de registar vários utilizadores para o mesmo cliente"
-    ]
-  },
-  {
-    "version": "1.1.3",
-    "date": "2026-03-28",
-    "title": "Melhorias no sistema de inventário",
-    "notes": [
-      "Implementado sistema de ledger para itens do inventário",
-      "Todos os movimentos de stock ficam registados no ledger",
-      "Implementado sistema de encomendas de peças com referência para rastreabilidade",
-      "Possibilidade de recebimentos parciais de encomendas"
-    ]
+    "client": {
+      "title": "Melhorias no Portal do Cliente",
+      "notes": [
+        "Melhorias de autenticação e segurança.",
+        "Possibilidade de assinar relatórios digitalmente.",
+        "Suporte para utilizadores com acesso a múltiplos clientes."
+      ]
+    },
+    "staff": {
+      "title": "Segurança e Permissões",
+      "notes": [
+        "Reforço na autenticação de múltiplos utilizadores por entidade.",
+        "Melhorias na infraestrutura de segurança do portal."
+      ]
+    }
   }
 ]

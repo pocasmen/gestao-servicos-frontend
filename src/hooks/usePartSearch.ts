@@ -21,7 +21,7 @@ export const usePartSearch = () => {
             setIsLoading(true);
             try {
                 // The backend endpoint GET /api/inventory accepts a 'search' query param
-                const response = await apiClient.get(`/api/inventory?search=${encodeURIComponent(query.trim())}&limit=15`);
+                const response = await apiClient.get(`/api/inventory?search=${encodeURIComponent(query.trim())}&limit=15&view=all_search`);
                 
                 // inventory.controller.ts returns { data: [...], pagination: {...} }
                 const parts = response.data.data || [];

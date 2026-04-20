@@ -110,8 +110,9 @@ const BillingDistributionBar: React.FC<{
   reportIssued: number;
   readyForBilling: number;
   billed: number;
+  needsReview: number;
   total: number;
-}> = ({ pendingCompletion, reportIssued, readyForBilling, billed, total }) => {
+}> = ({ pendingCompletion, reportIssued, readyForBilling, billed, needsReview, total }) => {
   const getW = (v: number) => (total > 0 ? (v / total) * 100 : 0);
 
   return (
@@ -122,6 +123,7 @@ const BillingDistributionBar: React.FC<{
         <div className="dist-bar-segment" style={{ width: `${getW(reportIssued)}%`, backgroundColor: '#6c757d' }} data-label={`Por Validar: ${reportIssued}`} />
         <div className="dist-bar-segment" style={{ width: `${getW(readyForBilling)}%`, backgroundColor: '#ffc107' }} data-label={`Prontos: ${readyForBilling}`} />
         <div className="dist-bar-segment" style={{ width: `${getW(billed)}%`, backgroundColor: '#198754' }} data-label={`Faturados: ${billed}`} />
+        <div className="dist-bar-segment" style={{ width: `${getW(needsReview)}%`, backgroundColor: '#dc3545' }} data-label={`Para Revisão: ${needsReview}`} />
       </div>
     </div>
   );
@@ -190,7 +192,7 @@ const DashboardPage: React.FC = () => {
   const [weeklySchedules, setWeeklySchedules] = useState<ScheduleDetail[]>([]);
   const [pendingReports, setPendingReports] = useState<ScheduleDetail[]>([]);
   const [recentTickets, setRecentTickets] = useState<TicketDetail[]>([]);
-  const [billingStats, setBillingStats] = useState<{ total: number; pending_completion: number; report_issued: number; ready_for_billing: number; billed: number } | null>(null);
+  const [billingStats, setBillingStats] = useState<{ total: number; pending_completion: number; report_issued: number; ready_for_billing: number; billed: number; needs_review: number } | null>(null);
   const [billingTasks, setBillingTasks] = useState<BillingTask[]>([]);
   const [dashboardTasks, setDashboardTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -566,7 +568,8 @@ const DashboardPage: React.FC = () => {
                   { label: 'Pendentes Finalização', value: billingStats?.pending_completion || 0, colorClass: 'bg-info' },
                   { label: 'Por Validar', value: billingStats?.report_issued || 0, colorClass: 'bg-secondary' },
                   { label: 'Prontos', value: billingStats?.ready_for_billing || 0, colorClass: 'bg-warning' },
-                  { label: 'Faturados', value: billingStats?.billed || 0, colorClass: 'bg-success' }
+                  { label: 'Faturados', value: billingStats?.billed || 0, colorClass: 'bg-success' },
+                  { label: 'Para Revisão', value: billingStats?.needs_review || 0, colorClass: 'bg-danger' }
                 ]}
                 extra={
                   <>
@@ -575,13 +578,14 @@ const DashboardPage: React.FC = () => {
                       reportIssued={billingStats?.report_issued || 0}
                       readyForBilling={billingStats?.ready_for_billing || 0}
                       billed={billingStats?.billed || 0}
-                      total={(billingStats?.pending_completion || 0) + (billingStats?.report_issued || 0) + (billingStats?.ready_for_billing || 0) + (billingStats?.billed || 0)}
+                      needsReview={billingStats?.needs_review || 0}
+                      total={(billingStats?.pending_completion || 0) + (billingStats?.report_issued || 0) + (billingStats?.ready_for_billing || 0) + (billingStats?.billed || 0) + (billingStats?.needs_review || 0)}
                     />
                     <div className="mb-4"></div>
                     <PerformanceGauge
                       percentage={
-                        billingStats && (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed) > 0
-                          ? (billingStats.billed / (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed)) * 100
+                        billingStats && (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed + billingStats.needs_review) > 0
+                          ? (billingStats.billed / (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed + billingStats.needs_review)) * 100
                           : 0
                       }
                       label="EFICIÊNCIA DE FATURAÇÃO"
@@ -850,6 +854,7 @@ const DashboardPage: React.FC = () => {
                               {task.status === BillingStatus.REPORT_ISSUED && <span className="badge border-0 rounded-pill px-3 bg-secondary bg-opacity-15 text-secondary-emphasis">Relatório Emitido</span>}
                               {task.status === BillingStatus.READY_FOR_BILLING && <span className="badge border-0 rounded-pill px-3 bg-warning bg-opacity-15 text-warning-emphasis">Pronto para Faturação</span>}
                               {task.status === BillingStatus.BILLED && <span className="badge border-0 rounded-pill px-3 bg-success bg-opacity-15 text-success-emphasis">Faturado</span>}
+                              {task.status === BillingStatus.NEEDS_REVIEW && <span className="badge border-0 rounded-pill px-3 bg-danger bg-opacity-15 text-danger-emphasis">Para Revisão</span>}
                             </td>
                             <td className="text-muted fw-medium">
                               {new Date((task as any).reports?.serviceDate || task.created_at).toLocaleDateString('pt-PT')}

@@ -28,7 +28,7 @@ const ReservationTable: React.FC<{ rows: any[]; onOpenScheduleDetail: (id: numbe
             <thead className="bg-dark text-white">
                 <tr className="text-uppercase small fw-bold" style={{ letterSpacing: '0.05em', fontFamily: 'var(--font-family-title)' }}>
                     <th className="ps-3 py-2 border-0">Serviço / Título</th>
-                    <th className="py-2 border-0">Data Prevista</th>
+                    <th className="py-2 border-0">Data</th>
                     <th className="py-2 border-0">Cliente</th>
                     <th className="py-2 border-0">Origem</th>
                     <th className="text-center py-2 border-0">Qtd.</th>
@@ -38,21 +38,30 @@ const ReservationTable: React.FC<{ rows: any[]; onOpenScheduleDetail: (id: numbe
                 {rows.map((res, index) => (
                     <tr key={index} className="border-bottom border-light">
                         <td className="ps-3 py-2">
-                            <button
-                                className="btn btn-link p-0 text-start text-decoration-none fw-medium"
-                                style={{ fontSize: '0.9rem' }}
-                                onClick={() => onOpenScheduleDetail(res.scheduleId)}
-                            >
-                                {res.title}
-                            </button>
+                            <div className="d-flex flex-column">
+                                <button
+                                    className="btn btn-link p-0 text-start text-decoration-none fw-medium"
+                                    style={{ fontSize: '0.85rem' }}
+                                    onClick={() => onOpenScheduleDetail(res.scheduleId)}
+                                >
+                                    {res.title}
+                                </button>
+                                {(res.stockType === StockType.CLIENT || res.stockType === StockType.WARRANTY) && (
+                                    <span className={`badge ${res.stockType === StockType.CLIENT ? 'bg-warning text-dark' : 'bg-danger'} p-1`} style={{ fontSize: '0.6rem', width: 'fit-content', marginTop: '2px' }}>
+                                        {res.stockType.toUpperCase()}
+                                    </span>
+                                )}
+                            </div>
                         </td>
-                        <td className="py-2 small text-muted">
-                            {res.startDate ? new Date(res.startDate).toLocaleDateString('pt-PT') : 'Pendente'}
+                        <td className="py-2 small text-muted" style={{ whiteSpace: 'nowrap' }}>
+                            {res.startDate ? new Date(res.startDate).toLocaleDateString('pt-PT') : <span className="badge bg-light text-dark">Livre</span>}
                         </td>
                         <td className="py-2 small">{res.clientName}</td>
                         <td className="py-2 small text-muted">
-                            {res.origin || 'Direta'}
-                            {res.origin && res.origin !== 'Direta' && <i className="bi bi-diagram-3 ms-1" title="Reserva via Kit"></i>}
+                            <span className="d-flex align-items-center">
+                                {res.origin || 'Direta'}
+                                {res.origin && res.origin !== 'Direta' && <i className="bi bi-diagram-3 ms-1 text-primary" title="Reserva via Kit"></i>}
+                            </span>
                         </td>
                         <td className="text-center py-2 fw-bold">{res.quantityReserved}</td>
                     </tr>
@@ -72,9 +81,7 @@ const InventoryReservationsModal: React.FC<InventoryReservationsModalProps> = ({
 }) => {
     if (!selectedPart) return null;
 
-    const generalReservations = reservations.filter((r: any) =>
-        !r.stockType || r.stockType === StockType.GENERAL || r.stockType === StockType.CONTRACT || r.stockType === StockType.MSD
-    );
+    const generalReservations = reservations.filter((r: any) => r.stockType !== StockType.FOSS);
     const fossReservations = reservations.filter((r: any) => r.stockType === StockType.FOSS);
     const totalReserved = (selectedPart.reserved_quantity || 0) + (selectedPart.reserved_quantity_foss || 0);
 

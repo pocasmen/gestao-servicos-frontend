@@ -8,6 +8,13 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
 
 // Define interface locally to avoid dependency on TechniciansPage (which is admin-facing)
+interface NotificationPrefs {
+    [key: string]: {
+        email: boolean;
+        telegram: boolean;
+    };
+}
+
 interface UserProfile {
     id: string;
     email: string;
@@ -21,6 +28,7 @@ interface UserProfile {
     daily_notifications_enabled?: boolean;
     notification_time?: string;
     phone?: string;
+    notification_prefs?: NotificationPrefs;
 }
 
 const ClientProfilePage: React.FC = () => {
@@ -36,6 +44,12 @@ const ClientProfilePage: React.FC = () => {
     const { alert } = useConfirm();
     const [isSyncing, setIsSyncing] = useState(false);
     const [syncStatus, setSyncStatus] = useState('');
+    const [notificationPrefs, setNotificationPrefs] = useState<NotificationPrefs>({
+        new_schedule: { email: true, telegram: false },
+        new_report: { email: true, telegram: false },
+        ticket_reply: { email: true, telegram: false },
+        docs_uploaded: { email: true, telegram: false }
+    });
 
     useEffect(() => {
         apiClient.get('/api/telegram/bot-info').then(res => {
@@ -54,6 +68,9 @@ const ClientProfilePage: React.FC = () => {
                 setTelegramchatid(currentUser.telegramchatid || '');
                 setPhone(currentUser.phone || '');
                 setSignature(currentUser.signature || '');
+                if (currentUser.notification_prefs) {
+                    setNotificationPrefs(currentUser.notification_prefs);
+                }
             }
         }).catch(err => {
             logger.error(err, "Erro ao carregar perfil:");
@@ -103,7 +120,8 @@ const ClientProfilePage: React.FC = () => {
             client_role: clientRole,
             telegramchatid,
             signature,
-            phone
+            phone,
+            notification_prefs: notificationPrefs
         };
 
         apiClient.put(`/api/technicians/${user.id}`, updatedData)
@@ -120,11 +138,32 @@ const ClientProfilePage: React.FC = () => {
 
     if (!user) return <div className="container-fluid mt-4">A carregar perfil...</div>;
 
+    const handleTogglePreference = (eventKey: string, channel: 'email' | 'telegram') => {
+        if (channel === 'telegram' && !telegramchatid) {
+            alert('Atenção: Para ativar notificações via Telegram, deve primeiro associar a sua conta no passo acima (Sincronização Telegram).');
+        }
+
+        setNotificationPrefs(prev => ({
+            ...prev,
+            [eventKey]: {
+                ...prev[eventKey],
+                [channel]: !prev[eventKey][channel]
+            }
+        }));
+    };
+
     const roleOptions = [
         "Operador",
         "Responsável Qualidade",
         "Administrador",
         "Responsável Compras"
+    ];
+
+    const notificationEvents = [
+        { key: 'new_schedule', label: 'Novo Agendamento', icon: 'bi-calendar-event' },
+        { key: 'new_report', label: 'Novo Relatório Técnico', icon: 'bi-file-earmark-text' },
+        { key: 'ticket_reply', label: 'Resposta a Ticket (Chat)', icon: 'bi-chat-dots' },
+        { key: 'docs_uploaded', label: 'Documentos Carregados', icon: 'bi-cloud-arrow-up' }
     ];
 
     return (
@@ -225,6 +264,57 @@ const ClientProfilePage: React.FC = () => {
                                     </div>
                                 )}
                             </div>
+                        </div>
+
+                        <hr />
+
+                        <h5 className="mb-3">Preferências de Notificação</h5>
+                        <p className="text-muted small mb-3">Escolha como deseja ser notificado sobre eventos importantes.</p>
+                        
+                        <div className="table-responsive mb-4">
+                            <table className="table table-hover align-middle border">
+                                <thead className="table-light">
+                                    <tr>
+                                        <th>Evento</th>
+                                        <th className="text-center" style={{ width: '120px' }}><i className="bi bi-envelope me-1"></i> Email</th>
+                                        <th className="text-center" style={{ width: '120px' }}><i className="bi bi-send me-1"></i> Telegram</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {notificationEvents.map(event => (
+                                        <tr key={event.key}>
+                                            <td>
+                                                <div className="d-flex align-items-center">
+                                                    <i className={`bi ${event.icon} me-2 text-primary fs-5`}></i>
+                                                    <span>{event.label}</span>
+                                                </div>
+                                            </td>
+                                            <td className="text-center">
+                                                <div className="form-check form-check-inline m-0">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        checked={notificationPrefs[event.key]?.email || false}
+                                                        onChange={() => handleTogglePreference(event.key, 'email')}
+                                                        style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                                                    />
+                                                </div>
+                                            </td>
+                                            <td className="text-center">
+                                                <div className="form-check form-check-inline m-0">
+                                                    <input
+                                                        className="form-check-input"
+                                                        type="checkbox"
+                                                        checked={notificationPrefs[event.key]?.telegram || false}
+                                                        onChange={() => handleTogglePreference(event.key, 'telegram')}
+                                                        style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                                                    />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
 
                         <hr />

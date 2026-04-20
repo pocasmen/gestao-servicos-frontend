@@ -105,14 +105,21 @@ const ClientEquipmentsPage: React.FC = () => {
                                         <div>
                                             <span className="text-muted small d-block">Nº de Série</span>
                                             <span className="fw-medium">{equipment.serialNumber}</span>
+                                            {equipment.status === 'inactive' && (
+                                              <span className="badge bg-secondary ms-2 small">Inativo</span>
+                                            )}
                                         </div>
-                                        <Link
-                                            to="/portal/tickets"
-                                            state={{ equipmentId: equipment.id }}
-                                            className="btn btn-primary btn-sm rounded-3 fw-bold"
-                                        >
-                                            Novo Ticket
-                                        </Link>
+                                        {equipment.status !== 'inactive' ? (
+                                          <Link
+                                              to="/portal/tickets"
+                                              state={{ equipmentId: equipment.id }}
+                                              className="btn btn-primary btn-sm rounded-3 fw-bold"
+                                          >
+                                              Novo Ticket
+                                          </Link>
+                                        ) : (
+                                          <span className="text-muted small italic">Indisponível</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>

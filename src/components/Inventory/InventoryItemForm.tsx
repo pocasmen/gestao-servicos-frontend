@@ -144,6 +144,7 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                 />
             </div>
 
+
             {!newItem.id && (
                 <div className="mb-3">
                     <div className="form-check form-switch card p-3 bg-light shadow-sm">

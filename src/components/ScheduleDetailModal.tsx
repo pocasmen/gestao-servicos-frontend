@@ -97,7 +97,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     if (isTicketScheduling) {
       setParts([]);
     } else {
-      setParts(event?.parts || []);
+      setParts((event?.parts || []).map((p: any) => ({ ...p, isDesignationLocked: p.track_stock !== false })));
     }
   }, [event, isTicketScheduling]);
 
@@ -244,8 +244,14 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       const newParts = [...prev];
       if (typeof fieldOrUpdates === 'string') {
         newParts[index] = { ...newParts[index], [fieldOrUpdates]: value };
+        if (fieldOrUpdates === 'reference') {
+          newParts[index].isDesignationLocked = false;
+        }
       } else {
         newParts[index] = { ...newParts[index], ...fieldOrUpdates };
+        if ('reference' in fieldOrUpdates) {
+          newParts[index].isDesignationLocked = false;
+        }
       }
       return newParts;
     });
@@ -271,7 +277,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
         if (part) {
           newParts[index].id = part.id;
           newParts[index].designation = part.designation;
-          newParts[index].isDesignationLocked = true;
+          newParts[index].track_stock = part.track_stock;
+          newParts[index].isDesignationLocked = part.track_stock !== false;
           newParts[index].stock_quantity = part.stock_quantity;
           newParts[index].reserved_quantity = part.reserved_quantity;
           newParts[index].stock_quantity_foss = part.stock_quantity_foss;
@@ -424,7 +431,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     }
 
     // Validação de stock insuficiente
-    const partsToValidate = parts.filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '');
+    const partsToValidate = parts.filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '' && p.track_stock !== false);
     const negativeStockParts = partsToValidate.filter(p => {
       if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
       const type = p.stockType || StockType.GENERAL;

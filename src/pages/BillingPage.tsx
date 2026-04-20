@@ -7,12 +7,12 @@ import { UserRole } from '../constants/enums';
 import { Link } from 'react-router-dom';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { AuthContext } from '../contexts/AuthContext';
-import { Pencil, Trash2, Check, X, Unlock, FileCheck, Receipt } from 'lucide-react';
+import { Pencil, Trash2, Check, X, Unlock, FileCheck, Receipt, AlertTriangle } from 'lucide-react';
 
 const BillingPage: React.FC = () => {
     const { user } = useContext(AuthContext);
     const [tasks, setTasks] = useState<BillingTask[]>([]);
-    const [stats, setStats] = useState({ total: 0, pending_completion: 0, report_issued: 0, ready_for_billing: 0, billed: 0 });
+    const [stats, setStats] = useState({ total: 0, pending_completion: 0, report_issued: 0, ready_for_billing: 0, billed: 0, needs_review: 0 });
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState<string>('pending');
     const [showNoteModal, setShowNoteModal] = useState(false);
@@ -82,7 +82,8 @@ const BillingPage: React.FC = () => {
                 pending_completion: statsData.pending_completion || 0,
                 report_issued: statsData.report_issued || 0,
                 ready_for_billing: statsData.ready_for_billing || 0,
-                billed: statsData.billed || 0
+                billed: statsData.billed || 0,
+                needs_review: statsData.needs_review || 0
             });
         } catch (error: unknown) {
             logger.error(error, 'Failed to fetch billing data:');
@@ -165,6 +166,7 @@ const BillingPage: React.FC = () => {
             case BillingStatus.REPORT_ISSUED: return <span className="badge bg-secondary">Relatório Emitido</span>;
             case BillingStatus.READY_FOR_BILLING: return <span className="badge bg-warning text-dark">Pronto para Faturação</span>;
             case BillingStatus.BILLED: return <span className="badge bg-success">Faturado</span>;
+            case BillingStatus.NEEDS_REVIEW: return <span className="badge bg-danger">Para Revisão</span>;
             default: return <span className="badge bg-light text-dark">{status}</span>;
         }
     };
@@ -254,6 +256,14 @@ const BillingPage: React.FC = () => {
                     </div>
                 </div>
                 <div className="col">
+                    <div className={`card text-center shadow-sm ${stats.needs_review > 0 ? 'border-danger' : ''}`}>
+                        <div className="card-body">
+                            <h2 className={`card-title display-4 mb-0 ${stats.needs_review > 0 ? 'text-danger' : 'text-muted'}`}>{stats.needs_review}</h2>
+                            <p className="card-text text-muted mb-0">Para Revisão</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="col">
                     <div className="card text-center shadow-sm">
                         <div className="card-body">
                             <h2 className="card-title display-4 mb-0">{stats.total}</h2>
@@ -274,6 +284,7 @@ const BillingPage: React.FC = () => {
                             <option value={BillingStatus.REPORT_ISSUED}>Relatório Emitido</option>
                             <option value={BillingStatus.READY_FOR_BILLING}>Pronto para Faturação</option>
                             <option value={BillingStatus.BILLED}>Faturado</option>
+                            <option value={BillingStatus.NEEDS_REVIEW}>Para Revisão</option>
                         </select>
                     </div>
                 </div>
@@ -355,6 +366,11 @@ const BillingPage: React.FC = () => {
                                                         {task.status === BillingStatus.BILLED && (
                                                             <button className="btn btn-outline-secondary btn-sm shadow-sm d-flex align-items-center justify-content-center" style={{ width: '32px', height: '32px' }} onClick={() => handleStatusChange(task, BillingStatus.BILLED)} title="Editar Nº Fatura">
                                                                 <Receipt size={18} />
+                                                            </button>
+                                                        )}
+                                                        {task.status === BillingStatus.NEEDS_REVIEW && (
+                                                            <button className="btn btn-outline-danger btn-sm shadow-sm d-flex align-items-center justify-content-center" style={{ width: '32px', height: '32px' }} onClick={() => handleStatusChange(task, BillingStatus.READY_FOR_BILLING)} title="Aceitar Revisão e colocar Pronto para Faturar">
+                                                                <AlertTriangle size={18} />
                                                             </button>
                                                         )}
                                                         {(user?.user_metadata?.role === UserRole.ADMIN || user?.user_metadata?.role === UserRole.SUPER_ADMIN) && (

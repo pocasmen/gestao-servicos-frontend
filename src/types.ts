@@ -28,7 +28,8 @@ export enum BillingStatus {
   PENDING_COMPLETION = 'pending_completion',
   REPORT_ISSUED = 'report_issued',
   READY_FOR_BILLING = 'ready_for_billing',
-  BILLED = 'billed'
+  BILLED = 'billed',
+  NEEDS_REVIEW = 'needs_review'
 }
 
 export interface BillingTask {
@@ -177,6 +178,7 @@ export interface Equipment {
   clientId: number;
   clientName?: string;
   additionalInfo?: string;
+  status?: string;
 }
 
 
@@ -314,6 +316,7 @@ export interface Part {
   image_path?: string;
   price?: number;
   notes?: string;
+  track_stock?: boolean;
 }
 
 
@@ -343,6 +346,7 @@ export interface PartItem {
   image_path?: string;
   price?: number;
   notes?: string;
+  track_stock?: boolean;
 }
 
 

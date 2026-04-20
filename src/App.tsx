@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Outlet, 
 import AboutModal from './components/AboutModal';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
+import whatsNewData from './data/whats-new.json';
 
 import Header from './components/Header';
 import ClientPortalHeader from './components/ClientPortalHeader';
@@ -135,34 +136,46 @@ const AppRoutes: React.FC = () => {
 
   useEffect(() => {
     const checkUpgrade = async () => {
-      if (user && !loading && !impersonatedUser && !hasShownUpgrade && isInternalUser(user)) {
+      if (user && !loading && !impersonatedUser && !hasShownUpgrade) {
         try {
-          // Fetch full technician profile to ensure first_name is available
-          // (Metadata might be stale or incomplete on some sessions)
-          const response = await apiClient.get('/api/technicians');
-          const profile = response.data.find((u: any) => u.id === user.id);
-          
-          if (!profile) return;
-
           const currentVersion = packageJson.version;
           const storageKey = `app_version_${user.id}`;
           const storedVersion = localStorage.getItem(storageKey);
 
           if (storedVersion !== currentVersion) {
-            const firstName = profile.first_name || user.user_metadata?.first_name || 'Utilizador';
-            setHasShownUpgrade(true);
+            // Check if there are relevant notes for this user's role in the current version
+            const role = user.user_metadata?.role;
+            const isClient = role === UserRole.CLIENT;
+            const audienceKey = isClient ? 'client' : 'staff';
             
-            await confirm({
-              title: 'Atualização de Sistema',
-              message: `Olá ${firstName}, está a usar pela primeira vez a nova versão ${currentVersion}. Se notar alguma dificuldade ou tiver uma sugestão, informe para pedro@microatomo.pt`,
-              confirmText: 'Entendido',
-              extraText: 'Whats New',
-              onExtra: () => {
-                setAboutTab('whats-new');
-                setShowAbout(true);
-              },
-              isAlert: true
-            });
+            // Import logic inside or use already imported whatsNewData (if it was imported in App.tsx)
+            // Since whatsNewData is NOT imported in App.tsx, we'll fetch it or use a simpler approach.
+            // Actually, best to import whatsNewData in App.tsx as well.
+            const latestVersionData: any = whatsNewData.find((v: any) => v.version === currentVersion);
+            
+            const hasRelevantNotes = latestVersionData && 
+                                   latestVersionData[audienceKey] && 
+                                   latestVersionData[audienceKey].notes && 
+                                   latestVersionData[audienceKey].notes.length > 0;
+
+            if (hasRelevantNotes) {
+              const firstName = user.user_metadata?.first_name || 'Utilizador';
+              setHasShownUpgrade(true);
+              
+              await confirm({
+                title: 'Atualização de Sistema',
+                message: `Olá ${firstName}, está a usar pela primeira vez a nova versão ${currentVersion}. Se notar alguma dificuldade ou tiver uma sugestão, informe para pedro@microatomo.pt`,
+                confirmText: 'Entendido',
+                extraText: 'Whats New',
+                onExtra: () => {
+                  setAboutTab('whats-new');
+                  setShowAbout(true);
+                },
+                isAlert: true
+              });
+            }
+            
+            // Mark as seen anyway to avoid checking every time if no relevant notes
             localStorage.setItem(storageKey, currentVersion);
           }
         } catch (err) {

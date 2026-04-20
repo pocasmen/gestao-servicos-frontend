@@ -16,8 +16,8 @@ export const getBillingTasks = async (params?: { startDate: string, endDate: str
     });
 };
 
-export const getBillingStats = async (params?: { startDate: string, endDate: string }): Promise<{ total: number, pending_completion: number, report_issued: number, ready_for_billing: number, billed: number }> => {
-    const { data } = await apiClient.get<{ total: number, pending_completion: number, report_issued: number, ready_for_billing: number, billed: number }>('/api/billing/stats', { params });
+export const getBillingStats = async (params?: { startDate: string, endDate: string }): Promise<{ total: number, pending_completion: number, report_issued: number, ready_for_billing: number, billed: number, needs_review: number }> => {
+    const { data } = await apiClient.get<{ total: number, pending_completion: number, report_issued: number, ready_for_billing: number, billed: number, needs_review: number }>('/api/billing/stats', { params });
     return data;
 };
 

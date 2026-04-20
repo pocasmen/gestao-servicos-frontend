@@ -43,6 +43,7 @@ export const PartItemSchema = z.object({
     image_path: z.string().optional().nullable(),
     price: z.number().optional().nullable().transform(v => v ?? 0),
     notes: z.string().optional().nullable().transform(v => v ?? ''),
+    track_stock: z.boolean().optional(),
 });
 
 export const ScheduleEventSchema = z.object({
@@ -95,6 +96,7 @@ export const PartSchema = z.object({
     image_path: z.string().optional().nullable(),
     price: z.number().optional().nullable().transform(v => v ?? 0),
     notes: z.string().optional().nullable().transform(v => v ?? ''),
+    track_stock: z.boolean().optional(),
 });
 
 export const ClientSchema = z.object({

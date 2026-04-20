@@ -211,7 +211,13 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
                                             );
 
                                             if (match) {
-                                                handlePartChange(index, { reference: match.reference, designation: match.designation, image_path: match.image_path });
+                                                handlePartChange(index, { 
+                                                    reference: match.reference, 
+                                                    designation: match.designation, 
+                                                    image_path: match.image_path,
+                                                    track_stock: match.track_stock,
+                                                    isDesignationLocked: match.track_stock !== false
+                                                });
                                             } else {
                                                 handlePartChange(index, 'reference', val);
                                             }
@@ -236,7 +242,13 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
                                             );
 
                                             if (match) {
-                                                handlePartChange(index, { reference: match.reference, designation: match.designation, image_path: match.image_path });
+                                                handlePartChange(index, { 
+                                                    reference: match.reference, 
+                                                    designation: match.designation, 
+                                                    image_path: match.image_path,
+                                                    track_stock: match.track_stock,
+                                                    isDesignationLocked: match.track_stock !== false
+                                                });
                                             } else {
                                                 handlePartChange(index, 'designation', val);
                                             }
@@ -246,26 +258,34 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
                                     />
                                 </td>
                                 <td className="text-center align-middle">
-                                    <input
-                                        type="checkbox"
-                                        className="form-check-input"
-                                        checked={part.isApplied !== false}
-                                        onChange={e => handlePartChange(index, 'isApplied', e.target.checked)}
-                                    />
+                                    {part.track_stock !== false ? (
+                                        <input
+                                            type="checkbox"
+                                            className="form-check-input"
+                                            checked={part.isApplied !== false}
+                                            onChange={e => handlePartChange(index, 'isApplied', e.target.checked)}
+                                        />
+                                    ) : (
+                                        <span className="text-muted opacity-50 small">—</span>
+                                    )}
                                 </td>
                                 <td>
-                                    <select
-                                        className="form-select form-select-sm border-0"
-                                        value={part.stockType || StockType.GENERAL}
-                                        onChange={e => handlePartChange(index, 'stockType', e.target.value)}
-                                    >
-                                        <option value={StockType.GENERAL}>{STOCK_TYPE_LABELS[StockType.GENERAL]}</option>
-                                        <option value={StockType.FOSS}>{STOCK_TYPE_LABELS[StockType.FOSS]}</option>
-                                        <option value={StockType.MSD}>{STOCK_TYPE_LABELS[StockType.MSD]}</option>
-                                        <option value={StockType.CONTRACT}>{STOCK_TYPE_LABELS[StockType.CONTRACT]}</option>
-                                        <option value={StockType.CLIENT}>{STOCK_TYPE_LABELS[StockType.CLIENT]}</option>
-                                        <option value={StockType.WARRANTY}>{STOCK_TYPE_LABELS[StockType.WARRANTY]}</option>
-                                    </select>
+                                    {part.track_stock !== false ? (
+                                        <select
+                                            className="form-select form-select-sm border-0"
+                                            value={part.stockType || StockType.GENERAL}
+                                            onChange={e => handlePartChange(index, 'stockType', e.target.value)}
+                                        >
+                                            <option value={StockType.GENERAL}>{STOCK_TYPE_LABELS[StockType.GENERAL]}</option>
+                                            <option value={StockType.FOSS}>{STOCK_TYPE_LABELS[StockType.FOSS]}</option>
+                                            <option value={StockType.MSD}>{STOCK_TYPE_LABELS[StockType.MSD]}</option>
+                                            <option value={StockType.CONTRACT}>{STOCK_TYPE_LABELS[StockType.CONTRACT]}</option>
+                                            <option value={StockType.CLIENT}>{STOCK_TYPE_LABELS[StockType.CLIENT]}</option>
+                                            <option value={StockType.WARRANTY}>{STOCK_TYPE_LABELS[StockType.WARRANTY]}</option>
+                                        </select>
+                                    ) : (
+                                        <span className="text-muted opacity-50 small ps-2">—</span>
+                                    )}
                                 </td>
                                 <td className="text-center align-middle">
                                     <button

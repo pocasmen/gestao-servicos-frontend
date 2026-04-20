@@ -4,6 +4,8 @@ import { Info, Cpu, Database, Activity, Clock, Globe, Zap } from 'lucide-react';
 import apiClient from '../apiClient';
 import { logger } from '../utils/logger';
 import whatsNewData from '../data/whats-new.json';
+import { AuthContext } from '../contexts/AuthContext';
+import { UserRole } from '../constants/enums';
 
 interface SystemStatus {
     version: string;
@@ -125,9 +127,6 @@ const AboutModal: React.FC<AboutModalProps> = ({ show, onClose, initialTab = 'st
                             {activeTab === 'status' ? (
                                 loading && !status ? (
                                     <div className="text-center py-5">
-                                <div className="spinner-border text-info" role="status">
-                                    <span className="visually-hidden">Loading...</span>
-                                </div>
                                         <div className="spinner-border text-info" role="status">
                                             <span className="visually-hidden">Loading...</span>
                                         </div>
@@ -210,26 +209,38 @@ const AboutModal: React.FC<AboutModalProps> = ({ show, onClose, initialTab = 'st
                                     </div>
                                 )
                             ) : (
-                                <div className="whats-new-list" style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '8px' }}>
-                                    {whatsNewData.map((item, index) => (
-                                        <div key={item.version} className={`mb-4 pb-4 ${index !== whatsNewData.length - 1 ? 'border-bottom border-secondary border-opacity-25' : ''}`}>
-                                            <div className="d-flex justify-content-between align-items-center mb-3">
-                                                <div>
-                                                    <h6 className="m-0 fw-bold text-info fs-5">{item.title || `Versão ${item.version}`}</h6>
-                                                    <small className="text-secondary">Lançamento: {new Date(item.date).toLocaleDateString('pt-PT')}</small>
-                                                </div>
-                                                <span className="badge bg-primary rounded-pill px-3">v{item.version}</span>
-                                            </div>
-                                            <ul className="list-unstyled m-0">
-                                                {item.notes.map((note, i) => (
-                                                    <li key={i} className="mb-2 d-flex gap-2 align-items-start">
-                                                        <div className="mt-1.5 rounded-circle bg-info" style={{ width: 6, height: 6, minWidth: 6, marginTop: '8px' }}></div>
-                                                        <span className="text-light opacity-75 small">{note}</span>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    ))}
+                                <div className="whats-new-list" style={{ maxHeight: '400px', overflowY: 'auto', paddingRight: '12px' }}>
+                                    {(() => {
+                                        const { user } = React.useContext(AuthContext);
+                                        const role = user?.user_metadata?.role;
+                                        const isClient = role === UserRole.CLIENT;
+                                        const audienceKey = isClient ? 'client' : 'staff';
+
+                                        return whatsNewData
+                                            .filter((item: any) => item[audienceKey] && item[audienceKey].notes && item[audienceKey].notes.length > 0)
+                                            .map((item: any, index, filteredArray) => {
+                                                const content = item[audienceKey];
+                                                return (
+                                                    <div key={item.version} className={`mb-4 pb-4 ${index !== filteredArray.length - 1 ? 'border-bottom border-secondary border-opacity-25' : ''}`}>
+                                                        <div className="d-flex justify-content-between align-items-center mb-3">
+                                                            <div>
+                                                                <h6 className="m-0 fw-bold text-info fs-5">{content.title || `Versão ${item.version}`}</h6>
+                                                                <small className="text-secondary">Lançamento: {new Date(item.date).toLocaleDateString('pt-PT')}</small>
+                                                            </div>
+                                                            <span className="badge bg-primary rounded-pill px-3">v{item.version}</span>
+                                                        </div>
+                                                        <ul className="list-unstyled m-0">
+                                                            {content.notes.map((note: string, i: number) => (
+                                                                <li key={i} className="mb-2 d-flex gap-2 align-items-start">
+                                                                    <div className="mt-1.5 rounded-circle bg-info" style={{ width: 6, height: 6, minWidth: 6, marginTop: '8px' }}></div>
+                                                                    <span className="text-light opacity-75 small">{note}</span>
+                                                                </li>
+                                                            ))}
+                                                        </ul>
+                                                    </div>
+                                                );
+                                            });
+                                    })()}
                                 </div>
                             )}
                         </div>

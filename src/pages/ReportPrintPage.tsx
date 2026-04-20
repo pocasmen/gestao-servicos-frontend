@@ -297,12 +297,16 @@ const ReportPrintPage: React.FC = () => {
                                         <div className="part-header-row">
                                             <span className="part-reference">{part.reference}</span>
                                             <div className="part-meta">
-                                                <span className={`part-origin-badge origin-${part.stockType || 'general'}`}>
-                                                    {STOCK_TYPE_LABELS[(part.stockType as StockType) || StockType.GENERAL]}
-                                                </span>
-                                                <span className={`part-status-badge ${part.isApplied !== false ? 'status-applied' : 'status-not-applied'}`}>
-                                                    {part.isApplied !== false ? 'Aplicada' : 'Não Aplicada'}
-                                                </span>
+                                                {part.track_stock !== false && (
+                                                    <>
+                                                        <span className={`part-origin-badge origin-${part.stockType || 'general'}`}>
+                                                            {STOCK_TYPE_LABELS[(part.stockType as StockType) || StockType.GENERAL]}
+                                                        </span>
+                                                        <span className={`part-status-badge ${part.isApplied !== false ? 'status-applied' : 'status-not-applied'}`}>
+                                                            {part.isApplied !== false ? 'Aplicada' : 'Não Aplicada'}
+                                                        </span>
+                                                    </>
+                                                )}
                                                 <span className="part-quantity">{part.quantity}x</span>
                                             </div>
                                         </div>

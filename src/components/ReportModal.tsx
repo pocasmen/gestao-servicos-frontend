@@ -38,11 +38,12 @@ const ReportModal: React.FC<ReportModalProps> = ({
   reportToEdit,
   onReportSaved
 }) => {
+  const isEditing = reportToEdit !== null;
   const [clientId, setClientId] = useState<number | string>('');
   const [equipmentId, setEquipmentId] = useState<number | string>('');
   const [serviceDate, setServiceDate] = useState('');
   const [hours, setHours] = useState<number | string>('');
-  const [parts, setParts] = useState<PartItem[]>([{ quantity: 1, reference: '', designation: '', isDesignationLocked: false }]);
+  const [parts, setParts] = useState<any[]>((isEditing ? [] : (schedule?.parts || [])).map((p: any) => ({ ...p, isDesignationLocked: p.track_stock !== false })));
   const [damage, setDamage] = useState('');
   const [description, setDescription] = useState('');
   const [serviceTypes, setServiceTypes] = useState<string[]>([]);
@@ -82,7 +83,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [allTechnicians, setAllTechnicians] = useState<Technician[]>([]);
   const [technicianIds, setTechnicianIds] = useState<string[]>([]);
 
-  const isEditing = reportToEdit !== null;
+
 
   useEffect(() => {
     apiClient.get('/api/clients').then(res => setAllClients(res.data))
@@ -105,7 +106,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
         setDamage(fullReport.damage || '');
         setServiceTypes(fullReport.serviceType || []);
         setInternalNotes(fullReport.internalNotes || fullReport.internal_notes || '');
-        setParts(fullReport.parts && fullReport.parts.length > 0 ? fullReport.parts : []);
+        setParts((fullReport.parts || []).map((p: any) => ({ ...p, isDesignationLocked: p.track_stock !== false })));
         setSignature(fullReport.signature);
 
         const sigs: Record<string, string> = {};
@@ -143,7 +144,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
         setDamage(reportToEdit.damage || '');
         setServiceTypes(reportToEdit.serviceType || []);
         setInternalNotes(reportToEdit.internalNotes || reportToEdit.internal_notes || '');
-        setParts(reportToEdit.parts && reportToEdit.parts.length > 0 ? reportToEdit.parts : []);
+        setParts((reportToEdit.parts || []).map((p: any) => ({ ...p, isDesignationLocked: p.track_stock !== false })));
         setSignature(reportToEdit.signature);
         setTechnicianSignature(reportToEdit.technician_signature);
         setIncludesTravel(reportToEdit.includes_travel || false);
@@ -274,7 +275,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
             ...newParts[index],
             id: response.data.id,
             designation: response.data.designation,
-            isDesignationLocked: true,
+            track_stock: response.data.track_stock,
+            isDesignationLocked: response.data.track_stock !== false,
             stock_quantity: response.data.stock_quantity,
             reserved_quantity: response.data.reserved_quantity,
             stock_quantity_foss: response.data.stock_quantity_foss,
@@ -372,7 +374,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
     const finalPartsToSubmit = [...partsToSubmit];
     for (let i = 0; i < finalPartsToSubmit.length; i++) {
       const part = finalPartsToSubmit[i];
-      if (part.reference && part.designation && !part.isDesignationLocked) {
+      // Create part only if it doesn't have an ID and is not already a virtual item that exists (like TEX)
+      if (part.reference && part.designation && !part.id && !part.isDesignationLocked) {
         try {
           const response = await apiClient.post('/api/inventory', { reference: part.reference, designation: part.designation });
           if (response.data && response.data.id) {
@@ -386,6 +389,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
     // Verificação de stock negativo (Aviso)
     const negativeStockParts = finalPartsToSubmit.filter(p => {
+      if (p.track_stock === false) return false;
       if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
       const type = p.stockType || StockType.GENERAL;
       const currentQtyInReport = isEditing ? (reportToEdit?.parts?.find(op => Number(op.id) === Number(p.id))?.quantity || 0) : 0;
@@ -417,6 +421,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
     // Validação de stock baixo (Abaixo do mínimo)
     const lowStockParts = finalPartsToSubmit.filter(p => {
+      if (p.track_stock === false) return false;
       if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
       const type = p.stockType || StockType.GENERAL;
       const currentQtyInReport = isEditing ? (reportToEdit?.parts?.find(op => Number(op.id) === Number(p.id))?.quantity || 0) : 0;

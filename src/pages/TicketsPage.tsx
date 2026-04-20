@@ -31,20 +31,46 @@ const TicketsPage: React.FC = () => {
   const location = useLocation();
 
   useEffect(() => {
-    const channel = supabase
+    logger.debug('[DEBUG:REALTIME] Ticket list monitoring started...');
+
+    // 1. Listen for explicit ticket broadcasts (Fast)
+    const ticketChannel = supabase
+      .channel('ticket_updates')
+      .on('broadcast', { event: 'ticket_changed' }, (payload) => {
+        logger.debug(payload, '[DEBUG:REALTIME] Ticket broadcast received:');
+        queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      })
+      .subscribe();
+
+    // 2. Listen for calendar broadcasts (Related to tickets)
+    const calendarChannel = supabase
+      .channel('calendar_updates')
+      .on('broadcast', { event: 'schedule_changed' }, (payload) => {
+        logger.debug(payload, '[DEBUG:REALTIME] Calendar broadcast received (updating tickets):');
+        queryClient.invalidateQueries({ queryKey: ['tickets'] });
+      })
+      .subscribe();
+
+    // 3. PostgreSQL Changes Backup (Standard)
+    const dbChannel = supabase
       .channel('public:tickets:manager')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'tickets' },
         (payload) => {
-          logger.info(payload, 'Ticket table changed:');
+          logger.info(payload, 'Ticket table changed (DB):');
           queryClient.invalidateQueries({ queryKey: ['tickets'] });
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (err) logger.error(err, '[DEBUG:REALTIME] Subscription error:');
+        logger.debug(`[DEBUG:REALTIME] DB connection status: ${status}`);
+      });
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(ticketChannel);
+      supabase.removeChannel(calendarChannel);
+      supabase.removeChannel(dbChannel);
     };
   }, [queryClient]);
 

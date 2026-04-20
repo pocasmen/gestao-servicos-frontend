@@ -8,7 +8,7 @@ import { SmartInput } from '../components/SmartInput';
 import { Equipment, Client } from '../types';
 import { EquipmentSchema, ClientSchema } from '../schemas';
 import logger from '../utils/logger';
-import { Pencil, Trash2, History, Plus, X, Check, Search, Cpu } from 'lucide-react';
+import { Pencil, Trash2, History, Plus, X, Check, Search, Cpu, Building2 } from 'lucide-react';
 
 // Formulário de Criação (com estilo Bootstrap Card)
 const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipmentAdded }) => {
@@ -155,20 +155,8 @@ const EditEquipmentModal: React.FC<{
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
-  const [clientId, setClientId] = useState<number | string>('');
-  const [clientSearch, setClientSearch] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [isSaving, setIsSaving] = useState(false);
-
-  const { data: clients = [] } = useQuery({
-    queryKey: ['clients'],
-    queryFn: async () => {
-      const response = await apiClient.get('/api/clients');
-      const validated = (response.data || []).map((item: any) => ClientSchema.parse(item));
-      return validated as Client[];
-    },
-    enabled: isOpen
-  });
 
   useEffect(() => {
     if (equipment) {
@@ -176,61 +164,15 @@ const EditEquipmentModal: React.FC<{
       setModel(equipment.model);
       setSerialNumber(equipment.serialNumber);
       setAdditionalInfo(equipment.additionalInfo || '');
-      // We need the clientId. The GET /api/equipments returns clientName but might not return clientId directly if not requested.
-      // Let's assume we might need to find the client by name or ensure the API returns clientId.
-      // Checking the API implementation: it returns 'clients(name)'. It does NOT return clientId explicitly in the top level.
-      // Wait, the API I replaced returns: id, brand, model, serialNumber, clientName.
-      // It does NOT return clientId. I should fix the API or lookup the client.
-      // Actually, looking at the code I wrote for PUT, it requires clientId.
-      // So I will need to iterate the clients list to find the one matching clientName, OR update the GET api to return clientId as well.
-
-      // FIXING ON THE FLY: I will try to find client by name for now, but ideally API should return it.
-      // However, since I cannot easily change the API return shape without breaking types elsewhere potentially (though I just updated it),
-      // lets try to match by name.
-      // Wait, I can just update the client list fetch to happen first, then match.
     }
   }, [equipment]);
 
-  // Effect to find clientId from name after clients are loaded
-  useEffect(() => {
-    if (equipment && clients.length > 0) {
-      const client = clients.find(c => c.name === equipment.clientName);
-      if (client) {
-        setClientId(client.id);
-        setClientSearch(client.name);
-      }
-    }
-  }, [equipment, clients]);
-
-  // Sync clientId with clientSearch when user types with Debounce
-  useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      if (clientSearch && clients.length > 0) {
-        const selectedClient = clients.find(c => c.name.toLowerCase() === clientSearch.toLowerCase().trim());
-        if (selectedClient) {
-          if (selectedClient.id !== clientId) {
-            setClientId(selectedClient.id);
-          }
-        } else {
-          if (clientId !== '') {
-            setClientId('');
-          }
-        }
-      } else if (!clientSearch && clientId !== '') {
-        setClientId('');
-      }
-    }, 500);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [clientSearch, clients, clientId]);
-
-
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (equipment && clientId) {
+    if (equipment) {
       setIsSaving(true);
       try {
-        await onSave({ ...equipment, brand, model, serialNumber, clientId: Number(clientId), additionalInfo });
+        await onSave({ ...equipment, brand, model, serialNumber, additionalInfo });
       } finally {
         setIsSaving(false);
       }
@@ -252,25 +194,16 @@ const EditEquipmentModal: React.FC<{
           <div className="p-4" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
             <div className="mb-4">
               <label className="form-label small fw-bold text-muted text-uppercase mb-2 d-block" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Cliente (Proprietário)</label>
-              <div className="input-group shadow-sm rounded-3 overflow-hidden border bg-white">
-                <span className="input-group-text bg-transparent border-0 pe-0 ps-3">
-                  <Search size={16} className="text-muted opacity-50" />
-                </span>
-                <input
-                  className="form-control border-0 py-2 ps-2 shadow-none"
-                  list="editClientOptions"
-                  value={clientSearch}
-                  onChange={e => setClientSearch(e.target.value)}
-                  placeholder="Pesquisar cliente..."
-                  required
-                />
+              <div className="d-flex align-items-center p-3 bg-light rounded-3 border border-light-subtle shadow-sm">
+                <Building2 size={20} className="text-primary opacity-75 me-3" />
+                <div>
+                  <div className="fw-bold text-dark" style={{ fontSize: '0.95rem' }}>{equipment.clientName}</div>
+                  <div className="text-muted" style={{ fontSize: '0.75rem' }}>
+                    <i className="bi bi-info-circle me-1"></i>
+                    Para transferir a propriedade, utilize a aba de Histórico.
+                  </div>
+                </div>
               </div>
-              <datalist id="editClientOptions">
-                {clients.map(client => <option key={client.id} value={client.name} />)}
-              </datalist>
-              {!clientId && clientSearch.trim() !== '' && (
-                <div className="form-text text-danger small mt-1 animate__animated animate__headShake">Cliente não encontrado. Selecione um cliente da lista.</div>
-              )}
             </div>
 
             <div className="row g-3">
@@ -318,7 +251,7 @@ const EditEquipmentModal: React.FC<{
             <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium hover-bg-light transition-all" onClick={onClose} disabled={isSaving}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all" disabled={isSaving || !clientId}>
+            <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all" disabled={isSaving}>
               {isSaving ? (
                 <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
               ) : <Check size={18} strokeWidth={2.5} />}
@@ -375,6 +308,9 @@ const EquipmentList: React.FC<{
                   </td>
                   <td className="py-3 text-dark">
                     {equipment.serialNumber}
+                    {equipment.status === 'inactive' && (
+                      <span className="badge bg-secondary ms-2 small rounded-pill opacity-75">Inativo</span>
+                    )}
                   </td>
                   <td className="text-end pe-4 py-3">
                     <div className="d-flex justify-content-end gap-2">
