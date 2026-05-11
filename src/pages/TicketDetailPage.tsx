@@ -10,7 +10,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { UserRole, TicketStatus } from '../constants/enums';
 import logger from '../utils/logger';
-import { Ticket as TicketIcon } from 'lucide-react';
+import { Ticket as TicketIcon, ShieldAlert } from 'lucide-react';
 import { DetailedTicketSchema } from '../schemas';
 import { Attachment, DetailedTicket, TicketResponse } from '../types';
 import { compressIfImage } from '../utils/imageUtils';
@@ -334,7 +334,7 @@ const TicketDetailPage: React.FC = () => {
   const messages = React.useMemo(() => {
     const text = ticket?.faultDescription || '';
     const lines = text.split('\n').filter((l: string) => l.trim().length > 0);
-    
+
     // Only include lines from faultDescription in the chat if they are marked as legacy responses.
     // The initial description is already shown in its own box above the chat.
     const clientMsgs = lines
@@ -699,6 +699,31 @@ const TicketDetailPage: React.FC = () => {
               </div>
             </div>
 
+            {ticket.is_blacklisted && (
+              <div className="mx-4 mt-4 alert border-0 shadow-lg rounded-4 animate__animated animate__shakeX d-flex align-items-center gap-3 p-4"
+                style={{
+                  background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                  boxShadow: '0 15px 35px rgba(192, 57, 43, 0.35)',
+                  borderLeft: '8px solid #922b21'
+                }}>
+                <div className="bg-white rounded-circle p-3 d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style={{ width: '60px', height: '60px' }}>
+                  <ShieldAlert size={36} style={{ color: '#c0392b' }} strokeWidth={2.5} />
+                </div>
+                <div className="flex-grow-1">
+                  <h6 className="alert-heading fw-bolder m-0 text-white text-uppercase" style={{ fontSize: '1.1rem', letterSpacing: '0.05em' }}>
+                    Atenção: Cliente com pagamentos pendentes!
+                  </h6>
+                  <p className="m-0 text-white fw-bold opacity-90" style={{ fontSize: '0.95rem' }}>
+                    {ticket.blacklist_reason || 'Este cliente tem pagamentos em atraso ou restrições de crédito ativas.'}
+                  </p>
+                  <small className="text-white text-opacity-75 fw-medium mt-1 d-block">
+                    <i className="bi bi-info-circle me-1"></i>
+                    Evite realizar novos serviços sem confirmação financeira.
+                  </small>
+                </div>
+              </div>
+            )}
+
             <div className="chat-body" ref={chatBodyRef} style={{ height: '500px', backgroundColor: '#fdfdfd' }}>
               {messages.length === 0 ? (
                 <div className="h-100 d-flex align-items-center justify-content-center">
@@ -791,12 +816,12 @@ const TicketDetailPage: React.FC = () => {
               </div>
             )}
             {isTicketClosed && (
-               <div className="p-4 bg-light text-center border-top">
-                  <div className="text-muted fw-bold small text-uppercase">
-                    <i className="bi bi-lock-fill me-2"></i>
-                    Este ticket está fechado. Não é possível enviar novas respostas.
-                  </div>
-               </div>
+              <div className="p-4 bg-light text-center border-top">
+                <div className="text-muted fw-bold small text-uppercase">
+                  <i className="bi bi-lock-fill me-2"></i>
+                  Este ticket está fechado. Não é possível enviar novas respostas.
+                </div>
+              </div>
             )}
           </div>
         </div>

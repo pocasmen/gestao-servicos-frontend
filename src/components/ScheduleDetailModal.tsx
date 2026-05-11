@@ -7,7 +7,7 @@ import apiClient, { searchPartByReference } from '../apiClient';
 import { ScheduleEvent, Client, Equipment, Technician, PartItem } from '../types';
 import logger from '../utils/logger';
 import { StockType, UserRole, ServiceClassification, ScheduleStatus, SchedulePriority } from '../constants/enums';
-import { Trash2, X, Save } from 'lucide-react';
+import { Trash2, X, Save, ShieldAlert, AlertTriangle } from 'lucide-react';
 import { useConfirm, ConfirmOptions } from '../contexts/ConfirmContext';
 import { calculateHours } from '../utils/dateCalculations';
 
@@ -707,141 +707,169 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
   return (
     <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}>
       <div className="glass-card glass-card--solid border-0 shadow-lg overflow-hidden animate__animated animate__zoomIn w-100" style={{ maxWidth: '900px', maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
-            <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
-              <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>
-                {isCreating ? 'Novo Agendamento' : 'Detalhes do Agendamento'}
-              </h5>
-              <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
-            </div>
-            <div className="modal-body p-4" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
-              <ScheduleFormHeader
-                serviceType={serviceType}
-                setServiceType={setServiceType}
-                classification={classification}
-                setClassification={setClassification}
-                isCreating={isCreating}
-                sendToBacklog={sendToBacklog}
-                setSendToBacklog={setSendToBacklog}
-                priority={priority}
-                setPriority={setPriority}
-                includesTravel={includesTravel}
-                setIncludesTravel={setIncludesTravel}
-                isPastOrCompleted={isPastOrCompleted}
-              />
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
+          <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+            <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>
+              {isCreating ? 'Novo Agendamento' : 'Detalhes do Agendamento'}
+            </h5>
+            <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
+          </div>
+          <div className="modal-body p-4" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+            <ScheduleFormHeader
+              serviceType={serviceType}
+              setServiceType={setServiceType}
+              classification={classification}
+              setClassification={setClassification}
+              isCreating={isCreating}
+              sendToBacklog={sendToBacklog}
+              setSendToBacklog={setSendToBacklog}
+              priority={priority}
+              setPriority={setPriority}
+              includesTravel={includesTravel}
+              setIncludesTravel={setIncludesTravel}
+              isPastOrCompleted={isPastOrCompleted}
+            />
 
-              <div className="row mb-0 g-3">
-                <div className={sendToBacklog ? "col-12" : "col-md-9"}>
-                  <ScheduleTimeBlocks
-                    timeBlocks={timeBlocks}
-                    handleBlockChange={handleBlockChange}
-                    handleAddBlock={handleAddBlock}
-                    handleRemoveBlock={handleRemoveBlock}
-                    isPastOrCompleted={isPastOrCompleted}
-                    sendToBacklog={sendToBacklog}
-                  />
+            {clientId && clients.find(c => String(c.id) === String(clientId))?.is_blacklisted && (
+              <div className="alert border-0 shadow-lg rounded-4 mb-4 animate__animated animate__shakeX d-flex align-items-center gap-3 p-4"
+                style={{
+                  background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                  boxShadow: '0 15px 35px rgba(192, 57, 43, 0.4)',
+                  borderLeft: '8px solid #922b21'
+                }}>
+                <div className="bg-white rounded-circle p-3 d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style={{ width: '70px', height: '70px' }}>
+                  <ShieldAlert size={40} style={{ color: '#c0392b' }} strokeWidth={2.5} />
                 </div>
-                {!sendToBacklog && (
-                  <div className="col-md-3">
-                    <div className="p-3 bg-light rounded-4 h-100 d-flex flex-column justify-content-center align-items-center border border-dashed border-2">
-                      <label className="small fw-bold text-muted text-uppercase mb-2 text-center" style={{ fontSize: '0.65rem' }}>
-                        Horas Totais
-                      </label>
-                      <div className="h3 mb-0 text-primary fw-bold">
-                        {timeBlocks.reduce((acc, block) => acc + calculateHours(block.start, block.end), 0)}h
-                      </div>
-                      <small className="text-muted mt-1 text-center" style={{ fontSize: '0.6rem' }}>
-                        Cálculo Automático
-                      </small>
-                    </div>
+                <div className="flex-grow-1">
+                  <div className="d-flex align-items-center gap-2 mb-1">
+                    <AlertTriangle size={18} className="text-white" />
+                    <h6 className="alert-heading fw-bolder m-0 text-white text-uppercase" style={{ fontSize: '1.25rem', letterSpacing: '0.05em', fontFamily: 'var(--font-family-title)' }}>
+                      Pagamentos Pendentes!
+                    </h6>
                   </div>
-                )}
+                  <p className="m-0 text-white fw-bold" style={{ fontSize: '1rem', opacity: 0.95 }}>
+                    {clients.find(c => String(c.id) === String(clientId))?.blacklist_reason || 'Este cliente encontra-se na Black List devido a pagamentos pendentes.'}
+                  </p>
+                  <small className="text-white text-opacity-75 fw-medium mt-1 d-block">
+                    <i className="bi bi-info-circle me-1"></i>
+                    Evite realizar novos serviços sem confirmação financeira.
+                  </small>
+                </div>
               </div>
+            )}
 
-              <ScheduleClientEquipment
-                clientSearch={clientSearch}
-                setClientSearch={setClientSearch}
-                clients={clients}
-                equipmentId={equipmentId}
-                setEquipmentId={setEquipmentId}
-                equipments={equipments}
-                isLoadingEquipments={isLoadingEquipments}
-                clientId={clientId}
-                isPastOrCompleted={isPastOrCompleted}
-              />
-
-              <ScheduleTechnicians
-                technicians={technicians}
-                technicianIds={technicianIds}
-                handleTechnicianChange={handleTechnicianChange}
-                isPastOrCompleted={isPastOrCompleted}
-              />
-
-              <ScheduleParts
-                parts={parts}
-                handlePartChange={handlePartChange}
-                handleReferenceBlur={handleReferenceBlur}
-                handleRemovePart={handleRemovePart}
-                handleAddPart={handleAddPart}
-                handleCopyParts={handleCopyParts}
-                handlePasteParts={handlePasteParts}
-                isPastOrCompleted={isPastOrCompleted}
-                isTicketScheduling={isTicketScheduling}
-              />
-
-              <ScheduleInternalNotes
-                internalNotes={internalNotes}
-                setInternalNotes={setInternalNotes}
-                isPastOrCompleted={isPastOrCompleted}
-                isTicketScheduling={isTicketScheduling}
-                internalNotesRef={internalNotesRef}
-                isOpen={isOpen}
-              />
+            <div className="row mb-0 g-3">
+              <div className={sendToBacklog ? "col-12" : "col-md-9"}>
+                <ScheduleTimeBlocks
+                  timeBlocks={timeBlocks}
+                  handleBlockChange={handleBlockChange}
+                  handleAddBlock={handleAddBlock}
+                  handleRemoveBlock={handleRemoveBlock}
+                  isPastOrCompleted={isPastOrCompleted}
+                  sendToBacklog={sendToBacklog}
+                />
+              </div>
+              {!sendToBacklog && (
+                <div className="col-md-3">
+                  <div className="p-3 bg-light rounded-4 h-100 d-flex flex-column justify-content-center align-items-center border border-dashed border-2">
+                    <label className="small fw-bold text-muted text-uppercase mb-2 text-center" style={{ fontSize: '0.65rem' }}>
+                      Horas Totais
+                    </label>
+                    <div className="h3 mb-0 text-primary fw-bold">
+                      {timeBlocks.reduce((acc, block) => acc + calculateHours(block.start, block.end), 0)}h
+                    </div>
+                    <small className="text-muted mt-1 text-center" style={{ fontSize: '0.6rem' }}>
+                      Cálculo Automático
+                    </small>
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="px-4 py-3 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center gap-2">
-              <div>
-                {!isCreating && (
-                  <button type="button" className="btn btn-outline-danger border-0 rounded-pill px-3 fw-medium" onClick={handleDelete} disabled={isSubmitting}>
-                    <Trash2 size={18} className="me-2" />
-                    Eliminar
-                  </button>
-                )}
-              </div>
-              <div className="d-flex gap-2 flex-wrap justify-content-end">
-                <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium" onClick={onClose} disabled={isSubmitting}>
-                  Cancelar
+
+            <ScheduleClientEquipment
+              clientSearch={clientSearch}
+              setClientSearch={setClientSearch}
+              clients={clients}
+              equipmentId={equipmentId}
+              setEquipmentId={setEquipmentId}
+              equipments={equipments}
+              isLoadingEquipments={isLoadingEquipments}
+              clientId={clientId}
+              isPastOrCompleted={isPastOrCompleted}
+            />
+
+            <ScheduleTechnicians
+              technicians={technicians}
+              technicianIds={technicianIds}
+              handleTechnicianChange={handleTechnicianChange}
+              isPastOrCompleted={isPastOrCompleted}
+            />
+
+            <ScheduleParts
+              parts={parts}
+              handlePartChange={handlePartChange}
+              handleReferenceBlur={handleReferenceBlur}
+              handleRemovePart={handleRemovePart}
+              handleAddPart={handleAddPart}
+              handleCopyParts={handleCopyParts}
+              handlePasteParts={handlePasteParts}
+              isPastOrCompleted={isPastOrCompleted}
+              isTicketScheduling={isTicketScheduling}
+            />
+
+            <ScheduleInternalNotes
+              internalNotes={internalNotes}
+              setInternalNotes={setInternalNotes}
+              isPastOrCompleted={isPastOrCompleted}
+              isTicketScheduling={isTicketScheduling}
+              internalNotesRef={internalNotesRef}
+              isOpen={isOpen}
+            />
+          </div>
+          <div className="px-4 py-3 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center gap-2">
+            <div>
+              {!isCreating && (
+                <button type="button" className="btn btn-outline-danger border-0 rounded-pill px-3 fw-medium" onClick={handleDelete} disabled={isSubmitting}>
+                  <Trash2 size={18} className="me-2" />
+                  Eliminar
                 </button>
-                {!isPastOrCompleted && (
-                  <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                    ) : (
-                      <Save size={18} />
-                    )}
-                    {isCreating ? 'Criar Agendamento' : 'Guardar Alterações'}
-                  </button>
-                )}
-                {canComplete && (
-                  <button type="button" className="btn btn-success rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={handleComplete} disabled={isSubmitting}>
-                    {isSubmitting ? (
-                      <span className="spinner-border spinner-border-sm"></span>
-                    ) : (
-                      <i className="bi bi-check-circle-fill"></i>
-                    )}
-                    Concluir Serviço
-                  </button>
-                )}
-                {isCompleted && (
-                  <button type="button" className="btn btn-info text-white rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={() => onManageReport(event!)} disabled={isSubmitting}>
-                    <i className="bi bi-file-earmark-text-fill"></i>
-                    Relatório de Serviço
-                  </button>
-                )}
-              </div>
+              )}
             </div>
-          </form>
-        </div>
+            <div className="d-flex gap-2 flex-wrap justify-content-end">
+              <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium" onClick={onClose} disabled={isSubmitting}>
+                Cancelar
+              </button>
+              {!isPastOrCompleted && (
+                <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                  ) : (
+                    <Save size={18} />
+                  )}
+                  {isCreating ? 'Criar Agendamento' : 'Guardar Alterações'}
+                </button>
+              )}
+              {canComplete && (
+                <button type="button" className="btn btn-success rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={handleComplete} disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <span className="spinner-border spinner-border-sm"></span>
+                  ) : (
+                    <i className="bi bi-check-circle-fill"></i>
+                  )}
+                  Concluir Serviço
+                </button>
+              )}
+              {isCompleted && (
+                <button type="button" className="btn btn-info text-white rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={() => onManageReport(event!)} disabled={isSubmitting}>
+                  <i className="bi bi-file-earmark-text-fill"></i>
+                  Relatório de Serviço
+                </button>
+              )}
+            </div>
+          </div>
+        </form>
       </div>
+    </div>
   );
 };
 

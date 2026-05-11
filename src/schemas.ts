@@ -110,6 +110,8 @@ export const ClientSchema = z.object({
     contactName: z.string().optional().nullable().transform(v => v ?? undefined),
     contactEmail: z.string().optional().nullable().transform(v => v ?? undefined),
     contactPhone: z.string().optional().nullable().transform(v => v ?? undefined),
+    is_blacklisted: z.boolean().optional().nullable().transform(v => v ?? false),
+    blacklist_reason: z.string().optional().nullable().transform(v => v ?? ''),
 });
 
 export const EquipmentSchema = z.object({
@@ -142,6 +144,8 @@ export const TicketSchema = z.object({
     internalNotes: z.string().optional().nullable().transform(v => v ?? undefined),
     internal_notes: z.string().optional().nullable().transform(v => v ?? undefined),
     hasReport: z.boolean().optional().nullable().transform(v => v ?? undefined),
+    is_blacklisted: z.boolean().optional().nullable().transform(v => v ?? false),
+    blacklist_reason: z.string().optional().nullable().transform(v => v ?? ''),
 });
 
 export const ReportSchema = z.object({

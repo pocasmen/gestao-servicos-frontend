@@ -9,7 +9,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { Client } from '../types';
 import { ClientSchema } from '../schemas';
 import logger from '../utils/logger';
-import { Pencil, Trash2, UserPlus, Plus, X, Check, Send, Search, Users } from 'lucide-react';
+import { Pencil, Trash2, UserPlus, Plus, X, Check, Send, Search, Users, ShieldAlert, AlertTriangle } from 'lucide-react';
 
 // Componente do Formulário (Criação)
 
@@ -175,7 +175,15 @@ const ClientList: React.FC<{
               clients.map(client => (
                 <tr key={client.id} className="hover-bg-light transition-all border-bottom border-light">
                   <td className="ps-4 py-3">
-                    <div className="fw-bold text-dark h6 mb-0" style={{ fontFamily: 'var(--font-family-title)' }}>{client.name}</div>
+                    <div className="d-flex align-items-center gap-2">
+                      <div className="fw-bold text-dark h6 mb-0" style={{ fontFamily: 'var(--font-family-title)' }}>{client.name}</div>
+                      {client.is_blacklisted && (
+                        <span className="badge rounded-pill bg-danger d-flex align-items-center gap-1 py-1 px-2 animate__animated animate__pulse animate__infinite" title={`Black List: ${client.blacklist_reason || 'Sem razão especificada'}`}>
+                          <ShieldAlert size={12} />
+                          <span style={{ fontSize: '0.65rem' }}>DÉBITO</span>
+                        </span>
+                      )}
+                    </div>
                     {client.nickname && (
                       <small className="text-muted">{client.nickname}</small>
                     )}
@@ -237,6 +245,8 @@ const EditClientModal: React.FC<{
   const [city, setCity] = useState('');
   const [postCode, setPostCode] = useState('');
   const [nif, setNif] = useState('');
+  const [isBlacklisted, setIsBlacklisted] = useState(false);
+  const [blacklistReason, setBlacklistReason] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -247,6 +257,8 @@ const EditClientModal: React.FC<{
       setCity(client.city || '');
       setPostCode(client.postCode || '');
       setNif(client.nif || '');
+      setIsBlacklisted(client.is_blacklisted || false);
+      setBlacklistReason(client.blacklist_reason || '');
     }
   }, [client]);
 
@@ -255,7 +267,7 @@ const EditClientModal: React.FC<{
     if (client) {
       setIsSaving(true);
       try {
-        await onSave({ ...client, name, nickname, address, city, postCode, nif });
+        await onSave({ ...client, name, nickname, address, city, postCode, nif, is_blacklisted: isBlacklisted, blacklist_reason: blacklistReason });
       } finally {
         setIsSaving(false);
       }
@@ -324,6 +336,35 @@ const EditClientModal: React.FC<{
                 options={{ type: 'numeric', minLength: 9, maxLength: 9, disableHeuristics: true }}
               />
             </div>
+
+            <div className="mt-4 p-3 rounded-3 border border-danger border-opacity-10 bg-danger bg-opacity-10">
+              <div className="form-check form-switch d-flex align-items-center gap-3">
+                <input 
+                  className="form-check-input mt-0 custom-switch-danger" 
+                  type="checkbox" 
+                  role="switch" 
+                  id="blacklistSwitch"
+                  checked={isBlacklisted}
+                  onChange={(e) => setIsBlacklisted(e.target.checked)}
+                  style={{ width: '2.5rem', height: '1.25rem', cursor: 'pointer' }}
+                />
+                <label className="form-check-label fw-bold text-danger mb-0" htmlFor="blacklistSwitch" style={{ cursor: 'pointer' }}>
+                  Marcar na Black List (Pagamentos em Atraso)
+                </label>
+              </div>
+              
+              {isBlacklisted && (
+                <div className="mt-3 animate__animated animate__fadeIn">
+                  <SmartInput
+                    label="Razão do Incumprimento / Notas"
+                    value={blacklistReason}
+                    onChange={setBlacklistReason}
+                    options={{ blockScripts: true }}
+                    placeholder="Ex: Faturas de Janeiro e Fevereiro em atraso..."
+                  />
+                </div>
+              )}
+            </div>
           </div>
           <div className="px-4 py-3 bg-light bg-opacity-75 border-top d-flex justify-content-end gap-2">
             <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium hover-bg-light transition-all" onClick={onClose} disabled={isSaving}>
@@ -346,13 +387,15 @@ const EditClientModal: React.FC<{
 const ClientsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterBlacklisted, setFilterBlacklisted] = useState(false);
   const { confirm, alert } = useConfirm();
 
   // Queries
   const { data: clients = [], isLoading, isError, error } = useQuery({
-    queryKey: ['clients', searchQuery],
+    queryKey: ['clients', searchQuery, filterBlacklisted],
     queryFn: async () => {
-      const params = searchQuery ? { search: searchQuery } : {};
+      const params: any = searchQuery ? { search: searchQuery } : {};
+      if (filterBlacklisted) params.is_blacklisted = true;
       const response = await apiClient.get('/api/clients', { params });
       const raw = response.data || [];
       return raw.map((item: unknown) => {
@@ -520,8 +563,8 @@ const ClientsPage: React.FC = () => {
         }} />
       )}
 
-      <div className="glass-card border-0 mb-4 overflow-hidden rounded-pill">
-        <div className="p-2">
+      <div className="d-flex flex-column flex-md-row gap-3 mb-4">
+        <div className="flex-grow-1 glass-card border-0 overflow-hidden rounded-pill p-1">
           <div className="input-group shadow-none bg-white rounded-pill ps-3">
             <span className="bg-transparent border-0 d-flex align-items-center text-muted pe-2">
               <Search size={18} className="opacity-50" />
@@ -536,7 +579,25 @@ const ClientsPage: React.FC = () => {
             />
           </div>
         </div>
+
+        <button
+          className={`btn ${filterBlacklisted ? 'btn-danger' : 'btn-outline-secondary'} rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all border-2`}
+          onClick={() => setFilterBlacklisted(!filterBlacklisted)}
+        >
+          <ShieldAlert size={18} />
+          {filterBlacklisted ? 'Ver Todos os Clientes' : 'Apenas Black List'}
+        </button>
       </div>
+
+      {filterBlacklisted && (
+        <div className="alert alert-danger border-0 shadow-sm rounded-4 mb-4 animate__animated animate__pulse d-flex align-items-center gap-3">
+          <AlertTriangle className="flex-shrink-0" size={24} />
+          <div>
+            <h6 className="alert-heading fw-bold m-0">Filtro Ativo: Clientes Devedores</h6>
+            <p className="m-0 small">Está a visualizar apenas os clientes marcados na "Black List".</p>
+          </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="text-center py-5">

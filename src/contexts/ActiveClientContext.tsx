@@ -5,6 +5,8 @@ export interface ClientCompany {
     name: string;
     nif?: string;
     address?: string;
+    is_blacklisted?: boolean;
+    blacklist_reason?: string;
 }
 
 interface ActiveClientContextType {

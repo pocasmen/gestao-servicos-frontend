@@ -1,5 +1,30 @@
 [
   {
+    "version": "1.2.0",
+    "date": "2026-04-28",
+    "staff": {
+      "title": "Sistema de Black List e Controlo de Devedores",
+      "notes": [
+        "Nova funcionalidade 'Black List' para marcação de clientes com incumprimentos financeiros.",
+        "Toggle dedicado no modal de edição de cliente para ativação do estado e registo do motivo.",
+        "Filtro rápido na listagem de clientes para isolar devedores com aviso visual de filtro ativo.",
+        "Avisos inequívocos (banners vermelhos) em modais de agendamento, tarefas e chat de tickets para clientes bloqueados.",
+        "Indicador visual pulsante 'DÉBITO' na listagem principal de clientes para máxima visibilidade.",
+        "Nova funcionalidade 'Vincular Agendamento' nos tickets para associar avarias a visitas técnicas já marcadas.",
+        "Deteção automática de agendamentos em aberto para o mesmo equipamento ao vincular um ticket."
+      ]
+    },
+    "client": {
+      "title": "Comunicação de Estado de Conta",
+      "notes": [
+        "Novo sistema de alertas no Dashboard para informações importantes sobre o estado da sua conta.",
+        "Comunicação clara sobre necessidade de regularização financeira para garantir a continuidade dos serviços.",
+        "Avisos informativos sobre limitações temporárias em novos pedidos de assistência.",
+        "Melhoria na visibilidade de intervenções agendadas associadas aos seus pedidos de suporte."
+      ]
+    }
+  },
+  {
     "version": "1.1.9",
     "date": "2026-04-16",
     "staff": {

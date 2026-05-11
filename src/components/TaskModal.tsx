@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import DatePicker, { registerLocale } from 'react-datepicker';
 import { pt } from 'date-fns/locale';
 import 'react-datepicker/dist/react-datepicker.css';
-import { Trash2, Plus, Clock, Lock, Globe, Calendar as CalendarIcon, User as UserIcon, Building2, Wrench, CheckCircle, Check } from 'lucide-react';
+import { Trash2, Plus, Clock, Lock, Globe, Calendar as CalendarIcon, User as UserIcon, Building2, Wrench, CheckCircle, Check, ShieldAlert } from 'lucide-react';
 import apiClient from '../apiClient';
 import logger from '../utils/logger';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -252,6 +252,26 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                         <button type="button" className="btn-close btn-close-white" onClick={onClose}></button>
                     </div>
                     <div className="modal-body p-4" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+                        {clientId && clients.find(c => Number(c.id) === Number(clientId))?.is_blacklisted && (
+                            <div className="alert border-0 shadow-lg rounded-4 mb-4 animate__animated animate__shakeX d-flex align-items-center gap-3 p-3"
+                                style={{ 
+                                    background: 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)',
+                                    boxShadow: '0 10px 25px rgba(192, 57, 43, 0.3)',
+                                    borderLeft: '6px solid #922b21'
+                                }}>
+                                <div className="bg-white rounded-circle p-2 d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style={{ width: '50px', height: '50px' }}>
+                                    <ShieldAlert size={28} style={{ color: '#c0392b' }} strokeWidth={2.5} />
+                                </div>
+                                <div className="flex-grow-1">
+                                    <h6 className="alert-heading fw-bolder m-0 text-white text-uppercase" style={{ fontSize: '0.95rem', letterSpacing: '0.05em' }}>
+                                        CLIENTE EM BLACK LIST
+                                    </h6>
+                                    <p className="m-0 text-white fw-bold small opacity-90">
+                                        Restrições financeiras ativas. Evitar novos serviços.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                         <div className="row g-3 mb-3">
                                 {/* Título */}
                                 <div className="col-md-8">

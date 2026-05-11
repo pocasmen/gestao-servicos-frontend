@@ -52,6 +52,8 @@ export interface ScheduleEvent {
   title: string;
   start?: Date;
   end?: Date;
+  startDate?: string;
+  endDate?: string;
   clientId: number;
   equipmentId: number;
   status?: ScheduleStatus;
@@ -112,6 +114,8 @@ export interface Client {
   contactPhone?: string;
   city?: string;
   postCode?: string;
+  is_blacklisted?: boolean;
+  blacklist_reason?: string;
 }
 
 
@@ -280,6 +284,8 @@ export interface Ticket {
   internal_notes?: string;
   hasReport?: boolean;
   isSigned?: boolean;
+  is_blacklisted?: boolean;
+  blacklist_reason?: string;
 }
 
 

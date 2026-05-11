@@ -17,10 +17,12 @@ import {
   Plus,
   X,
   Check,
-  Ticket as TicketIcon
+  Ticket as TicketIcon,
+  Link2
 } from 'lucide-react';
 
 import logger from '../utils/logger';
+import LinkToScheduleModal from '../components/LinkToScheduleModal';
 
 const TicketsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -29,6 +31,9 @@ const TicketsPage: React.FC = () => {
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false);
+  const [selectedTicketForLink, setSelectedTicketForLink] = useState<Ticket | null>(null);
 
   useEffect(() => {
     logger.debug('[DEBUG:REALTIME] Ticket list monitoring started...');
@@ -113,6 +118,11 @@ const TicketsPage: React.FC = () => {
   // ... existing handlers (no changes needed) ...
   const handleScheduleTicket = (ticket: Ticket) => {
     navigate('/calendar', { state: { ticketToSchedule: ticket } });
+  };
+
+  const handleOpenLinkModal = (ticket: Ticket) => {
+    setSelectedTicketForLink(ticket);
+    setIsLinkModalOpen(true);
   };
 
   const handleEditSchedule = (ticket: Ticket) => {
@@ -226,13 +236,22 @@ const TicketsPage: React.FC = () => {
                   <td className="text-end pe-4 py-4">
                     <div className="d-flex justify-content-end gap-2">
                       {(activeTab === TicketStatus.OPEN || activeTab === TicketStatus.ACKNOWLEDGED) && (
-                        <button
-                          className="btn btn-icon btn-outline-primary rounded-circle shadow-sm"
-                          onClick={() => handleScheduleTicket(ticket)}
-                          title="Agendar"
-                        >
-                          <CalendarPlus size={18} />
-                        </button>
+                        <>
+                          <button
+                            className="btn btn-icon btn-outline-primary rounded-circle shadow-sm"
+                            onClick={() => handleScheduleTicket(ticket)}
+                            title="Agendar Novo"
+                          >
+                            <CalendarPlus size={18} />
+                          </button>
+                          <button
+                            className="btn btn-icon btn-outline-secondary rounded-circle shadow-sm"
+                            onClick={() => handleOpenLinkModal(ticket)}
+                            title="Vincular a Agendamento Existente"
+                          >
+                            <Link2 size={18} />
+                          </button>
+                        </>
                       )}
 
                       {activeTab === TicketStatus.SCHEDULED && (
@@ -245,13 +264,22 @@ const TicketsPage: React.FC = () => {
                             <Calendar size={18} />
                           </button>
                         ) : (
-                          <button
-                            className="btn btn-icon btn-outline-primary rounded-circle shadow-sm"
-                            onClick={() => handleScheduleTicket(ticket)}
-                            title="Agendar"
-                          >
-                            <CalendarPlus size={18} />
-                          </button>
+                          <>
+                            <button
+                              className="btn btn-icon btn-outline-primary rounded-circle shadow-sm"
+                              onClick={() => handleScheduleTicket(ticket)}
+                              title="Agendar Novo"
+                            >
+                              <CalendarPlus size={18} />
+                            </button>
+                            <button
+                              className="btn btn-icon btn-outline-secondary rounded-circle shadow-sm"
+                              onClick={() => handleOpenLinkModal(ticket)}
+                              title="Vincular a Agendamento Existente"
+                            >
+                              <Link2 size={18} />
+                            </button>
+                          </>
                         )
                       )}
 
@@ -344,6 +372,18 @@ const TicketsPage: React.FC = () => {
       ) : (
         renderTicketsTable()
       )}
+
+      <LinkToScheduleModal
+        isOpen={isLinkModalOpen}
+        onClose={() => {
+          setIsLinkModalOpen(false);
+          setSelectedTicketForLink(null);
+        }}
+        ticket={selectedTicketForLink}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['tickets'] });
+        }}
+      />
     </div>
   );
 };

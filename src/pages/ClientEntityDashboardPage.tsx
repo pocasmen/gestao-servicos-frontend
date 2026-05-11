@@ -5,7 +5,7 @@ import StatCard from '../components/StatCard';
 import { ActiveClientContext } from '../contexts/ActiveClientContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
-import { Building2 } from 'lucide-react';
+import { Building2, ShieldAlert } from 'lucide-react';
 
 interface ClientStats {
     tickets: {
@@ -76,12 +76,39 @@ const ClientEntityDashboardPage: React.FC = () => {
     return (
         <div className="container-fluid py-5">
             <div className="d-flex flex-column mb-5">
-            <div className="d-flex align-items-center gap-3 mb-2">
-                <Building2 size={48} strokeWidth={2.5} className="text-primary" />
-                <h1 className="display-5 fw-bold mb-0 text-primary" style={{ color: 'var(--primary-color)' }}>{activeClient.name}</h1>
-            </div>
+                <div className="d-flex align-items-center gap-3 mb-2">
+                    <Building2 size={48} strokeWidth={2.5} className="text-primary" />
+                    <h1 className="display-5 fw-bold mb-0 text-primary" style={{ color: 'var(--primary-color)' }}>{activeClient.name}</h1>
+                </div>
                 <p className="text-muted lead">Resumo geral do seu serviço e assistência.</p>
             </div>
+
+            {activeClient.is_blacklisted && (
+                <div className="alert border-0 shadow-lg rounded-4 mb-5 animate__animated animate__fadeInDown d-flex align-items-center gap-3 p-4"
+                    style={{
+                        background: 'linear-gradient(135deg, #f8d7da 0%, #f1aeb5 100%)',
+                        boxShadow: '0 10px 30px rgba(220, 53, 69, 0.15)',
+                        borderLeft: '8px solid #dc3545'
+                    }}>
+                    <div className="bg-white rounded-circle p-3 d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm" style={{ width: '70px', height: '70px' }}>
+                        <ShieldAlert size={40} style={{ color: '#dc3545' }} strokeWidth={2.5} />
+                    </div>
+                    <div className="flex-grow-1">
+                        <div className="d-flex align-items-center gap-2 mb-1">
+                            <h6 className="alert-heading fw-bolder m-0 text-danger text-uppercase" style={{ fontSize: '1.2rem', letterSpacing: '0.05em' }}>
+                                Regularização Financeira Pendente
+                            </h6>
+                        </div>
+                        <p className="m-0 text-dark fw-bold" style={{ fontSize: '1rem', opacity: 0.9 }}>
+                            Notamos que existem pendentes financeiros na sua conta. Para garantirmos a continuidade total e prioritária dos nossos serviços, solicitamos a regularização da situação o mais breve possível.
+                        </p>
+                        <small className="text-danger fw-bold mt-1 d-block">
+                            <i className="bi bi-exclamation-circle-fill me-1"></i>
+                            A abertura de novos pedidos e agendamentos poderá estar temporariamente limitada.
+                        </small>
+                    </div>
+                </div>
+            )}
 
             <div className="row g-4 mb-5">
                 {stats && (

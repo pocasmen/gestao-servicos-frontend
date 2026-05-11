@@ -54,7 +54,19 @@ const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales
 const DragAndDropCalendar = withDragAndDrop<ScheduleEvent>(Calendar);
 
 const messages = {
-  allDay: 'Dia Inteiro', previous: 'Anterior', next: 'Próximo', today: 'Hoje', month: 'Mês', week: 'Semana', work_week: 'Semana', day: 'Dia', agenda: 'Agenda', date: 'Data', time: 'Hora', event: 'Evento',
+  allDay: 'Dia Inteiro',
+  previous: 'Anterior',
+  next: 'Próximo',
+  today: 'Hoje',
+  month: 'Mês',
+  week: 'Semana',
+  work_week: 'Semana',
+  day: 'Dia',
+  agenda: 'Agenda',
+  date: 'Data',
+  time: 'Hora',
+  event: 'Evento',
+  showMore: (total: number) => `+${total}`,
 };
 
 const calendarViews = [Views.MONTH, Views.WORK_WEEK, Views.DAY, Views.AGENDA];
@@ -844,7 +856,7 @@ const CalendarPage: React.FC = () => {
           </div>
         </div>
         <div className="col-md-9 mt-0">
-          <div className="glass-card border-0 shadow-sm p-4 overflow-hidden" style={{ borderRadius: '24px' }}>
+          <div className="glass-card border-0 shadow-sm p-4 overflow-visible calendar-container" style={{ borderRadius: '24px' }}>
 
             <DragAndDropCalendar
               localizer={localizer}

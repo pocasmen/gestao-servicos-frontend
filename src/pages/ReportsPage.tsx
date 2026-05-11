@@ -520,11 +520,23 @@ const ReportsPage: React.FC = () => {
   const [dateFilter, setDateFilter] = useState('');
   const [serviceTypeFilter, setServiceTypeFilter] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [paginationInfo, setPaginationInfo] = useState({
+    total: 0,
+    totalPages: 1,
+    limit: 100
+  });
 
   // Fetch reports using current state
-  const fetchReports = async () => {
+  const fetchReports = async (pageOverride?: number) => {
     setIsLoading(true);
-    const params: Record<string, string> = {};
+    const pageToFetch = pageOverride || currentPage;
+    const params: Record<string, any> = {
+      page: pageToFetch,
+      limit: 50 // Reduzindo para 50 para melhor UX
+    };
     if (searchQuery) params.search = searchQuery;
     if (dateFilter) params.dateFilter = dateFilter;
     if (serviceTypeFilter) params.serviceType = serviceTypeFilter;
@@ -541,6 +553,10 @@ const ReportsPage: React.FC = () => {
         return result.data as Report;
       });
       setReports(validated);
+      if (response.data?.pagination) {
+        setPaginationInfo(response.data.pagination);
+        setCurrentPage(response.data.pagination.page);
+      }
     } catch (error: unknown) {
       logger.error(error, "Erro ao carregar relatórios:");
       alert("Não foi possível carregar os relatórios.");
@@ -551,8 +567,21 @@ const ReportsPage: React.FC = () => {
 
   // Initial load only
   useEffect(() => {
-    fetchReports();
+    fetchReports(1);
   }, []);
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= paginationInfo.totalPages) {
+      setCurrentPage(newPage);
+      fetchReports(newPage);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleFilterClick = () => {
+    setCurrentPage(1);
+    fetchReports(1);
+  };
 
   const handleEditReport = (report: Report) => {
     setReportToEdit(report);
@@ -592,7 +621,7 @@ const ReportsPage: React.FC = () => {
   // Allow triggering search with Enter key
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      fetchReports();
+      handleFilterClick();
     }
   };
 
@@ -705,7 +734,7 @@ const ReportsPage: React.FC = () => {
             <div className="col-md-2">
               <button
                 className="btn btn-primary w-100 rounded-pill py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
-                onClick={fetchReports}
+                onClick={handleFilterClick}
                 disabled={isLoading}
               >
                 {isLoading ? (
@@ -727,6 +756,64 @@ const ReportsPage: React.FC = () => {
         onDeleteReport={handleDeleteReport}
         isAdmin={isAdmin}
       />
+
+      {/* Pagination Controls */}
+      {paginationInfo.totalPages > 1 && (
+        <div className="d-flex justify-content-between align-items-center mt-4 mb-5 animate__animated animate__fadeIn">
+          <div className="text-muted small">
+            A mostrar <span className="fw-bold text-dark">{reports.length}</span> de <span className="fw-bold text-dark">{paginationInfo.total}</span> relatórios
+          </div>
+          <nav>
+            <ul className="pagination pagination-sm m-0 gap-1">
+              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                <button 
+                  className="page-link rounded-3 border-0 shadow-sm" 
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  style={{ padding: '0.5rem 0.75rem' }}
+                >
+                  Anterior
+                </button>
+              </li>
+              
+              {[...Array(paginationInfo.totalPages)].map((_, i) => {
+                const pageNum = i + 1;
+                // Lógica simples para mostrar apenas algumas páginas se houverem muitas
+                if (
+                  paginationInfo.totalPages > 7 && 
+                  pageNum !== 1 && 
+                  pageNum !== paginationInfo.totalPages && 
+                  Math.abs(pageNum - currentPage) > 2
+                ) {
+                  if (Math.abs(pageNum - currentPage) === 3) return <li key={pageNum} className="page-item disabled"><span className="page-link border-0 bg-transparent">...</span></li>;
+                  return null;
+                }
+
+                return (
+                  <li key={pageNum} className={`page-item ${currentPage === pageNum ? 'active' : ''}`}>
+                    <button 
+                      className={`page-link rounded-3 border-0 shadow-sm ${currentPage === pageNum ? 'bg-primary text-white' : 'bg-white text-dark'}`}
+                      onClick={() => handlePageChange(pageNum)}
+                      style={{ padding: '0.5rem 0.75rem', minWidth: '38px', textAlign: 'center' }}
+                    >
+                      {pageNum}
+                    </button>
+                  </li>
+                );
+              })}
+
+              <li className={`page-item ${currentPage === paginationInfo.totalPages ? 'disabled' : ''}`}>
+                <button 
+                  className="page-link rounded-3 border-0 shadow-sm" 
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  style={{ padding: '0.5rem 0.75rem' }}
+                >
+                  Próximo
+                </button>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      )}
       {reportToDelete && (
         <DeleteReportModal
           report={reportToDelete}
