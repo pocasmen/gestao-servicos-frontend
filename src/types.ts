@@ -160,25 +160,11 @@ export interface DetailedTicket extends Ticket {
 }
 
 export interface Equipment {
-
-
-
   id: number;
-
-
-
   brand: string;
-
-
-
   model: string;
-
-
-
   serialNumber: string;
-
-
-
+  nickname?: string;
   clientId: number;
   clientName?: string;
   additionalInfo?: string;

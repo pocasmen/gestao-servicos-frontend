@@ -66,7 +66,7 @@ const ScheduleClientEquipment: React.FC<ScheduleClientEquipmentProps> = ({
                             .filter(eq => eq.status !== 'inactive' || String(eq.id) === String(equipmentId))
                             .map(eq => (
                                 <option key={eq.id} value={String(eq.id)}>
-                                    {`${eq.brand || ''} ${eq.model || ''}${eq.serialNumber ? ` (${eq.serialNumber})` : ''} ${eq.status === 'inactive' ? '[INATIVO]' : ''}`.trim()}
+                                    {`${eq.brand || ''} ${eq.model || ''}${eq.serialNumber ? ` (${eq.serialNumber})` : ''}${eq.nickname ? ` [${eq.nickname}]` : ''} ${eq.status === 'inactive' ? '[INATIVO]' : ''}`.trim()}
                                 </option>
                             ))}
                     </select>

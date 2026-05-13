@@ -119,6 +119,7 @@ export const EquipmentSchema = z.object({
     brand: z.string(),
     model: z.string(),
     serialNumber: z.string(),
+    nickname: z.string().optional().nullable().transform(v => v ?? undefined),
     clientName: z.string().optional(),
     clientId: z.number().optional().nullable().transform(v => v ?? undefined),
     additionalInfo: z.string().optional().nullable().transform(v => v ?? undefined),

@@ -52,6 +52,7 @@ const ClientPortalDashboardPage = React.lazy(() => import('./pages/ClientPortalD
 const ClientEntityDashboardPage = React.lazy(() => import('./pages/ClientEntityDashboardPage'));
 const ClientEquipmentsPage = React.lazy(() => import('./pages/ClientEquipmentsPage'));
 const DataPage = React.lazy(() => import('./pages/DataPage'));
+const AuthAuditPage = React.lazy(() => import('./pages/AuthAuditPage'));
 
 import { AuthContext } from './contexts/AuthContext';
 import { ActiveClientProvider } from './contexts/ActiveClientContext';
@@ -341,6 +342,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/tickets/:id" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TicketDetailPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><SettingsPage /></ProtectedRoute>} /> {/* Apenas SuperAdmin pode mexer nas configs */}
             <Route path="/admin/data" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><DataPage /></ProtectedRoute>} />
+            <Route path="/admin/auth-logs" element={<ProtectedRoute allowedRoles={[UserRole.SUPER_ADMIN]}><AuthAuditPage /></ProtectedRoute>} />
             <Route path="/billing" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><BillingPage /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><InvoiceDocsPage /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TasksPage /></ProtectedRoute>} />

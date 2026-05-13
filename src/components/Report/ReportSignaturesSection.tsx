@@ -6,7 +6,7 @@ interface ReportSignaturesSectionProps {
     setSignature: (val: string | undefined) => void;
     clientSignerName: string;
     setClientSignerName: (val: string) => void;
-    clientUsers: { id: string; first_name: string; last_name: string }[];
+    clientUsers: { id: string; first_name: string; last_name: string; email?: string }[];
 }
 
 const ReportSignaturesSection: React.FC<ReportSignaturesSectionProps> = ({
@@ -65,7 +65,7 @@ const ReportSignaturesSection: React.FC<ReportSignaturesSectionProps> = ({
                         >
                             <option value="">Selecione quem vai assinar...</option>
                             {clientUsers.map(user => {
-                                const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+                                const fullName = `${user.first_name || ''} ${user.last_name || ''}`.trim() || user.email || 'Utilizador sem nome';
                                 return (
                                     <option key={user.id} value={fullName}>
                                         {fullName}

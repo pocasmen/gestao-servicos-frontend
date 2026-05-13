@@ -5,6 +5,7 @@ import { AuthContext } from '../contexts/AuthContext';
 import { UserRole } from '../constants/enums';
 import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
+import apiClient from '../apiClient';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -19,19 +20,20 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      // O backend agora faz a migração, então o signIn é o mesmo para ambos.
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const metadata = {
+        ip: 'unknown', // O backend irá capturar o IP real
+        userAgent: navigator.userAgent
+      };
 
-      if (signInError) {
-        throw new Error(signInError.message);
-      }
+      const response = await apiClient.post('/api/auth/login', { email, password });
+      const data = response.data;
 
       if (data.session) {
         // O Supabase client já gere a sessão. Apenas atualizamos o estado global.
         setSession(data.session);
+        
+        // Sincronizar o cliente Supabase local com a sessão recebida
+        await supabase.auth.setSession(data.session);
 
         // Redirecionar com base no role guardado nos metadados do utilizador no Supabase
         const userRole = data.user.user_metadata.role;
@@ -48,11 +50,22 @@ const LoginPage: React.FC = () => {
 
     } catch (err: any) {
       logger.error(err);
-      // Mapear erros comuns do Supabase para mensagens mais amigáveis
-      let msg = err.message || 'Ocorreu um erro ao fazer login.';
-      if (err.message.includes('Invalid login credentials')) {
-        msg = 'Email ou password inválidos.';
+      
+      let msg = 'Ocorreu um erro ao fazer login.';
+      
+      // Se for um erro do Axios (vindo da nossa API)
+      if (err.response && err.response.data) {
+        const serverMessage = err.response.data.message;
+        
+        if (serverMessage === 'Invalid login credentials' || err.response.status === 401) {
+          msg = 'Email ou password inválidos. Por favor, verifique as suas credenciais.';
+        } else {
+          msg = serverMessage || msg;
+        }
+      } else if (err.message) {
+        msg = err.message;
       }
+
       alert(msg);
     } finally {
       setLoading(false);

@@ -48,6 +48,8 @@ const ClientProfilePage: React.FC = () => {
         new_schedule: { email: true, telegram: false },
         new_report: { email: true, telegram: false },
         ticket_reply: { email: true, telegram: false },
+        ticket_opened: { email: true, telegram: false },
+        ticket_closed: { email: true, telegram: false },
         docs_uploaded: { email: true, telegram: false }
     });
 
@@ -162,7 +164,9 @@ const ClientProfilePage: React.FC = () => {
     const notificationEvents = [
         { key: 'new_schedule', label: 'Novo Agendamento', icon: 'bi-calendar-event' },
         { key: 'new_report', label: 'Novo Relatório Técnico', icon: 'bi-file-earmark-text' },
-        { key: 'ticket_reply', label: 'Resposta a Ticket (Chat)', icon: 'bi-chat-dots' },
+        { key: 'ticket_reply', label: 'Nova Resposta (Chat)', icon: 'bi-chat-dots' },
+        { key: 'ticket_opened', label: 'Confirmação de Abertura', icon: 'bi-ticket-perforated' },
+        { key: 'ticket_closed', label: 'Ticket Fechado', icon: 'bi-check-circle' },
         { key: 'docs_uploaded', label: 'Documentos Carregados', icon: 'bi-cloud-arrow-up' }
     ];
 

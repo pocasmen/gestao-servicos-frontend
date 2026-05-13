@@ -1,5 +1,31 @@
 [
   {
+    "version": "1.2.1",
+    "date": "2026-05-12",
+    "staff": {
+      "title": "Integração de Alcunhas de equipamentos e Auditoria de Acessos",
+      "notes": [
+        "Nova funcionalidade de 'Alcunha' para equipamentos, permitindo identificação personalizada (ex: Sala 1, Bacto-01).",
+        "A pesquisa global de equipamentos agora suporta a procura por alcunha.",
+        "Dropdowns de agendamento no calendário técnico exibem a alcunha para uma seleção mais rápida.",
+        "Melhoria na visibilidade de equipamentos em tickets técnicos com inclusão automática de alcunhas.",
+        "Novo sistema de logs de auditoria para monitorização de acessos ao sistema.",
+        "Registo detalhado de todas as tentativas de login, incluindo IP, dispositivo e motivo de falha.",
+        "Página de administração dedicada para Super Admins visualizarem e auditarem os acessos.",
+        "Melhoria na rastreabilidade de incidentes de segurança e tentativas de acesso não autorizado."
+      ]
+    },
+    "client": {
+      "title": "Gestão de Alcunhas no Parque de Equipamentos",
+      "notes": [
+        "Agora pode definir alcunhas personalizadas para os seus equipamentos para facilitar a sua identificação.",
+        "Novo modal de edição rápida de alcunha na página do Seu Parque de Equipamentos.",
+        "Pesquisa inteligente no portal do cliente atualizada para incluir as suas alcunhas personalizadas.",
+        "As alcunhas são agora visíveis ao criar novos tickets, ajudando a identificar a máquina correta."
+      ]
+    }
+  },
+  {
     "version": "1.2.0",
     "date": "2026-04-28",
     "staff": {

@@ -160,7 +160,7 @@ const ClientTicketsPage: React.FC = () => {
                     <option value="">-- Selecione um equipamento --</option>
                     {equipments.map((eq) => (
                       <option key={eq.id} value={eq.id}>
-                        {eq.brand} - {eq.model} (NS: {eq.serialNumber})
+                        {eq.brand} - {eq.model} (NS: {eq.serialNumber}){eq.nickname ? ` [${eq.nickname}]` : ''}
                       </option>
                     ))}
                   </select>

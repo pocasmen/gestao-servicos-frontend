@@ -212,9 +212,9 @@ const DashboardPage: React.FC = () => {
       start.setDate(start.getDate() - (day - 1));
       start.setHours(0, 0, 0, 0);
 
-      // Ajuste para Sexta-feira (Segunda + 4 dias)
+      // Ajuste para Domingo (Segunda + 6 dias)
       end.setTime(start.getTime());
-      end.setDate(start.getDate() + 4);
+      end.setDate(start.getDate() + 6);
       end.setHours(23, 59, 59, 999);
     } else {
       start.setDate(1);
@@ -265,15 +265,23 @@ const DashboardPage: React.FC = () => {
         // Filter and sort dashboard tasks
         const allTasks = Array.isArray(tasksRes.data) ? tasksRes.data : [];
         const filteredTasks = allTasks.filter((t: any) => {
-          const createdAt = t.created_at ? new Date(t.created_at) : null;
           const blocks = t.time_blocks || t.internal_task_time_blocks || [];
+          let effectiveDate: Date;
+          
           if (blocks.length > 0) {
-            return blocks.some((b: any) => {
-              const bStart = new Date(b.start_time || b.start);
-              return bStart >= dateRange.start && bStart <= dateRange.end;
-            });
+            const firstBlock = blocks[0];
+            effectiveDate = new Date(firstBlock.start_time || firstBlock.start);
+          } else {
+            effectiveDate = new Date(t.created_at);
+            const day = effectiveDate.getDay();
+            if (day === 0 || day === 6) {
+              const daysToAdd = day === 6 ? 2 : 1;
+              effectiveDate.setDate(effectiveDate.getDate() + daysToAdd);
+              effectiveDate.setHours(0, 0, 0, 0);
+            }
           }
-          return createdAt && createdAt >= dateRange.start && createdAt <= dateRange.end;
+          
+          return effectiveDate >= dateRange.start && effectiveDate <= dateRange.end;
         });
         setDashboardTasks(filteredTasks);
 

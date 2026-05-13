@@ -76,8 +76,8 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!serviceType || !clientId || !equipmentId) {
-      await alert('Por favor, preencha todos os campos obrigatórios.');
+    if (!serviceType || !clientId || !equipmentId || !serviceDate || !description.trim()) {
+      await alert('Por favor, preencha todos os campos obrigatórios (Cliente, Equipamento, Técnico, Tipo, Data e Descrição).');
       return;
     }
 
@@ -118,9 +118,17 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
         setClassification('geral');
         onReportAdded();
       })
-      .catch((error: unknown) => {
+      .catch(async (error: any) => {
         logger.error(error, "Erro ao criar relatório:");
-        alert("Erro ao criar relatório.");
+        const errorMsg = error.response?.data?.error;
+        const details = error.response?.data?.details;
+        
+        if (details && Array.isArray(details)) {
+          const detailMsgs = details.map((d: any) => d.message).join('\n');
+          alert(`Erro de Validação:\n${detailMsgs}`);
+        } else {
+          alert(errorMsg || "Erro ao criar relatório.");
+        }
       });
   };
 

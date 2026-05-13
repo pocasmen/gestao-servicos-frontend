@@ -4,7 +4,7 @@ import apiClient from '../apiClient';
 import { ActiveClientContext } from '../contexts/ActiveClientContext';
 import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
-import { History, Building2, Search, Cpu } from 'lucide-react';
+import { History, Building2, Search, Cpu, Pencil, Check, X } from 'lucide-react';
 import { Equipment } from '../types';
 
 const ClientEquipmentsPage: React.FC = () => {
@@ -12,8 +12,13 @@ const ClientEquipmentsPage: React.FC = () => {
     const [equipments, setEquipments] = useState<Equipment[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(true);
-    const { alert } = useConfirm();
+    const { alert, confirm } = useConfirm();
     const navigate = useNavigate();
+
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedEquipment, setSelectedEquipment] = useState<Equipment | null>(null);
+    const [newNickname, setNewNickname] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
         if (!activeClient) {
@@ -40,8 +45,31 @@ const ClientEquipmentsPage: React.FC = () => {
     const filteredEquipments = equipments.filter(e =>
         e.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
         e.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        e.serialNumber.toLowerCase().includes(searchQuery.toLowerCase())
+        e.serialNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (e.nickname && e.nickname.toLowerCase().includes(searchQuery.toLowerCase()))
     );
+
+    const handleOpenEditNickname = (equipment: Equipment) => {
+        setSelectedEquipment(equipment);
+        setNewNickname(equipment.nickname || '');
+        setIsEditModalOpen(true);
+    };
+
+    const handleSaveNickname = async () => {
+        if (!selectedEquipment) return;
+        setIsSaving(true);
+        try {
+            await apiClient.put(`/api/client-portal/my-equipments/${selectedEquipment.id}/nickname`, { nickname: newNickname });
+            setEquipments(prev => prev.map(e => e.id === selectedEquipment.id ? { ...e, nickname: newNickname } : e));
+            setIsEditModalOpen(false);
+            // Optional: alert('Alcunha atualizada com sucesso!', 'Sucesso');
+        } catch (error) {
+            logger.error(error, "Failed to update nickname:");
+            alert("Erro ao atualizar a alcunha do equipamento.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     if (!activeClient) return null;
 
@@ -98,22 +126,38 @@ const ClientEquipmentsPage: React.FC = () => {
                                         </Link>
                                     </div>
 
-                                    <h4 className="fw-bold mb-1">{equipment.brand}</h4>
+                                    <div className="d-flex align-items-center gap-2 mb-1">
+                                        <h4 className="fw-bold mb-0">{equipment.brand}</h4>
+                                        {equipment.nickname && (
+                                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small fw-bold px-2 py-1" style={{ fontSize: '0.65rem' }}>
+                                                {equipment.nickname}
+                                            </span>
+                                        )}
+                                    </div>
                                     <h5 className="text-secondary mb-3">{equipment.model}</h5>
 
                                     <div className="mt-4 pt-3 border-top d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <span className="text-muted small d-block">Nº de Série</span>
-                                            <span className="fw-medium">{equipment.serialNumber}</span>
-                                            {equipment.status === 'inactive' && (
-                                              <span className="badge bg-secondary ms-2 small">Inativo</span>
-                                            )}
+                                        <div className="d-flex flex-column gap-1">
+                                            <div>
+                                                <span className="text-muted small d-block">Nº de Série</span>
+                                                <span className="fw-medium">{equipment.serialNumber}</span>
+                                                {equipment.status === 'inactive' && (
+                                                <span className="badge bg-secondary ms-2 small">Inativo</span>
+                                                )}
+                                            </div>
+                                            <button 
+                                                className="btn btn-link p-0 text-primary small text-decoration-none d-flex align-items-center gap-1 hover-opacity-75 transition-all"
+                                                onClick={() => handleOpenEditNickname(equipment)}
+                                                style={{ fontSize: '0.75rem' }}
+                                            >
+                                                <Pencil size={12} /> {equipment.nickname ? 'Alterar Alcunha' : 'Adicionar Alcunha'}
+                                            </button>
                                         </div>
                                         {equipment.status !== 'inactive' ? (
                                           <Link
                                               to="/portal/tickets"
                                               state={{ equipmentId: equipment.id }}
-                                              className="btn btn-primary btn-sm rounded-3 fw-bold"
+                                              className="btn btn-primary btn-sm rounded-3 fw-bold shadow-sm px-3"
                                           >
                                               Novo Ticket
                                           </Link>
@@ -125,6 +169,47 @@ const ClientEquipmentsPage: React.FC = () => {
                             </div>
                         </div>
                     ))}
+                </div>
+            )}
+            {isEditModalOpen && (
+                <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1060, backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(8px)' }}>
+                    <div className="glass-card glass-card--solid border-0 shadow-lg p-0 overflow-hidden animate__animated animate__zoomIn rounded-4" style={{ width: '90%', maxWidth: '400px' }}>
+                        <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                            <h5 className="text-white fw-bold m-0" style={{ fontSize: '1.1rem' }}>Identificar Equipamento</h5>
+                            <button type="button" className="btn-close btn-close-white opacity-75" onClick={() => setIsEditModalOpen(false)}></button>
+                        </div>
+                        <div className="p-4" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
+                            <p className="small text-muted mb-4">
+                                Defina um nome personalizado (alcunha) para facilitar a identificação deste equipamento.
+                            </p>
+                            <div className="mb-3">
+                                <label className="form-label small fw-bold text-muted text-uppercase mb-2 d-block" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Alcunha / Tag</label>
+                                <input
+                                    type="text"
+                                    className="form-control rounded-3 border-light shadow-sm py-2"
+                                    placeholder="Ex: Sala 1, bacto-01, etc..."
+                                    value={newNickname}
+                                    onChange={(e) => setNewNickname(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
+                            <div className="small text-muted mb-2">
+                                <strong>Equipamento:</strong> {selectedEquipment?.brand} {selectedEquipment?.model}
+                            </div>
+                            <div className="small text-muted">
+                                <strong>Nº Série:</strong> {selectedEquipment?.serialNumber}
+                            </div>
+                        </div>
+                        <div className="px-4 py-3 bg-light bg-opacity-75 border-top d-flex justify-content-end gap-2">
+                            <button className="btn btn-link text-muted text-decoration-none fw-medium" onClick={() => setIsEditModalOpen(false)} disabled={isSaving}>
+                                Cancelar
+                            </button>
+                            <button className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={handleSaveNickname} disabled={isSaving}>
+                                {isSaving ? <span className="spinner-border spinner-border-sm"></span> : <Check size={18} />}
+                                Guardar
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

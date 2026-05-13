@@ -56,7 +56,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [isBillingPending, setIsBillingPending] = useState(false);
   const [timeBlocks, setTimeBlocks] = useState<{ start: Date; end: Date }[]>([]);
   const [clientSignerName, setClientSignerName] = useState('');
-  const [clientUsers, setClientUsers] = useState<{ id: string; first_name: string; last_name: string }[]>([]);
+  const [clientUsers, setClientUsers] = useState<{ id: string; first_name: string; last_name: string; email?: string }[]>([]);
 
   const damageRef = useRef<HTMLTextAreaElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
@@ -368,6 +368,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
     if (!clientId) return alert('É obrigatório selecionar um cliente.');
     if (!equipmentId) return alert('É obrigatório selecionar um equipamento.');
     if (technicianIds.length === 0) return alert('É obrigatório selecionar pelo menos um técnico.');
+    if (!serviceDate) return alert('É obrigatório definir a data do serviço.');
+    if (!description || description.trim().length === 0) return alert('A descrição da intervenção é obrigatória.');
     if (serviceTypes.length === 0) return alert('É obrigatório selecionar pelo menos um tipo de serviço.');
 
     const partsToSubmit = parts.filter(p => p.reference || p.designation);
@@ -468,7 +470,9 @@ const ReportModal: React.FC<ReportModalProps> = ({
       technicianSignatures,
       includesTravel,
       classification,
-      parts: finalPartsToSubmit.map(p => ({ ...p, isApplied: p.isApplied === false ? false : true })),
+      parts: finalPartsToSubmit
+        .filter(p => p.id) // Ensure we only send parts with a valid ID to satisfy backend Zod validation
+        .map(p => ({ ...p, isApplied: p.isApplied === false ? false : true })),
       timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
       isBillingPending: isBillingPending,
       markAsReadyForBilling: !isBillingPending,
@@ -478,7 +482,17 @@ const ReportModal: React.FC<ReportModalProps> = ({
     const saveRequest = isEditing ? apiClient.put(`/api/reports/${reportToEdit.id}`, reportData) : apiClient.post('/api/reports', reportData);
     setIsSubmitting(true);
     saveRequest.then(() => { onReportSaved(); onClose(); })
-      .catch(async (err: any) => { alert(err.response?.data?.error || "Erro ao guardar relatório."); })
+      .catch(async (err: any) => { 
+        const errorMsg = err.response?.data?.error;
+        const details = err.response?.data?.details;
+        
+        if (details && Array.isArray(details)) {
+          const detailMsgs = details.map((d: any) => d.message).join('\n');
+          alert(`Erro de Validação:\n${detailMsgs}`);
+        } else {
+          alert(errorMsg || "Erro ao guardar relatório.");
+        }
+      })
       .finally(() => setIsSubmitting(false));
   };
 

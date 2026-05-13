@@ -16,6 +16,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
+  const [nickname, setNickname] = useState('');
   const [clientName, setClientName] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
   const { alert } = useConfirm();
@@ -38,6 +39,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
       setBrand('');
       setModel('');
       setSerialNumber('');
+      setNickname('');
       setClientName('');
       setAdditionalInfo('');
       alert('Equipamento criado com sucesso!', 'Sucesso');
@@ -63,7 +65,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
     }
 
     setIsSubmitting(true);
-    createMutation.mutate({ brand, model, serialNumber, clientId: selectedClient.id, additionalInfo });
+    createMutation.mutate({ brand, model, serialNumber, nickname, clientId: selectedClient.id, additionalInfo });
   };
 
   return (
@@ -120,6 +122,14 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
                 placeholder="SN-123"
               />
             </div>
+            <div className="col-md-2">
+              <SmartInput
+                label="Alcunha (Opcional)"
+                value={nickname}
+                onChange={setNickname}
+                placeholder="Ex: bacto-01"
+              />
+            </div>
             <div className="col-12">
               <label className="form-label small fw-bold text-muted text-uppercase mb-2 mb-1 d-block" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Notas do Equipamento</label>
               <textarea
@@ -155,6 +165,7 @@ const EditEquipmentModal: React.FC<{
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
+  const [nickname, setNickname] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
@@ -163,6 +174,7 @@ const EditEquipmentModal: React.FC<{
       setBrand(equipment.brand);
       setModel(equipment.model);
       setSerialNumber(equipment.serialNumber);
+      setNickname(equipment.nickname || '');
       setAdditionalInfo(equipment.additionalInfo || '');
     }
   }, [equipment]);
@@ -172,7 +184,7 @@ const EditEquipmentModal: React.FC<{
     if (equipment) {
       setIsSaving(true);
       try {
-        await onSave({ ...equipment, brand, model, serialNumber, additionalInfo });
+        await onSave({ ...equipment, brand, model, serialNumber, nickname, additionalInfo });
       } finally {
         setIsSaving(false);
       }
@@ -226,14 +238,23 @@ const EditEquipmentModal: React.FC<{
                 />
               </div>
             </div>
-            <div className="mb-3">
-              <SmartInput
-                label="Nº de Série"
-                value={serialNumber}
-                onChange={setSerialNumber}
-                required
-                options={{ minLength: 3, disableHeuristics: true }}
-              />
+            <div className="row g-3 mb-3">
+              <div className="col-md-6">
+                <SmartInput
+                  label="Nº de Série"
+                  value={serialNumber}
+                  onChange={setSerialNumber}
+                  required
+                  options={{ minLength: 3, disableHeuristics: true }}
+                />
+              </div>
+              <div className="col-md-6">
+                <SmartInput
+                  label="Alcunha (Opcional)"
+                  value={nickname}
+                  onChange={setNickname}
+                />
+              </div>
             </div>
             <div className="mb-2">
               <label className="form-label small fw-bold text-muted text-uppercase mb-2 d-block" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Notas:</label>
@@ -307,9 +328,16 @@ const EquipmentList: React.FC<{
                     </div>
                   </td>
                   <td className="py-3 text-dark">
-                    {equipment.serialNumber}
+                    <div className="fw-medium">{equipment.serialNumber}</div>
+                    {equipment.nickname && (
+                      <div className="small text-primary-emphasis mt-1">
+                        <span className="badge bg-primary-subtle text-primary-emphasis border border-primary-subtle rounded-pill">
+                          {equipment.nickname}
+                        </span>
+                      </div>
+                    )}
                     {equipment.status === 'inactive' && (
-                      <span className="badge bg-secondary ms-2 small rounded-pill opacity-75">Inativo</span>
+                      <span className="badge bg-secondary mt-1 small rounded-pill opacity-75">Inativo</span>
                     )}
                   </td>
                   <td className="text-end pe-4 py-3">
@@ -474,7 +502,7 @@ const EquipmentsPage: React.FC = () => {
             <input
               type="text"
               className="form-control border-0 bg-transparent py-2 shadow-none"
-              placeholder="Pesquisar por proprietário, marca, modelo ou nº série..."
+              placeholder="Pesquisar por proprietário, marca, modelo, nº série ou alcunha..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               style={{ fontSize: '0.95rem' }}

@@ -30,7 +30,7 @@ const TasksPage: React.FC = () => {
             start.setDate(start.getDate() - (day - 1));
             start.setHours(0, 0, 0, 0);
             end.setTime(start.getTime());
-            end.setDate(start.getDate() + 4);
+            end.setDate(start.getDate() + 6); // Incluir sábado e domingo
             end.setHours(23, 59, 59, 999);
         } else {
             start.setDate(1);
@@ -139,10 +139,27 @@ const TasksPage: React.FC = () => {
             if (statusFilter === 'completed' && !t.completed) return false;
             if (showOnlyMine && t.user_id !== currentUser?.id) return false;
             if (filterType !== 'all' && t.type !== filterType) return false;
+
             const { start, end } = dateRange;
             const hasBlocks = t.internal_task_time_blocks && t.internal_task_time_blocks.length > 0;
-            if (hasBlocks) return t.internal_task_time_blocks!.some(b => { const s = new Date(b.start_time); return s >= start && s <= end; });
-            return new Date(t.created_at) >= start && new Date(t.created_at) <= end;
+            
+            // Lógica de Data Efetiva: Prioridade para Execução (time blocks) -> Criação (fallback)
+            // Se criada ao fim de semana sem agendamento, "salta" para a segunda-feira seguinte
+            let effectiveDate: Date;
+            if (hasBlocks) {
+                effectiveDate = new Date(t.internal_task_time_blocks![0].start_time);
+            } else {
+                effectiveDate = new Date(t.created_at);
+                const day = effectiveDate.getDay(); // 0=Dom, 6=Sab
+                if (day === 0 || day === 6) {
+                    // Adicionar 2 dias se for Sábado, 1 dia se for Domingo
+                    const daysToAdd = day === 6 ? 2 : 1;
+                    effectiveDate.setDate(effectiveDate.getDate() + daysToAdd);
+                    effectiveDate.setHours(0, 0, 0, 0); // Início do dia na segunda
+                }
+            }
+
+            return effectiveDate >= start && effectiveDate <= end;
         });
     }, [tasks, statusFilter, filterType, dateRange, showOnlyMine, currentUser?.id]);
 
@@ -152,8 +169,20 @@ const TasksPage: React.FC = () => {
             if (showOnlyMine && t.user_id !== currentUser?.id) return false;
             const { start, end } = dateRange;
             const hasBlocks = t.internal_task_time_blocks && t.internal_task_time_blocks.length > 0;
-            if (hasBlocks) return t.internal_task_time_blocks!.some(b => { const s = new Date(b.start_time); return s >= start && s <= end; });
-            return new Date(t.created_at) >= start && new Date(t.created_at) <= end;
+            
+            let effectiveDate: Date;
+            if (hasBlocks) {
+                effectiveDate = new Date(t.internal_task_time_blocks![0].start_time);
+            } else {
+                effectiveDate = new Date(t.created_at);
+                const day = effectiveDate.getDay();
+                if (day === 0 || day === 6) {
+                    const daysToAdd = day === 6 ? 2 : 1;
+                    effectiveDate.setDate(effectiveDate.getDate() + daysToAdd);
+                    effectiveDate.setHours(0, 0, 0, 0);
+                }
+            }
+            return effectiveDate >= start && effectiveDate <= end;
         });
         return { total: inRange.length, pending: inRange.filter((t: any) => !t.completed).length, completed: inRange.filter((t: any) => t.completed).length };
     }, [tasks, dateRange, showOnlyMine, currentUser?.id]);

@@ -11,6 +11,7 @@ const SettingsPage: React.FC = () => {
     ticket_notification_active: 'true',
     ticket_notification_time: '17:00',
     google_calendar_sync_enabled: 'false',
+    client_notifications_enabled: 'true',
     img_compression_quality: '0.7',
     img_compression_max_width: '1280'
   });
@@ -167,6 +168,31 @@ const SettingsPage: React.FC = () => {
             />
             <div className="form-text">A verificação será feita nos dias úteis à hora selecionada.</div>
           </div>
+        </div>
+      </div>
+      
+      <div className="card mb-4 border-warning shadow-sm">
+        <div className="card-header bg-warning text-dark fw-bold">
+          Configuração Global de Clientes
+        </div>
+        <div className="card-body">
+          <div className="form-check form-switch mb-2">
+            <input
+              className="form-check-input"
+              type="checkbox"
+              role="switch"
+              id="client_notifications_enabled"
+              name="client_notifications_enabled"
+              checked={settings.client_notifications_enabled === 'true'}
+              onChange={handleInputChange}
+            />
+            <label className="form-check-label fw-bold" htmlFor="client_notifications_enabled">
+              Ativar Notificações para Clientes (Email & Telegram)
+            </label>
+          </div>
+          <p className="text-muted small m-0">
+            Se desativado, <strong>nenhuma</strong> notificação será enviada para utilizadores com perfil de Cliente, independentemente das suas preferências individuais.
+          </p>
         </div>
       </div>
 

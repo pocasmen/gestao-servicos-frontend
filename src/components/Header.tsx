@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 // Eliminado react-bootstrap
-import { Search, User, LogOut, LayoutDashboard, Calendar, Ticket, FileText, Users, Wrench, Package, Settings, FileCheck, CreditCard, Database, History } from 'lucide-react';
+import { Search, User, LogOut, LayoutDashboard, Calendar, Ticket, FileText, Users, Wrench, Package, Settings, FileCheck, CreditCard, Database, History, Lock } from 'lucide-react';
 import { supabase } from '../supabase';
 import { AuthContext } from '../contexts/AuthContext';
 import type { User as SupabaseUser } from '@supabase/supabase-js';
@@ -214,6 +214,11 @@ const Header: React.FC = () => {
                         <li>
                           <NavLink to="/admin/data" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
                             <Database size={16} /> Dados
+                          </NavLink>
+                        </li>
+                        <li>
+                          <NavLink to="/admin/auth-logs" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
+                            <Lock size={16} /> Logs de Acesso
                           </NavLink>
                         </li>
                       </>
