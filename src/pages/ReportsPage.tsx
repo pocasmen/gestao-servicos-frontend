@@ -288,9 +288,9 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
               <div className="input-group shadow-sm rounded-3 overflow-hidden border">
                 <select className="form-select border-0 py-2 ps-3" value={equipmentId} onChange={e => setEquipmentId(e.target.value)} required disabled={!clientId}>
                   <option value="">Selecione um equipamento...</option>
-                  {equipments.map(equipment => (
-                    <option key={equipment.id} value={equipment.id}>
-                      {`${equipment.brand || ''} ${equipment.model || ''}${equipment.serialNumber ? ` (${equipment.serialNumber})` : ''}`.trim()}
+                  {equipments.map(eq => (
+                    <option key={eq.id} value={eq.id}>
+                      {`${eq.brand || ''} ${eq.model || ''}${eq.serialNumber ? ` (${eq.serialNumber})` : ''}${eq.nickname ? ` [${eq.nickname}]` : ''}`.trim()}
                     </option>
                   ))}
                 </select>
@@ -475,7 +475,10 @@ const ReportList: React.FC<{
               <tr key={report.id} className="shadow-sm">
                 <td className="ps-4 py-3">
                   <div className="fw-bold text-dark">{report.clientName}</div>
-                  <div className="small text-muted">{report.equipmentBrand} {report.equipmentModel}</div>
+                  <div className="small text-muted">
+                    {report.equipmentBrand} {report.equipmentModel}
+                    {report.equipmentNickname && <span className="ms-1 fw-bold text-primary">[{report.equipmentNickname}]</span>}
+                  </div>
                 </td>
                 <td>
                   <div className="small fw-medium text-dark">

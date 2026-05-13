@@ -24,6 +24,7 @@ interface DetailedReport {
     clientNif: string;
     equipmentBrand: string;
     equipmentModel: string;
+    equipmentNickname?: string;
     equipmentSerialNumber: string;
     damage: string;
     technicianName: string;
@@ -231,9 +232,17 @@ const ReportPrintPage: React.FC = () => {
                                     <div className="info-value">{report.equipmentModel}</div>
                                 </div>
                             </div>
-                            <div className="info-field">
-                                <div className="info-label">Nº de Série</div>
-                                <div className="info-value">{report.equipmentSerialNumber}</div>
+                            <div className="info-field-row">
+                                <div className="info-field">
+                                    <div className="info-label">Nº de Série</div>
+                                    <div className="info-value">{report.equipmentSerialNumber}</div>
+                                </div>
+                                {report.equipmentNickname && (
+                                    <div className="info-field">
+                                        <div className="info-label">Alcunha</div>
+                                        <div className="info-value">{report.equipmentNickname}</div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

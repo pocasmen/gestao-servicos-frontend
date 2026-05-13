@@ -53,7 +53,7 @@ const ReportClientEquipment: React.FC<ReportClientEquipmentProps> = ({
                         <option value="">Selecione um equipamento...</option>
                         {clientEquipments.map(eq => (
                             <option key={eq.id} value={eq.id}>
-                                {`${eq.brand || ''} ${eq.model || ''}${eq.serialNumber ? ` (${eq.serialNumber})` : ''}`.trim()}
+                                {`${eq.brand || ''} ${eq.model || ''}${eq.serialNumber ? ` (${eq.serialNumber})` : ''}${eq.nickname ? ` [${eq.nickname}]` : ''}`.trim()}
                             </option>
                         ))}
                     </select>

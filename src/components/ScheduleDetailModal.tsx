@@ -825,6 +825,35 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
               internalNotesRef={internalNotesRef}
               isOpen={isOpen}
             />
+
+            {!isCreating && event && (
+              <div className="mt-4 pt-3 border-top">
+                <div className="row g-3">
+                  <div className="col-sm-6">
+                    <div className="d-flex align-items-center gap-2 text-muted" style={{ fontSize: '0.75rem' }}>
+                      <i className="bi bi-person-plus-fill"></i>
+                      <span>Criado por: <strong className="text-dark">{event.creator_name || 'Sistema'}</strong></span>
+                    </div>
+                    {event.created_at && (
+                      <div className="text-muted ms-4" style={{ fontSize: '0.7rem' }}>
+                        {new Date(event.created_at).toLocaleString('pt-PT')}
+                      </div>
+                    )}
+                  </div>
+                  <div className="col-sm-6">
+                    <div className="d-flex align-items-center gap-2 text-muted" style={{ fontSize: '0.75rem' }}>
+                      <i className="bi bi-pencil-square"></i>
+                      <span>Última alteração: <strong className="text-dark">{event.updater_name || 'Sistema'}</strong></span>
+                    </div>
+                    {event.updated_at && (
+                      <div className="text-muted ms-4" style={{ fontSize: '0.7rem' }}>
+                        {new Date(event.updated_at).toLocaleString('pt-PT')}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
           <div className="px-4 py-3 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center gap-2">
             <div>

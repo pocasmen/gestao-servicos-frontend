@@ -73,6 +73,10 @@ export interface ScheduleEvent {
   classification?: ServiceClassification;
   priority?: SchedulePriority;
   isTask?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  creator_name?: string;
+  updater_name?: string;
 }
 
 export interface TimeBlock {
@@ -373,11 +377,16 @@ export interface Report {
   equipmentBrand?: string;
   equipmentModel?: string;
   equipmentSerialNumber?: string;
+  equipmentNickname?: string;
   timeBlocks?: TimeBlock[];
   time_blocks?: any[];
   clients?: { name: string };
   billing_status?: BillingStatus;
   client_signer_name?: string;
+  created_at?: string;
+  updated_at?: string;
+  creator_name?: string;
+  updater_name?: string;
 }
 
 export interface InternalTask {
@@ -397,6 +406,11 @@ export interface InternalTask {
   updated_at: string;
   completed?: boolean;
   completed_at?: string | null;
+  updated_by?: string;
+  updater?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
   assignee?: {
     first_name: string | null;
     last_name: string | null;

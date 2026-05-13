@@ -126,10 +126,10 @@ const ClientEquipmentsPage: React.FC = () => {
                                         </Link>
                                     </div>
 
-                                    <div className="d-flex align-items-center gap-2 mb-1">
+                                    <div className="d-flex align-items-center justify-content-between mb-1">
                                         <h4 className="fw-bold mb-0">{equipment.brand}</h4>
                                         {equipment.nickname && (
-                                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small fw-bold px-2 py-1" style={{ fontSize: '0.65rem' }}>
+                                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill small fw-bold px-3 py-1" style={{ fontSize: '0.8rem' }}>
                                                 {equipment.nickname}
                                             </span>
                                         )}

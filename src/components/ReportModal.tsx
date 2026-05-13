@@ -57,6 +57,12 @@ const ReportModal: React.FC<ReportModalProps> = ({
   const [timeBlocks, setTimeBlocks] = useState<{ start: Date; end: Date }[]>([]);
   const [clientSignerName, setClientSignerName] = useState('');
   const [clientUsers, setClientUsers] = useState<{ id: string; first_name: string; last_name: string; email?: string }[]>([]);
+  const [auditData, setAuditData] = useState<{
+    created_at?: string;
+    updated_at?: string;
+    creator_name?: string;
+    updater_name?: string;
+  }>({});
 
   const damageRef = useRef<HTMLTextAreaElement>(null);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
@@ -123,15 +129,22 @@ const ReportModal: React.FC<ReportModalProps> = ({
         setIsBillingPending(fullReport.billing_status === BillingStatus.PENDING_COMPLETION);
         setClientSignerName(fullReport.client_signer_name || '');
 
-        const blocks = fullReport.timeBlocks || fullReport.time_blocks || [];
-        if (blocks.length > 0) {
-          setTimeBlocks(blocks.map((tb: any) => ({ 
-            start: new Date(tb.start || tb.start_time), 
-            end: new Date(tb.end || tb.end_time) 
-          })));
-        } else {
-          setTimeBlocks([]);
-        }
+          const blocks = fullReport.timeBlocks || fullReport.time_blocks || [];
+          if (blocks.length > 0) {
+            setTimeBlocks(blocks.map((tb: any) => ({ 
+              start: new Date(tb.start || tb.start_time), 
+              end: new Date(tb.end || tb.end_time) 
+            })));
+          } else {
+            setTimeBlocks([]);
+          }
+
+          setAuditData({
+            created_at: fullReport.created_at,
+            updated_at: fullReport.updated_at,
+            creator_name: fullReport.creator_name,
+            updater_name: fullReport.updater_name
+          });
       }).catch(err => {
         logger.error(err, "Erro ao carregar detalhes do relatório:");
         // Fallback to what we already have in props if fetch fails
@@ -581,6 +594,35 @@ const ReportModal: React.FC<ReportModalProps> = ({
                   clientUsers={clientUsers}
                 />
               </div>
+
+              {isEditing && (auditData.creator_name || auditData.updater_name) && (
+                <div className="mt-4 pt-3 border-top">
+                  <div className="row g-3">
+                    <div className="col-sm-6">
+                      <div className="d-flex align-items-center gap-2 text-muted" style={{ fontSize: '0.75rem' }}>
+                        <i className="bi bi-person-plus-fill"></i>
+                        <span>Criado por: <strong className="text-dark">{auditData.creator_name || 'Sistema'}</strong></span>
+                      </div>
+                      {auditData.created_at && (
+                        <div className="text-muted ms-4" style={{ fontSize: '0.7rem' }}>
+                          {new Date(auditData.created_at).toLocaleString('pt-PT')}
+                        </div>
+                      )}
+                    </div>
+                    <div className="col-sm-6">
+                      <div className="d-flex align-items-center gap-2 text-muted" style={{ fontSize: '0.75rem' }}>
+                        <i className="bi bi-pencil-square"></i>
+                        <span>Última alteração: <strong className="text-dark">{auditData.updater_name || 'Sistema'}</strong></span>
+                      </div>
+                      {auditData.updated_at && (
+                        <div className="text-muted ms-4" style={{ fontSize: '0.7rem' }}>
+                          {new Date(auditData.updated_at).toLocaleString('pt-PT')}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           <div className="px-4 py-3 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center gap-2 flex-wrap">
             <div className="d-flex flex-column align-items-start">

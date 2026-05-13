@@ -571,19 +571,35 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                     </button>
                                 )}
                                 {task && task.created_at && (
-                                    <div className="text-muted d-flex flex-column justify-content-center" style={{ fontSize: '0.7rem' }}>
-                                        <div className="fw-bold d-flex align-items-center gap-1 mb-1" title="Criado por">
-                                            <UserIcon size={12} className="opacity-75" />
-                                            <span>
-                                                {technicians.find(t => t.id === task.created_by)?.name || 
-                                                 task.users?.name || 
-                                                 'Sistema / Desconhecido'}
-                                            </span>
+                                    <div className="text-muted d-flex gap-4" style={{ fontSize: '0.7rem' }}>
+                                        <div className="d-flex flex-column justify-content-center">
+                                            <div className="fw-bold d-flex align-items-center gap-1 mb-1" title="Criado por">
+                                                <i className="bi bi-person-plus-fill opacity-75"></i>
+                                                <span>
+                                                    {task.creator ? `${task.creator.first_name || ''} ${task.creator.last_name || ''}`.trim() : 
+                                                     (technicians.find(t => t.id === task.created_by)?.name || 'Sistema')}
+                                                </span>
+                                            </div>
+                                            <div className="d-flex align-items-center gap-1 opacity-75" title="Data de criação">
+                                                <CalendarIcon size={12} />
+                                                <span>{new Date(task.created_at).toLocaleString('pt-PT')}</span>
+                                            </div>
                                         </div>
-                                        <div className="d-flex align-items-center gap-1 opacity-75" title="Data de criação">
-                                            <CalendarIcon size={12} />
-                                            <span>{new Date(task.created_at).toLocaleString('pt-PT')}</span>
-                                        </div>
+                                        {task.updated_at && task.updated_at !== task.created_at && (
+                                            <div className="d-flex flex-column justify-content-center border-start ps-4 border-light">
+                                                <div className="fw-bold d-flex align-items-center gap-1 mb-1" title="Alterado por">
+                                                    <i className="bi bi-pencil-square opacity-75"></i>
+                                                    <span>
+                                                        {task.updater ? `${task.updater.first_name || ''} ${task.updater.last_name || ''}`.trim() : 
+                                                         (technicians.find(t => t.id === task.updated_by)?.name || 'Sistema')}
+                                                    </span>
+                                                </div>
+                                                <div className="d-flex align-items-center gap-1 opacity-75" title="Data de alteração">
+                                                    <Clock size={12} />
+                                                    <span>{new Date(task.updated_at).toLocaleString('pt-PT')}</span>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
