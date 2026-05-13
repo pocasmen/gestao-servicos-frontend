@@ -81,13 +81,36 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
       return;
     }
 
-    const partsToSubmit = await Promise.all(parts.map(async (part) => {
-      if (!part.isDesignationLocked && part.reference && part.designation) {
-        const newPart = await createPart({ reference: part.reference, designation: part.designation });
-        return { ...part, reference: newPart.reference, designation: newPart.designation };
+    const invalidParts: string[] = [];
+    const partsToSubmit = await Promise.all(parts.filter(p => p.reference || p.designation).map(async (part) => {
+      if (!part.id && part.reference && part.designation) {
+        try {
+          const newPart = await createPart({ reference: part.reference, designation: part.designation });
+          return { ...part, id: newPart.id, reference: newPart.reference, designation: newPart.designation };
+        } catch (err) {
+          logger.error(err, "Erro ao criar peça no formulário:");
+          invalidParts.push(part.designation || part.reference);
+          return part;
+        }
+      }
+      if ((part.reference || part.designation) && !part.id) {
+        invalidParts.push(part.designation || part.reference);
       }
       return part;
     }));
+
+    if (invalidParts.length > 0) {
+      const proceed = await confirm({
+        title: 'Peças Inválidas',
+        message: `As seguintes peças não foram encontradas: ${invalidParts.join(', ')}. Serão ignoradas. Continuar?`,
+        variant: 'warning',
+        confirmText: 'Sim',
+        cancelText: 'Não'
+      } as any);
+      if (!proceed) return;
+    }
+
+    const finalParts = partsToSubmit.filter(p => p.id);
 
     const selectedTechnician = technicians.find(t => t.id === String(technicianId));
 
@@ -97,7 +120,7 @@ const ReportForm: React.FC<{ onReportAdded: () => void }> = ({ onReportAdded }) 
       technicians: selectedTechnician ? [selectedTechnician] : [],
       serviceDate,
       hours: Number(hours),
-      parts: partsToSubmit,
+      parts: finalParts,
       description,
       serviceType: [serviceType],
       damage,

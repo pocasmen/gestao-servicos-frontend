@@ -374,6 +374,8 @@ const ReportModal: React.FC<ReportModalProps> = ({
 
     const partsToSubmit = parts.filter(p => p.reference || p.designation);
     const finalPartsToSubmit = [...partsToSubmit];
+    const invalidParts: string[] = [];
+
     for (let i = 0; i < finalPartsToSubmit.length; i++) {
       const part = finalPartsToSubmit[i];
       // Create part only if it doesn't have an ID and is not already a virtual item that exists (like TEX)
@@ -382,11 +384,28 @@ const ReportModal: React.FC<ReportModalProps> = ({
           const response = await apiClient.post('/api/inventory', { reference: part.reference, designation: part.designation });
           if (response.data && response.data.id) {
             finalPartsToSubmit[i] = { ...finalPartsToSubmit[i], id: response.data.id, isDesignationLocked: true };
+          } else {
+            invalidParts.push(part.designation || part.reference);
           }
         } catch (error) {
           logger.error(error, "Erro ao criar nova peça:");
+          invalidParts.push(part.designation || part.reference);
         }
+      } else if ((part.reference || part.designation) && !part.id) {
+        // Peça preenchida mas sem ID (ex: falhou autocomplete)
+        invalidParts.push(part.designation || part.reference);
       }
+    }
+
+    if (invalidParts.length > 0) {
+      const proceed = await confirm({
+        title: 'Peças Inválidas',
+        message: `As seguintes peças não foram encontradas no inventário nem puderam ser criadas: ${invalidParts.join(', ')}. Elas serão ignoradas no relatório. Deseja continuar?`,
+        variant: 'warning',
+        confirmText: 'Continuar',
+        cancelText: 'Corrigir'
+      } as ConfirmOptions);
+      if (!proceed) return;
     }
 
     // Verificação de stock negativo (Aviso)
