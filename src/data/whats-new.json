@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.2.2",
+    "date": "2026-05-14",
+    "staff": {
+      "title": "Rastreabilidade e Auditoria de Alterações",
+      "notes": [
+        "Implementada auditoria detalhada em Agendamentos e Tarefas Internas.",
+        "Identificação clara do criador e do último utilizador a editar cada registo.",
+        "Registo automático de data e hora de criação e modificação.",
+        "Visualização direta no rodapé dos modais de Agendamento e Tarefas.",
+        "Melhoria na integridade dos dados com fallback automático para 'Sistema' em registos legados.",
+        "Correção na exibição de identidades em relatórios técnicos e listagens."
+      ]
+    }
+  },
+  {
     "version": "1.2.1",
     "date": "2026-05-12",
     "staff": {

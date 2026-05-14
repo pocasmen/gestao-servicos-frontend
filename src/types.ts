@@ -407,6 +407,8 @@ export interface InternalTask {
   completed?: boolean;
   completed_at?: string | null;
   updated_by?: string;
+  creator_name?: string;
+  updater_name?: string;
   updater?: {
     first_name: string | null;
     last_name: string | null;

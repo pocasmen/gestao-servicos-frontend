@@ -576,8 +576,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                             <div className="fw-bold d-flex align-items-center gap-1 mb-1" title="Criado por">
                                                 <i className="bi bi-person-plus-fill opacity-75"></i>
                                                 <span>
-                                                    {task.creator ? `${task.creator.first_name || ''} ${task.creator.last_name || ''}`.trim() : 
-                                                     (technicians.find(t => t.id === task.created_by)?.name || 'Sistema')}
+                                                    {task.creator_name || 
+                                                     (task.creator ? `${task.creator.first_name || ''} ${task.creator.last_name || ''}`.trim() : 
+                                                      (technicians.find(t => t.id === task.created_by)?.name || 'Sistema'))}
                                                 </span>
                                             </div>
                                             <div className="d-flex align-items-center gap-1 opacity-75" title="Data de criação">
@@ -590,8 +591,9 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
                                                 <div className="fw-bold d-flex align-items-center gap-1 mb-1" title="Alterado por">
                                                     <i className="bi bi-pencil-square opacity-75"></i>
                                                     <span>
-                                                        {task.updater ? `${task.updater.first_name || ''} ${task.updater.last_name || ''}`.trim() : 
-                                                         (technicians.find(t => t.id === task.updated_by)?.name || 'Sistema')}
+                                                        {task.updater_name ||
+                                                         (task.updater ? `${task.updater.first_name || ''} ${task.updater.last_name || ''}`.trim() : 
+                                                          (technicians.find(t => t.id === task.updated_by)?.name || 'Sistema'))}
                                                     </span>
                                                 </div>
                                                 <div className="d-flex align-items-center gap-1 opacity-75" title="Data de alteração">

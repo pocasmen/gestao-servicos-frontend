@@ -74,6 +74,12 @@ export const ScheduleEventSchema = z.object({
     classification: z.nativeEnum(ServiceClassification).optional().nullable().transform(v => v ?? undefined),
     priority: SchedulePrioritySchema.optional().nullable().transform(v => v ?? undefined),
     isTask: z.boolean().optional(),
+    creator_name: z.string().optional().nullable().transform(v => v ?? undefined),
+    updater_name: z.string().optional().nullable().transform(v => v ?? undefined),
+    created_at: z.string().optional().nullable().transform(v => v ?? undefined),
+    updated_at: z.string().optional().nullable().transform(v => v ?? undefined),
+    created_by: z.string().optional().nullable().transform(v => v ?? undefined),
+    updated_by: z.string().optional().nullable().transform(v => v ?? undefined),
 });
 
 export const PartSchema = z.object({
@@ -179,6 +185,10 @@ export const ReportSchema = z.object({
     timeBlocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
     time_blocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
     billing_status: z.nativeEnum(BillingStatus).optional().nullable().transform(v => v ?? undefined),
+    creator_name: z.string().optional().nullable().transform(v => v ?? undefined),
+    updater_name: z.string().optional().nullable().transform(v => v ?? undefined),
+    created_at: z.string().optional().nullable().transform(v => v ?? undefined),
+    updated_at: z.string().optional().nullable().transform(v => v ?? undefined),
 });
 
 export const BillingTaskSchema = z.object({
