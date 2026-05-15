@@ -107,7 +107,8 @@ const CalendarPage: React.FC = () => {
     queryFn: async () => {
       const response = await apiClient.get('/api/schedules', { params: { includeCompleted: true, limit: 1000 } });
       return response.data.data || [];
-    }
+    },
+    staleTime: 0,
   });
 
   const { data: technicians = [] } = useQuery<Technician[]>({

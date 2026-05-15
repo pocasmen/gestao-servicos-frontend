@@ -96,7 +96,8 @@ const TicketsPage: React.FC = () => {
 
       const pagination = response.data?.pagination || { page: 1, totalPages: 1, total: 0, limit: 100 };
       return { items: validated, pagination };
-    }
+    },
+    staleTime: 0, // Force re-fetch on mount/navigation
   });
 
   const tickets = ticketsData?.items || [];

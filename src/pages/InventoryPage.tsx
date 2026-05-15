@@ -95,7 +95,8 @@ const InventoryPage: React.FC = () => {
       }) as Part[];
 
       return { items: validatedData, pagination };
-    }
+    },
+    staleTime: 0,
   });
 
   const inventory = inventoryData?.items || [];
