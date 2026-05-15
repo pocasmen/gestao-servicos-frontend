@@ -14,15 +14,17 @@ import {
   FileText,
   Trash2,
   Search,
-  Plus,
   X,
-  Check,
   Ticket as TicketIcon,
-  Link2
+  Link2,
+  Zap,
 } from 'lucide-react';
 
 import logger from '../utils/logger';
 import LinkToScheduleModal from '../components/LinkToScheduleModal';
+
+const isExpressTicket = (ticket: Ticket) =>
+  ticket.status === TicketStatus.SCHEDULED && !ticket.scheduleId;
 
 const TicketsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -38,7 +40,6 @@ const TicketsPage: React.FC = () => {
   useEffect(() => {
     logger.debug('[DEBUG:REALTIME] Ticket list monitoring started...');
 
-    // 1. Listen for explicit ticket broadcasts (Fast)
     const ticketChannel = supabase
       .channel('ticket_updates')
       .on('broadcast', { event: 'ticket_changed' }, (payload) => {
@@ -47,7 +48,6 @@ const TicketsPage: React.FC = () => {
       })
       .subscribe();
 
-    // 2. Listen for calendar broadcasts (Related to tickets)
     const calendarChannel = supabase
       .channel('calendar_updates')
       .on('broadcast', { event: 'schedule_changed' }, (payload) => {
@@ -56,7 +56,6 @@ const TicketsPage: React.FC = () => {
       })
       .subscribe();
 
-    // 3. PostgreSQL Changes Backup (Standard)
     const dbChannel = supabase
       .channel('public:tickets:manager')
       .on(
@@ -79,7 +78,6 @@ const TicketsPage: React.FC = () => {
     };
   }, [queryClient]);
 
-  // Queries
   const { data: ticketsData, isLoading, isError, error } = useQuery({
     queryKey: ['tickets', activeTab, page, location.pathname],
     queryFn: async () => {
@@ -104,7 +102,6 @@ const TicketsPage: React.FC = () => {
   const tickets = ticketsData?.items || [];
   const pagination = ticketsData?.pagination || { page: 1, totalPages: 1, total: 0, limit: 100 };
 
-  // Mutations
   const deleteMutation = useMutation({
     mutationFn: (ticketId: number) => apiClient.delete(`/api/tickets/${ticketId}`),
     onSuccess: () => {
@@ -115,7 +112,18 @@ const TicketsPage: React.FC = () => {
       alert("Ocorreu um erro ao tentar eliminar o ticket.");
     }
   });
-  // ... existing handlers (no changes needed) ...
+
+  const markExpressMutation = useMutation({
+    mutationFn: (ticketId: number) => apiClient.post(`/api/tickets/${ticketId}/mark-express`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tickets'] });
+    },
+    onError: (err: any) => {
+      logger.error(err, "Erro ao marcar ticket como Express:");
+      alert("Ocorreu um erro ao marcar o ticket como Express.");
+    }
+  });
+
   const handleScheduleTicket = (ticket: Ticket) => {
     navigate('/calendar', { state: { ticketToSchedule: ticket } });
   };
@@ -144,6 +152,16 @@ const TicketsPage: React.FC = () => {
     })) {
       deleteMutation.mutate(ticketId);
     }
+  };
+
+  const handleMarkAsExpress = async (ticket: Ticket) => {
+    if (!await confirm({
+      message: `O ticket #${ticket.id} será marcado como "Express". Não será necessário criar agendamento ou relatório. Poderá ser fechado directamente após resposta.`,
+      title: '⚡ Converter para Ticket Express',
+      variant: 'warning',
+      confirmText: 'Confirmar Express'
+    })) return;
+    markExpressMutation.mutate(ticket.id);
   };
 
   const renderPagination = () => {
@@ -205,65 +223,48 @@ const TicketsPage: React.FC = () => {
                 </td>
               </tr>
             ) : (
-              tickets.map(ticket => (
-                <tr key={ticket.id} className="transition-all hover-bg-light">
-                  <td className="ps-4 py-4">
-                    <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
-                      {new Date(ticket.createdAt).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
-                    </div>
-                    <div className="small text-muted font-monospace" style={{ fontSize: '0.8rem' }}>
-                      {new Date(ticket.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
-                    </div>
-                  </td>
-                  <td className="py-4">
-                    <div className="fw-bold text-primary mb-1" style={{ fontSize: '0.95rem' }}>{ticket.clientName}</div>
-                    <div className="small text-muted d-flex align-items-center gap-1 fw-medium">
-                      <FileText size={12} className="text-primary opacity-50" />
-                      <span className="text-truncate" style={{ maxWidth: '250px' }}>{ticket.equipmentInfo || 'S/ Equipamento'}</span>
-                    </div>
-                  </td>
-                  <td className="py-4">
-                    <div className="d-flex align-items-center gap-3">
-                      <div className="bg-gradient-primary rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow-sm transition-all hover-scale"
-                        style={{ width: '36px', height: '36px', fontSize: '0.8rem' }}>
-                        {ticket.userFirstName?.charAt(0) || ticket.id}
-                      </div>
+              tickets.map(ticket => {
+                const express = isExpressTicket(ticket);
+                return (
+                  <tr key={ticket.id} className={`transition-all hover-bg-light ${express ? 'table-warning bg-opacity-25' : ''}`}>
+                    <td className="ps-4 py-4">
                       <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
-                        {ticket.userFirstName ? `${ticket.userFirstName} ${ticket.userLastName}` : `Ticket #${ticket.id}`}
+                        {new Date(ticket.createdAt).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
                       </div>
-                    </div>
-                  </td>
-                  <td className="text-end pe-4 py-4">
-                    <div className="d-flex justify-content-end gap-2">
-                      {(activeTab === TicketStatus.OPEN || activeTab === TicketStatus.ACKNOWLEDGED) && (
-                        <>
-                          <button
-                            className="btn btn-icon btn-outline-primary rounded-circle shadow-sm"
-                            onClick={() => handleScheduleTicket(ticket)}
-                            title="Agendar Novo"
-                          >
-                            <CalendarPlus size={18} />
-                          </button>
-                          <button
-                            className="btn btn-icon btn-outline-secondary rounded-circle shadow-sm"
-                            onClick={() => handleOpenLinkModal(ticket)}
-                            title="Vincular a Agendamento Existente"
-                          >
-                            <Link2 size={18} />
-                          </button>
-                        </>
-                      )}
-
-                      {activeTab === TicketStatus.SCHEDULED && (
-                        ticket.scheduleId ? (
-                          <button
-                            className="btn btn-icon btn-outline-secondary rounded-circle shadow-sm"
-                            onClick={() => handleEditSchedule(ticket)}
-                            title="Editar Agendamento"
-                          >
-                            <Calendar size={18} />
-                          </button>
-                        ) : (
+                      <div className="small text-muted font-monospace" style={{ fontSize: '0.8rem' }}>
+                        {new Date(ticket.createdAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </td>
+                    <td className="py-4">
+                      <div className="d-flex align-items-center gap-2 mb-1">
+                        <div className="fw-bold text-primary" style={{ fontSize: '0.95rem' }}>{ticket.clientName}</div>
+                        {express && (
+                          <span className="badge rounded-pill fw-bold px-2 py-1" style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white' }}>
+                            <Zap size={10} className="me-1" style={{ verticalAlign: 'middle' }} />
+                            Express
+                          </span>
+                        )}
+                      </div>
+                      <div className="small text-muted d-flex align-items-center gap-1 fw-medium">
+                        <FileText size={12} className="text-primary opacity-50" />
+                        <span className="text-truncate" style={{ maxWidth: '250px' }}>{ticket.equipmentInfo || 'S/ Equipamento'}</span>
+                      </div>
+                    </td>
+                    <td className="py-4">
+                      <div className="d-flex align-items-center gap-3">
+                        <div className="bg-gradient-primary rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow-sm transition-all hover-scale"
+                          style={{ width: '36px', height: '36px', fontSize: '0.8rem' }}>
+                          {ticket.userFirstName?.charAt(0) || ticket.id}
+                        </div>
+                        <div className="fw-bold text-dark" style={{ fontSize: '0.9rem' }}>
+                          {ticket.userFirstName ? `${ticket.userFirstName} ${ticket.userLastName}` : `Ticket #${ticket.id}`}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="text-end pe-4 py-4">
+                      <div className="d-flex justify-content-end gap-2">
+                        {/* Open/Acknowledged tab: Agendar, Vincular, Express */}
+                        {(activeTab === TicketStatus.OPEN || activeTab === TicketStatus.ACKNOWLEDGED) && (
                           <>
                             <button
                               className="btn btn-icon btn-outline-primary rounded-circle shadow-sm"
@@ -279,41 +280,81 @@ const TicketsPage: React.FC = () => {
                             >
                               <Link2 size={18} />
                             </button>
+                            <button
+                              className="btn btn-icon rounded-circle shadow-sm border"
+                              style={{ borderColor: '#f59e0b', color: '#d97706' }}
+                              onClick={() => handleMarkAsExpress(ticket)}
+                              title="Converter para Ticket Express (responder e fechar sem agendamento)"
+                              disabled={markExpressMutation.isPending}
+                            >
+                              <Zap size={18} />
+                            </button>
                           </>
-                        )
-                      )}
+                        )}
 
-                      <button
-                        className="btn btn-icon btn-outline-info rounded-circle shadow-sm"
-                        onClick={() => navigate(`/tickets/${ticket.id}`)}
-                        title="Ver Detalhes"
-                      >
-                        <Eye size={18} />
-                      </button>
+                        {/* Scheduled tab: sem botões de re-agendamento para Express */}
+                        {activeTab === TicketStatus.SCHEDULED && !express && (
+                          ticket.scheduleId ? (
+                            <button
+                              className="btn btn-icon btn-outline-secondary rounded-circle shadow-sm"
+                              onClick={() => handleEditSchedule(ticket)}
+                              title="Editar Agendamento"
+                            >
+                              <Calendar size={18} />
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                className="btn btn-icon btn-outline-primary rounded-circle shadow-sm"
+                                onClick={() => handleScheduleTicket(ticket)}
+                                title="Agendar Novo"
+                              >
+                                <CalendarPlus size={18} />
+                              </button>
+                              <button
+                                className="btn btn-icon btn-outline-secondary rounded-circle shadow-sm"
+                                onClick={() => handleOpenLinkModal(ticket)}
+                                title="Vincular a Agendamento Existente"
+                              >
+                                <Link2 size={18} />
+                              </button>
+                            </>
+                          )
+                        )}
 
-                      {activeTab === TicketStatus.CLOSED && (
                         <button
-                          className="btn btn-icon btn-outline-success rounded-circle shadow-sm"
-                          onClick={() => handleCreateReportFromTicket(ticket)}
-                          title="Gerar Relatório"
+                          className="btn btn-icon btn-outline-info rounded-circle shadow-sm"
+                          onClick={() => navigate(`/tickets/${ticket.id}`)}
+                          title="Ver Detalhes"
                         >
-                          <FileText size={18} />
+                          <Eye size={18} />
                         </button>
-                      )}
 
-                      {activeTab !== TicketStatus.CLOSED && activeTab !== TicketStatus.DELETED && (
-                        <button
-                          className="btn btn-icon btn-outline-danger rounded-circle shadow-sm"
-                          onClick={() => handleDeleteTicket(ticket.id)}
-                          title="Eliminar Ticket"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))
+                        {/* Relatório só para tickets fechados normais (não Express) */}
+                        {activeTab === TicketStatus.CLOSED && !express && (
+                          <button
+                            className="btn btn-icon btn-outline-success rounded-circle shadow-sm"
+                            onClick={() => handleCreateReportFromTicket(ticket)}
+                            title="Gerar Relatório"
+                          >
+                            <FileText size={18} />
+                          </button>
+                        )}
+
+                        {activeTab !== TicketStatus.CLOSED && activeTab !== TicketStatus.DELETED && (
+                          <button
+                            className="btn btn-icon btn-outline-danger rounded-circle shadow-sm"
+                            onClick={() => handleDeleteTicket(ticket.id)}
+                            title="Eliminar Ticket"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -324,13 +365,12 @@ const TicketsPage: React.FC = () => {
 
   return (
     <div className="container-fluid py-4 min-vh-100 bg-light animate__animated animate__fadeIn">
-      {/* Premium Header */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-4 mb-5 px-2">
         <div>
-        <div className="d-flex align-items-center gap-3">
-          <TicketIcon size={40} strokeWidth={2.5} className="text-primary" />
-          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Tickets</h1>
-        </div>
+          <div className="d-flex align-items-center gap-3">
+            <TicketIcon size={40} strokeWidth={2.5} className="text-primary" />
+            <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Tickets</h1>
+          </div>
           <p className="text-muted small m-0 fst-italic">
             Central de atendimento: acompanhe e gira os novos pedidos de assistência.
           </p>

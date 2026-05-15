@@ -1,16 +1,19 @@
 [
   {
     "version": "1.2.2",
-    "date": "2026-05-14",
+    "date": "2026-05-15",
     "staff": {
-      "title": "Rastreabilidade e Auditoria de Alterações",
+      "title": "Rastreabilidade, Auditoria e Fluxo Express de Tickets",
       "notes": [
+        "Novo fluxo 'Ticket Express': converta tickets simples sem necessidade de agendamento ou relatório.",
+        "Botão de conversão Express disponível diretamente na lista de tickets abertos.",
+        "Tickets Express identificados com badge dourado na aba 'Agendados'.",
+        "Botão 'Fechar Ticket' no detalhe do ticket Express com validação obrigatória de resposta técnica.",
+        "Bloqueio automático do fecho se não existir nenhuma resposta de técnico ao cliente.",
+        "Notificações de fecho enviadas ao cliente via Telegram/Email tal como nos tickets normais.",
         "Implementada auditoria detalhada em Agendamentos e Tarefas Internas.",
         "Identificação clara do criador e do último utilizador a editar cada registo.",
-        "Registo automático de data e hora de criação e modificação.",
-        "Visualização direta no rodapé dos modais de Agendamento e Tarefas.",
-        "Melhoria na integridade dos dados com fallback automático para 'Sistema' em registos legados.",
-        "Correção na exibição de identidades em relatórios técnicos e listagens."
+        "Melhoria na integridade dos dados com fallback automático para 'Sistema' em registos legados."
       ]
     }
   },

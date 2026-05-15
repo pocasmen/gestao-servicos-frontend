@@ -286,6 +286,51 @@ const TicketDetailPage: React.FC = () => {
     }
   };
 
+
+
+  const handleCloseExpressTicket = async () => {
+    // If no technician response exists AND no text in the box, force a response first
+    if (!hasTechnicianResponse && !replyContent.trim()) {
+      await alert(
+        'Este ticket não tem nenhuma resposta técnica. Por favor escreva uma resposta antes de fechar o ticket.',
+        '⚠️ Resposta Obrigatória'
+      );
+      return;
+    }
+
+    // If there's already a tech response, allow closing without new text
+    const messageToSend = replyContent.trim() || null;
+
+    if (!await confirm({
+      message: messageToSend
+        ? 'Deseja enviar esta resposta final e fechar o ticket definitivamente?'
+        : 'Deseja fechar este ticket? Já existe uma resposta técnica registada.',
+      title: '⚡ Fechar Ticket Express',
+      variant: 'primary',
+      confirmText: 'Fechar Ticket'
+    })) return;
+
+    // If no new text but there's already a response, we still need to send something to the /close endpoint
+    const finalMessage = messageToSend || '(Ticket fechado pelo técnico)';
+
+    setIsReplying(true);
+    try {
+      await apiClient.post(`/api/tickets/${id}/close`, { message: finalMessage });
+      setReplyContent('');
+      await fetchTicketDetails();
+      await alert('Ticket Express fechado com sucesso!', 'Concluído');
+    } catch (err) {
+      await alert('Não foi possível fechar o ticket.');
+    } finally {
+      setIsReplying(false);
+    }
+  };
+
+  const handleReplyAndClose = async (e: React.FormEvent) => {
+    e.preventDefault();
+    return handleCloseExpressTicket();
+  };
+
   const handleDeleteAttachment = async (attachment: Attachment) => {
     if (!id) return;
     if (!await confirm({
@@ -389,6 +434,14 @@ const TicketDetailPage: React.FC = () => {
     logger.debug(`[DEBUG:MESSAGES] Recalculated messages list. Total: ${result.length}`);
     return result;
   }, [ticket?.id, ticket?.faultDescription, ticket?.responses, ticket?.createdAt, ticket?.userFirstName, ticket?.userLastName, ticket?.created_by_user_id]);
+
+  // Express ticket: status=scheduled + no scheduleId
+  const isExpressTicket = ticket
+    ? ticket.status === 'scheduled' && !ticket.scheduleId
+    : false;
+
+  // Has at least one technician response (needed for Express close validation)
+  const hasTechnicianResponse = messages.some(m => !m.isClient);
 
   const userIdToNameMap = React.useMemo(() => {
     const map: Record<string, string> = {};
@@ -574,6 +627,12 @@ const TicketDetailPage: React.FC = () => {
               <span className="me-1">{isTicketClosed ? '●' : '●'}</span>
               {isTicketClosed ? 'Ticket Fechado' : 'Ticket Aberto'}
             </span>
+            {!ticket.scheduleId && (ticket.status === 'scheduled' || isTicketClosed) && (
+              <span className="badge rounded-pill fw-bold px-3 py-1 border-0" style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white' }}>
+                <i className="bi bi-lightning-fill me-1"></i>
+                {isTicketClosed ? 'Via Express' : 'Express'}
+              </span>
+            )}
             <span className="text-muted small fw-medium">ID: #{id}</span>
           </div>
         </div>
@@ -807,10 +866,30 @@ const TicketDetailPage: React.FC = () => {
                       <i className="bi bi-info-circle me-1"></i>
                       O cliente será notificado via Telegram/Email.
                     </div>
-                    <button type="submit" className="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" disabled={isReplying || !replyContent.trim()}>
-                      {isReplying ? <span className="spinner-border spinner-border-sm"></span> : <i className="bi bi-send-fill"></i>}
-                      Enviar Resposta
-                    </button>
+                    <div className="d-flex gap-2">
+                      {isExpressTicket && (
+                        <button 
+                          type="button" 
+                          className="btn rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 border-0" 
+                          style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)', color: 'white' }}
+                          disabled={isReplying}
+                          onClick={handleCloseExpressTicket}
+                          title={hasTechnicianResponse ? 'Fechar este ticket Express' : 'Necessário enviar uma resposta antes de fechar'}
+                        >
+                          {isReplying
+                            ? <span className="spinner-border spinner-border-sm"></span>
+                            : <i className="bi bi-lightning-fill"></i>}
+                          Fechar Ticket
+                          {!hasTechnicianResponse && !replyContent.trim() && (
+                            <span className="badge bg-white text-warning rounded-pill ms-1" style={{ fontSize: '0.65rem' }}>!</span>
+                          )}
+                        </button>
+                      )}
+                      <button type="submit" className="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2" disabled={isReplying || !replyContent.trim()}>
+                        {isReplying ? <span className="spinner-border spinner-border-sm"></span> : <i className="bi bi-send-fill"></i>}
+                        Enviar Resposta
+                      </button>
+                    </div>
                   </div>
                 </form>
               </div>
