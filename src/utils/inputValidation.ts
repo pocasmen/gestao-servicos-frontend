@@ -191,15 +191,24 @@ export const analyzeInput = (
         const c1 = sanitized[i];
         const c2 = sanitized[i + 1];
         if (/[a-z]/.test(c1) && /[A-Z]/.test(c2)) switches++;
-        if (/[A-Z]/.test(c1) && /[a-z]/.test(c2)) switches++; // Normal start of sentence doesn't count usually but inside word it does. 
-        // This is too aggressive for normal text, let's refine:
-        // Anomaly if lower follows upper inside word? No.
-        // Anomaly: aAbB...
+        if (/[A-Z]/.test(c1) && /[a-z]/.test(c2)) switches++; 
     }
-    // Let's stick to simpler: if > 50% uppercase but not 100% (SHOUTING is okay-ish/rude, but mixed is weird)
+    
     const upperCount = sanitized.replace(/[^A-Z]/g, '').length;
     const lowerCount = sanitized.replace(/[^a-z]/g, '').length;
-    if (upperCount > 0 && lowerCount > 0 && upperCount > lowerCount * 2) {
+    
+    // New rule: ALL CAPS check (Requirement: Block/Warn all caps > 8 chars, acronym exception)
+    const isAllCaps = sanitized.length > 0 && sanitized === sanitized.toUpperCase() && /[A-Z]/.test(sanitized);
+    if (isAllCaps && sanitized.length > 8) {
+        warnings.push('Detetado texto totalmente em maiúsculas.');
+        confidence -= 0.1;
+        
+        // Suggest Title Case if no other suggestion exists
+        if (suggestion === sanitized) {
+            suggestion = sanitized.toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+        }
+    } else if (upperCount > 0 && lowerCount > 0 && upperCount > lowerCount * 2) {
+        // Mixed casing anomaly
         warnings.push('Uso excessivo de maiúsculas.');
         confidence -= 0.05;
     }

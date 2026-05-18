@@ -1,5 +1,19 @@
 [
   {
+    "version": "1.2.3",
+    "date": "2026-05-15",
+    "staff": {
+      "title": "Otimização de Performance e Sincronização Real-time",
+      "notes": [
+        "Otimização drástica do Calendário com carregamento de janela temporal inteligente (± 1 mês).",
+        "Melhoria na velocidade de resposta e redução de tráfego de dados no servidor.",
+        "Sincronização automática da lista de tickets: fim da necessidade de 'F5' após agendamentos ou fecho.",
+        "Novo indicador visual de 'Sincronização' no calendário para feedback de carregamento em background.",
+        "Reforço na integridade e frescura de dados em cache (React Query) nas páginas de Inventário e Calendário."
+      ]
+    }
+  },
+  {
     "version": "1.2.2",
     "date": "2026-05-15",
     "staff": {

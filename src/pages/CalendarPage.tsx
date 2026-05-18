@@ -4,7 +4,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
-import { format, parse, startOfWeek, getDay, addHours } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addHours, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import apiClient from '../apiClient';
 import { supabase } from '../supabase';
@@ -101,11 +101,25 @@ const CalendarPage: React.FC = () => {
     });
   }, []);
 
+  const fetchRange = useMemo(() => {
+    return {
+      start: format(startOfMonth(subMonths(date, 1)), 'yyyy-MM-dd'),
+      end: format(endOfMonth(addMonths(date, 1)), 'yyyy-MM-dd'),
+    };
+  }, [date]);
+
   // Queries
-  const { data: rawSchedules = [], refetch: fetchSchedules } = useQuery({
-    queryKey: ['schedules'],
+  const { data: rawSchedules = [], isFetching, refetch: fetchSchedules } = useQuery({
+    queryKey: ['schedules', fetchRange.start, fetchRange.end],
     queryFn: async () => {
-      const response = await apiClient.get('/api/schedules', { params: { includeCompleted: true, limit: 1000 } });
+      const response = await apiClient.get('/api/schedules', { 
+        params: { 
+          includeCompleted: true, 
+          limit: 1000,
+          startDate: fetchRange.start,
+          endDate: fetchRange.end
+        } 
+      });
       return response.data.data || [];
     },
     staleTime: 0,
@@ -669,6 +683,15 @@ const CalendarPage: React.FC = () => {
 
         {/* Desktop Filters (Header) */}
         <div className="d-flex flex-wrap align-items-center gap-3">
+          {isFetching && (
+            <div className="animate__animated animate__fadeIn">
+              <span className="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 py-2 px-3 d-flex align-items-center gap-2 shadow-sm" style={{ fontSize: '13px' }}>
+                <div className="spinner-border spinner-border-sm" role="status" style={{ width: '14px', height: '14px', borderWidth: '2.5px' }}></div>
+                <span className="fw-bold">Sincronizando...</span>
+              </span>
+            </div>
+          )}
+          
           {/* Type Filter */}
           <div className="btn-group btn-group-sm p-1 bg-white rounded-pill shadow-sm border border-light" role="group">
             <button
