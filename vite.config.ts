@@ -2,8 +2,9 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   define: {
+    'process.env.NODE_ENV': JSON.stringify(mode),
     __APP_VERSION__: JSON.stringify(process.env.npm_package_version || '0.1.0'),
     __BUILD_TIME__: JSON.stringify(new Date().toISOString()),
   },
@@ -79,4 +80,4 @@ export default defineConfig({
       },
     },
   },
-})
+}))
