@@ -1,5 +1,18 @@
 [
   {
+    "version": "1.2.4",
+    "date": "2026-05-20",
+    "staff": {
+      "title": "Inativação Lógica de Técnicos (Soft Delete)",
+      "notes": [
+        "Substituição da eliminação física de técnicos por inativação lógica, preservando todo o histórico de agendamentos e relatórios.",
+        "Nova opção 'Inativar' no perfil da equipa que atualiza a função para 'Inativo', desativa alertas diários e limpa integrações de Telegram.",
+        "Integração automática com o Supabase Auth para suspender/banir o utilizador e impedir novos logins de forma segura.",
+        "Preservação de layout: técnicos inativados mantêm a apresentação correta das suas cores e dados em registos históricos."
+      ]
+    }
+  },
+  {
     "version": "1.2.3",
     "date": "2026-05-15",
     "staff": {

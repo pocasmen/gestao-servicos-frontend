@@ -115,10 +115,10 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
 
   const handleDelete = async () => {
     if (await confirm({
-      message: 'Tem a certeza que deseja eliminar este utilizador? Esta ação não pode ser desfeita e irá remover o seu acesso permanentemente.',
-      title: 'Eliminar Utilizador',
-      variant: 'danger',
-      confirmText: 'Eliminar'
+      message: 'Tem a certeza que deseja inativar este utilizador? Esta ação irá remover o seu acesso permanentemente, mas preservará o seu histórico de serviços.',
+      title: 'Inativar Utilizador',
+      variant: 'warning',
+      confirmText: 'Inativar'
     })) {
       apiClient.delete(`/api/technicians/${user?.id}`)
         .then(() => {
@@ -126,9 +126,9 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
           onClose();
         })
         .catch(async (err: any) => {
-          logger.error(err, "Erro ao eliminar o utilizador:");
-          setErrorMessage(err.response?.data?.error || 'Ocorreu um erro ao eliminar.');
-          await alert(err.response?.data?.error || 'Ocorreu um erro ao eliminar.');
+          logger.error(err, "Erro ao inativar o utilizador:");
+          setErrorMessage(err.response?.data?.error || 'Ocorreu um erro ao inativar.');
+          await alert(err.response?.data?.error || 'Ocorreu um erro ao inativar.');
         });
     }
   };
@@ -154,7 +154,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
     }
   };
 
-  const isStaff = role === UserRole.TECHNICIAN || role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN || role === UserRole.OFFICE_STAFF;
+  const isStaff = role === UserRole.TECHNICIAN || role === UserRole.INACTIVE_TECHNICIAN || role === UserRole.ADMIN || role === UserRole.SUPER_ADMIN || role === UserRole.OFFICE_STAFF;
 
   return (
     <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}>
@@ -208,6 +208,7 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
                     {currentUserRole === UserRole.SUPER_ADMIN && (
                       <option value={UserRole.SUPER_ADMIN}>Super Admin</option>
                     )}
+                    <option value={UserRole.INACTIVE_TECHNICIAN}>Inativo</option>
                   </select>
                 </div>
 
@@ -350,8 +351,8 @@ const UserDetailModal: React.FC<ModalProps> = ({ isOpen, onClose, user, onUserUp
           </div>
 
           <div className="px-4 py-3 bg-light bg-opacity-50 border-top d-flex justify-content-between align-items-center gap-2">
-            <button type="button" className="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold border-0" onClick={handleDelete}>
-              <Trash2 size={16} className="me-1" /> Eliminar
+            <button type="button" className="btn btn-sm btn-outline-warning rounded-pill px-3 fw-bold border-0" onClick={handleDelete}>
+              <Trash2 size={16} className="me-1" /> Inativar
             </button>
             
             <div className="d-flex gap-2">
