@@ -492,9 +492,9 @@ const ReportList: React.FC<{
                     const blocks = report.timeBlocks || report.time_blocks || [];
                     if (blocks.length > 0) {
                       const startStr = blocks[0].start || blocks[0].start_time;
-                      if (startStr) return format(parseISO(startStr), 'dd/MM/yyyy');
+                      if (startStr) return format(new Date(startStr), 'dd/MM/yyyy');
                     }
-                    return report.serviceDate ? format(parseISO(report.serviceDate), 'dd/MM/yyyy') : 'N/A';
+                    return report.serviceDate ? format(new Date(report.serviceDate), 'dd/MM/yyyy') : 'N/A';
                   })()}
                 </td>
                 <td>

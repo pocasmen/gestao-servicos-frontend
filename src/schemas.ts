@@ -41,7 +41,7 @@ export const PartItemSchema = z.object({
     min_stock: z.number().optional(),
     min_stock_foss: z.number().optional(),
     image_path: z.string().optional().nullable(),
-    price: z.number().optional().nullable().transform(v => v ?? 0),
+    price: z.union([z.number(), z.string().transform(v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; })]).optional().nullable().transform(v => v ?? 0),
     notes: z.string().optional().nullable().transform(v => v ?? ''),
     track_stock: z.boolean().optional(),
 });
@@ -100,7 +100,7 @@ export const PartSchema = z.object({
     min_stock: z.number().optional(),
     min_stock_foss: z.number().optional(),
     image_path: z.string().optional().nullable(),
-    price: z.number().optional().nullable().transform(v => v ?? 0),
+    price: z.union([z.number(), z.string().transform(v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; })]).optional().nullable().transform(v => v ?? 0),
     notes: z.string().optional().nullable().transform(v => v ?? ''),
     track_stock: z.boolean().optional(),
 });
@@ -165,7 +165,7 @@ export const ReportSchema = z.object({
         val.map(t => typeof t === 'string' ? { id: '', name: t } : t)
     ),
     serviceDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : ''),
-    hours: z.number().optional().nullable().transform(v => v ?? 0),
+    hours: z.union([z.number(), z.string().transform(v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; })]).optional().nullable().transform(v => v ?? 0),
     parts: z.array(PartItemSchema).default([]),
     description: z.string().optional().nullable().transform(v => v ?? ''),
     serviceType: z.array(z.string()).default([]),
