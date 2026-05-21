@@ -3,6 +3,12 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "installCommand": "npm ci",
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ],
   "build": {
     "env": {
       "NODE_ENV": "production"
