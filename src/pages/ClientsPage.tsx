@@ -8,6 +8,7 @@ import { AuthContext } from '../contexts/AuthContext';
 
 import { Client } from '../types';
 import { ClientSchema } from '../schemas';
+import LoadingState from '../components/LoadingState';
 import logger from '../utils/logger';
 import { Pencil, Trash2, UserPlus, Plus, X, Check, Send, Search, Users, ShieldAlert, AlertTriangle } from 'lucide-react';
 
@@ -339,10 +340,10 @@ const EditClientModal: React.FC<{
 
             <div className="mt-4 p-3 rounded-3 border border-danger border-opacity-10 bg-danger bg-opacity-10">
               <div className="form-check form-switch d-flex align-items-center gap-3">
-                <input 
-                  className="form-check-input mt-0 custom-switch-danger" 
-                  type="checkbox" 
-                  role="switch" 
+                <input
+                  className="form-check-input mt-0 custom-switch-danger"
+                  type="checkbox"
+                  role="switch"
                   id="blacklistSwitch"
                   checked={isBlacklisted}
                   onChange={(e) => setIsBlacklisted(e.target.checked)}
@@ -352,7 +353,7 @@ const EditClientModal: React.FC<{
                   Marcar na Black List (Pagamentos em Atraso)
                 </label>
               </div>
-              
+
               {isBlacklisted && (
                 <div className="mt-3 animate__animated animate__fadeIn">
                   <SmartInput
@@ -386,16 +387,45 @@ const EditClientModal: React.FC<{
 // Componente da Página Principal
 const ClientsPage: React.FC = () => {
   const queryClient = useQueryClient();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterBlacklisted, setFilterBlacklisted] = useState(false);
   const { confirm, alert } = useConfirm();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [filterBlacklisted, setFilterBlacklisted] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['settings', 'equipment-categories'],
+    queryFn: async () => {
+        const res = await apiClient.get('/api/settings');
+        const catJson = res.data.equipment_categories;
+        if (catJson) {
+            try {
+                return JSON.parse(catJson) as string[];
+            } catch (e) {
+                return [];
+            }
+        }
+        return [];
+    }
+  });
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
 
   // Queries
   const { data: clients = [], isLoading, isError, error } = useQuery({
-    queryKey: ['clients', searchQuery, filterBlacklisted],
+    queryKey: ['clients', debouncedSearchQuery, filterBlacklisted, selectedCategory],
     queryFn: async () => {
-      const params: any = searchQuery ? { search: searchQuery } : {};
+      const params: any = debouncedSearchQuery ? { search: debouncedSearchQuery } : {};
       if (filterBlacklisted) params.is_blacklisted = true;
+      if (selectedCategory) params.equipment_category = selectedCategory;
       const response = await apiClient.get('/api/clients', { params });
       const raw = response.data || [];
       return raw.map((item: unknown) => {
@@ -580,12 +610,26 @@ const ClientsPage: React.FC = () => {
           </div>
         </div>
 
+        <div className="glass-card border-0 overflow-hidden rounded-pill p-1" style={{ minWidth: '220px' }}>
+          <select 
+            className="form-select border-0 bg-transparent py-2 shadow-none fw-bold text-primary"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            style={{ fontSize: '0.95rem', cursor: 'pointer' }}
+          >
+            <option value="">Categorias: Todas</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
+
         <button
           className={`btn ${filterBlacklisted ? 'btn-danger' : 'btn-outline-secondary'} rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all border-2`}
           onClick={() => setFilterBlacklisted(!filterBlacklisted)}
         >
           <ShieldAlert size={18} />
-          {filterBlacklisted ? 'Ver Todos os Clientes' : 'Apenas Black List'}
+          {filterBlacklisted ? 'Ver Todos' : 'Apenas Black List'}
         </button>
       </div>
 
@@ -600,11 +644,7 @@ const ClientsPage: React.FC = () => {
       )}
 
       {isLoading ? (
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Carregando...</span>
-          </div>
-        </div>
+        <LoadingState message="A carregar lista de clientes..." />
       ) : isError ? (
         <div className="alert alert-danger">
           Erro ao carregar clientes: {(error as any)?.message || 'Erro desconhecido'}

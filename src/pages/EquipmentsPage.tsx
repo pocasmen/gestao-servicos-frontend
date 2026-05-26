@@ -9,6 +9,7 @@ import { Equipment, Client } from '../types';
 import { EquipmentSchema, ClientSchema } from '../schemas';
 import logger from '../utils/logger';
 import { Pencil, Trash2, History, Plus, X, Check, Search, Cpu, Building2 } from 'lucide-react';
+import LoadingState from '../components/LoadingState';
 
 // Formulário de Criação (com estilo Bootstrap Card)
 const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipmentAdded }) => {
@@ -19,7 +20,24 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
   const [nickname, setNickname] = useState('');
   const [clientName, setClientName] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
+  const [category, setCategory] = useState('');
   const { alert } = useConfirm();
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['settings', 'equipment-categories'],
+    queryFn: async () => {
+        const res = await apiClient.get('/api/settings');
+        const catJson = res.data.equipment_categories;
+        if (catJson) {
+            try {
+                return JSON.parse(catJson) as string[];
+            } catch (e) {
+                return [];
+            }
+        }
+        return [];
+    }
+  });
 
   const { data: clients = [] } = useQuery({
     queryKey: ['clients'],
@@ -65,7 +83,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
     }
 
     setIsSubmitting(true);
-    createMutation.mutate({ brand, model, serialNumber, nickname, clientId: selectedClient.id, additionalInfo });
+    createMutation.mutate({ brand, model, serialNumber, nickname, clientId: selectedClient.id, additionalInfo, category });
   };
 
   return (
@@ -92,6 +110,17 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
                 {clients.map(client => <option key={client.id} value={client.name} />)}
               </datalist>
             </div>
+            <div className="col-md-3">
+                <label className="form-label small fw-bold text-muted text-uppercase mb-2 mb-1 d-block" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Categoria / Setor</label>
+                <select 
+                    className="form-select shadow-sm rounded-3 border py-2"
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                >
+                    <option value="">Sem Categoria</option>
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+            </div>
             <div className="col-md-2">
               <SmartInput
                 label="Marca"
@@ -102,7 +131,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
                 placeholder="Ex: Bosch"
               />
             </div>
-            <div className="col-md-3">
+            <div className="col-md-2">
               <SmartInput
                 label="Modelo"
                 value={model}
@@ -112,7 +141,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
                 placeholder="Ex: WineScan"
               />
             </div>
-            <div className="col-md-2">
+            <div className="col-md-3">
               <SmartInput
                 label="Nº de Série"
                 value={serialNumber}
@@ -122,7 +151,7 @@ const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipment
                 placeholder="SN-123"
               />
             </div>
-            <div className="col-md-2">
+            <div className="col-md-3">
               <SmartInput
                 label="Alcunha (Opcional)"
                 value={nickname}
@@ -167,7 +196,24 @@ const EditEquipmentModal: React.FC<{
   const [serialNumber, setSerialNumber] = useState('');
   const [nickname, setNickname] = useState('');
   const [additionalInfo, setAdditionalInfo] = useState('');
+  const [category, setCategory] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['settings', 'equipment-categories'],
+    queryFn: async () => {
+        const res = await apiClient.get('/api/settings');
+        const catJson = res.data.equipment_categories;
+        if (catJson) {
+            try {
+                return JSON.parse(catJson) as string[];
+            } catch (e) {
+                return [];
+            }
+        }
+        return [];
+    }
+  });
 
   useEffect(() => {
     if (equipment) {
@@ -176,6 +222,7 @@ const EditEquipmentModal: React.FC<{
       setSerialNumber(equipment.serialNumber);
       setNickname(equipment.nickname || '');
       setAdditionalInfo(equipment.additionalInfo || '');
+      setCategory(equipment.category || '');
     }
   }, [equipment]);
 
@@ -184,7 +231,7 @@ const EditEquipmentModal: React.FC<{
     if (equipment) {
       setIsSaving(true);
       try {
-        await onSave({ ...equipment, brand, model, serialNumber, nickname, additionalInfo });
+        await onSave({ ...equipment, brand, model, serialNumber, nickname, additionalInfo, category });
       } finally {
         setIsSaving(false);
       }
@@ -239,6 +286,17 @@ const EditEquipmentModal: React.FC<{
               </div>
             </div>
             <div className="row g-3 mb-3">
+                <div className="col-md-6">
+                    <label className="form-label small fw-bold text-muted text-uppercase mb-2 mb-1 d-block" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Categoria / Setor</label>
+                    <select 
+                        className="form-select shadow-sm rounded-3 border py-2"
+                        value={category}
+                        onChange={e => setCategory(e.target.value)}
+                    >
+                        <option value="">Sem Categoria</option>
+                        {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                </div>
               <div className="col-md-6">
                 <SmartInput
                   label="Nº de Série"
@@ -248,7 +306,9 @@ const EditEquipmentModal: React.FC<{
                   options={{ minLength: 3, disableHeuristics: true }}
                 />
               </div>
-              <div className="col-md-6">
+            </div>
+            <div className="row g-3 mb-3">
+              <div className="col-md-12">
                 <SmartInput
                   label="Alcunha (Opcional)"
                   value={nickname}
@@ -379,13 +439,42 @@ const EquipmentList: React.FC<{
 const EquipmentsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const { confirm, alert } = useConfirm();
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ['settings', 'equipment-categories'],
+    queryFn: async () => {
+        const res = await apiClient.get('/api/settings');
+        const catJson = res.data.equipment_categories;
+        if (catJson) {
+            try {
+                return JSON.parse(catJson) as string[];
+            } catch (e) {
+                return [];
+            }
+        }
+        return [];
+    }
+  });
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [searchQuery]);
 
   // Queries
   const { data: equipments = [], isLoading, isError, error } = useQuery({
-    queryKey: ['equipments', searchQuery],
+    queryKey: ['equipments', debouncedSearchQuery, selectedCategory],
     queryFn: async () => {
-      const params = searchQuery ? { search: searchQuery } : {};
+      const params: any = debouncedSearchQuery ? { search: debouncedSearchQuery } : {};
+      if (selectedCategory) params.category = selectedCategory;
       const response = await apiClient.get('/api/equipments', { params });
       const raw = response.data || [];
       return raw.map((item: unknown) => {
@@ -462,10 +551,10 @@ const EquipmentsPage: React.FC = () => {
     <div className="container-fluid mt-4">
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4 mt-2">
         <div>
-        <div className="d-flex align-items-center gap-3">
-          <Cpu size={40} strokeWidth={2.5} className="text-primary" />
-          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Equipamentos</h1>
-        </div>
+          <div className="d-flex align-items-center gap-3">
+            <Cpu size={40} strokeWidth={2.5} className="text-primary" />
+            <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Equipamentos</h1>
+          </div>
           <p className="text-muted small m-0 fst-italic">Consulte e gira o parque de equipamentos instalados</p>
         </div>
         <button
@@ -493,8 +582,8 @@ const EquipmentsPage: React.FC = () => {
         }} />
       )}
 
-      <div className="glass-card border-0 mb-4 overflow-hidden rounded-pill">
-        <div className="p-2">
+      <div className="d-flex flex-column flex-md-row gap-3 mb-4">
+        <div className="flex-grow-1 glass-card border-0 overflow-hidden rounded-pill p-1">
           <div className="input-group shadow-none bg-white rounded-pill ps-3">
             <span className="bg-transparent border-0 d-flex align-items-center text-muted pe-2">
               <Search size={18} className="opacity-50" />
@@ -509,14 +598,24 @@ const EquipmentsPage: React.FC = () => {
             />
           </div>
         </div>
+
+        <div className="glass-card border-0 overflow-hidden rounded-pill p-1" style={{ minWidth: '200px' }}>
+          <select 
+            className="form-select border-0 bg-transparent py-2 shadow-none fw-bold text-primary"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            style={{ fontSize: '0.95rem', cursor: 'pointer' }}
+          >
+            <option value="">Todas as Categorias</option>
+            {categories.map(cat => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {isLoading ? (
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Carregando...</span>
-          </div>
-        </div>
+        <LoadingState message="A carregar equipamentos..." />
       ) : isError ? (
         <div className="alert alert-danger">
           Erro ao carregar equipamentos: {(error as any)?.message || 'Erro desconhecido'}

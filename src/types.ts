@@ -173,6 +173,7 @@ export interface Equipment {
   clientName?: string;
   additionalInfo?: string;
   status?: string;
+  category?: string;
 }
 
 

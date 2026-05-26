@@ -14,6 +14,7 @@ import InventoryItemForm, { ComponentItem } from '../components/Inventory/Invent
 import InventoryStockModals from '../components/Inventory/InventoryStockModals';
 import InventoryReservationsModal from '../components/Inventory/InventoryReservationsModal';
 import OrderDetailsModal from '../components/Inventory/OrderDetailsModal';
+import LoadingState from '../components/LoadingState';
 import { supabase } from '../supabase';
 import logger from '../utils/logger';
 import { useNavigate } from 'react-router-dom';
@@ -519,12 +520,7 @@ const InventoryPage: React.FC = () => {
   const filteredInventory = useMemo(() => inventory, [inventory]);
 
   if (loading && !inventory.length) {
-    return (
-      <div className="container-fluid mt-4">
-        <div className="skeleton skeleton-title" style={{ width: '300px' }}></div>
-        <div className="skeleton mb-4" style={{ height: '60px', borderRadius: '12px' }}></div>
-      </div>
-    );
+    return <LoadingState message="A sincronizar inventário..." />;
   }
 
   return (

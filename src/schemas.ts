@@ -129,6 +129,7 @@ export const EquipmentSchema = z.object({
     clientName: z.string().optional(),
     clientId: z.number().optional().nullable().transform(v => v ?? undefined),
     additionalInfo: z.string().optional().nullable().transform(v => v ?? undefined),
+    category: z.string().optional().nullable().transform(v => v ?? undefined),
 });
 
 export const TicketSchema = z.object({

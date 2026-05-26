@@ -7,6 +7,7 @@ import whatsNewData from './data/whats-new.json';
 
 import Header from './components/Header';
 import ClientPortalHeader from './components/ClientPortalHeader';
+import LoadingState from './components/LoadingState';
 import { ConfirmProvider, useConfirm } from './contexts/ConfirmContext';
 import packageJson from '../package.json';
 import apiClient from './apiClient';
@@ -94,7 +95,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectP
   const location = useLocation();
 
   if (loading) {
-    return <div>A carregar...</div>; // Ou um spinner
+    return <LoadingState fullScreen={true} message="A carregar sessão segura..." />;
   }
 
   if (!user) {
@@ -235,7 +236,7 @@ const AppRoutes: React.FC = () => {
   }, [navigate]);
 
   if (loading) {
-    return <div className="d-flex justify-content-center align-items-center vh-100">A carregar sessão...</div>;
+    return <LoadingState fullScreen={true} message="A carregar sessão..." />;
   }
 
   const renderHeader = () => {
@@ -297,7 +298,7 @@ const AppRoutes: React.FC = () => {
           </div>
         )}
 
-        <React.Suspense fallback={<div className="d-flex justify-content-center mt-5"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">A carregar...</span></div></div>}>
+        <React.Suspense fallback={<LoadingState message="A preparar módulos..." />}>
           <Routes>
             <Route path="/accept-invite" element={<AcceptInvitePage />} />
             <Route path="/test-email" element={<TestEmailPage />} />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
 import UserDetailModal from '../components/TechnicianDetailModal';
 import { AuthContext } from '../contexts/AuthContext';
@@ -187,23 +188,18 @@ const UserList: React.FC<{ users: AppUser[], onSelectUser: (user: AppUser) => vo
 // Main page, updated to use the new components and data fetching
 const TechniciansPage: React.FC = () => {
   const { user, startImpersonation } = useContext(AuthContext);
-  const [users, setUsers] = useState<AppUser[]>([]);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const { confirm, alert } = useConfirm();
 
-  const fetchUsers = () => {
-    apiClient.get('/api/technicians').then(response => {
-      setUsers(response.data);
-    })
-      .catch((error: any) => {
-        logger.error(error, "Erro ao carregar utilizadores:");
-      });
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const { data: users = [], isLoading, isError, error } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/technicians');
+      return response.data as AppUser[];
+    }
+  });
 
   const handleSelectUser = (user: AppUser) => {
     setSelectedUser(user);
@@ -216,7 +212,7 @@ const TechniciansPage: React.FC = () => {
   };
 
   const handleUserChange = () => {
-    fetchUsers();
+    queryClient.invalidateQueries({ queryKey: ['technicians'] });
   };
 
   return (
@@ -233,7 +229,19 @@ const TechniciansPage: React.FC = () => {
 
       <InviteTechnicianForm onUserInvited={handleUserChange} currentUserRole={user?.user_metadata?.role as UserRole} />
       
-      <UserList users={users} onSelectUser={handleSelectUser} />
+      {isLoading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
+          </div>
+        </div>
+      ) : isError ? (
+        <div className="alert alert-danger">
+          Erro ao carregar técnicos: {(error as any)?.message || 'Erro desconhecido'}
+        </div>
+      ) : (
+        <UserList users={users} onSelectUser={handleSelectUser} />
+      )}
 
       {selectedUser && (
         <UserDetailModal

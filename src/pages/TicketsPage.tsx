@@ -22,6 +22,7 @@ import {
 
 import logger from '../utils/logger';
 import LinkToScheduleModal from '../components/LinkToScheduleModal';
+import LoadingState from '../components/LoadingState';
 
 const isExpressTicket = (ticket: Ticket) =>
   ticket.status === TicketStatus.SCHEDULED && !ticket.scheduleId;
@@ -399,12 +400,7 @@ const TicketsPage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-5 glass-card shadow-sm border-0">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Carregando...</span>
-          </div>
-          <p className="mt-3 text-muted fw-medium">A carregar tickets...</p>
-        </div>
+        <LoadingState message="A carregar tickets..." />
       ) : isError ? (
         <div className="alert alert-danger rounded-4 shadow-sm border-0 animate__animated animate__shakeX">
           <X className="me-2" />

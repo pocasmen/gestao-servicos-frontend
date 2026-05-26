@@ -5,6 +5,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
 import { Settings, Box } from 'lucide-react';
 import VirtualPartsSettings from '../components/Settings/VirtualPartsSettings';
+import EquipmentCategoriesSettings from '../components/Settings/EquipmentCategoriesSettings';
 
 const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState<Record<string, string>>({
@@ -267,6 +268,7 @@ const SettingsPage: React.FC = () => {
         </div>
       </div>
 
+      <EquipmentCategoriesSettings />
       <VirtualPartsSettings />
       
       <div className="card mb-4 border-info">

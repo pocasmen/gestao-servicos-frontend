@@ -8,6 +8,7 @@ import TaskModal from '../components/TaskModal';
 import logger from '../utils/logger';
 import { InternalTask } from '../types';
 import { AuthContext } from '../contexts/AuthContext';
+import LoadingState from '../components/LoadingState';
 
 const TasksPage: React.FC = () => {
     const queryClient = useQueryClient();
@@ -260,10 +261,7 @@ const TasksPage: React.FC = () => {
 
                 <div className="p-4 bg-light bg-opacity-50">
                     {isLoading ? (
-                        <div className="text-center py-5">
-                            <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}></div>
-                            <p className="text-muted fw-bold">A carregar tarefas...</p>
-                        </div>
+                        <LoadingState message="A carregar tarefas..." />
                     ) : isError ? (
                         <div className="alert alert-danger border-0 shadow-sm d-flex align-items-center gap-3 p-4 rounded-4">
                             <AlertTriangle size={24} /> <div><strong>Erro:</strong> {(error as any).message}</div>

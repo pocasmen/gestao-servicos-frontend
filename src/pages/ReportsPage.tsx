@@ -6,7 +6,8 @@ import { format, parseISO } from 'date-fns';
 import { UserRole } from '../constants/enums';
 import ReportModal from '../components/ReportModal';
 import DeleteReportModal from '../components/DeleteReportModal';
-import { Trash2, Pencil, Eye, Printer, Plus, X, Check, Search, Copy, Clipboard, Send, FileText } from 'lucide-react';
+import LoadingState from '../components/LoadingState';
+import { Trash2, Pencil, Eye, Printer, Plus, X, Check, Search, Copy, Clipboard, Send, FileText, FileCheck, FileWarning } from 'lucide-react';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { SERVICE_TYPE_LABELS, SERVICE_CLASSIFICATIONS_LIST } from '../constants';
 import { AuthContext } from '../contexts/AuthContext';
@@ -462,13 +463,14 @@ const ReportList: React.FC<{
             <th>Data</th>
             <th>Serviço</th>
             <th>Horas</th>
+            <th className="text-center">Assinatura</th>
             <th className="text-end pe-4">Ações</th>
           </tr>
         </thead>
         <tbody style={{ borderTop: 'none' }}>
           {reports.length === 0 ? (
             <tr>
-              <td colSpan={6} className="text-center py-4 text-muted">Nenhum relatório encontrado.</td>
+              <td colSpan={7} className="text-center py-4 text-muted">Nenhum relatório encontrado.</td>
             </tr>
           ) : (
             reports.map(report => (
@@ -506,6 +508,19 @@ const ReportList: React.FC<{
                 </td>
                 <td>
                   <span className="fw-bold text-dark">{report.hours}h</span>
+                </td>
+                <td className="text-center">
+                  {report.signature ? (
+                    <span className="badge rounded-pill bg-success-soft text-success border border-success d-inline-flex align-items-center gap-1 py-1 px-2" style={{ backgroundColor: 'rgba(25, 135, 84, 0.1)' }}>
+                      <FileCheck size={14} />
+                      <span style={{ fontSize: '0.7rem' }}>Assinado</span>
+                    </span>
+                  ) : (
+                    <span className="badge rounded-pill bg-danger-soft text-danger border border-danger d-inline-flex align-items-center gap-1 py-1 px-2" style={{ backgroundColor: 'rgba(220, 53, 69, 0.1)' }}>
+                      <FileWarning size={14} />
+                      <span style={{ fontSize: '0.7rem' }}>Falta Assinatura</span>
+                    </span>
+                  )}
                 </td>
                 <td className="text-end pe-4">
                   <div className="d-flex justify-content-end gap-1">
@@ -553,6 +568,7 @@ const ReportsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [serviceTypeFilter, setServiceTypeFilter] = useState('');
+  const [signedFilter, setSignedFilter] = useState<'' | 'signed' | 'unsigned'>('');
   const [isLoading, setIsLoading] = useState(false);
   
   // Pagination State
@@ -574,6 +590,7 @@ const ReportsPage: React.FC = () => {
     if (searchQuery) params.search = searchQuery;
     if (dateFilter) params.dateFilter = dateFilter;
     if (serviceTypeFilter) params.serviceType = serviceTypeFilter;
+    if (signedFilter) params.signedFilter = signedFilter;
 
     try {
       const response = await apiClient.get('/api/reports', { params });
@@ -698,7 +715,7 @@ const ReportsPage: React.FC = () => {
       <div className="glass-card border-0 mb-4 overflow-hidden">
         <div className="p-4">
           <div className="row g-3 align-items-end">
-            <div className="col-md-3">
+            <div className="col-md-2">
               <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Pesquisar</label>
               <div className="input-group shadow-sm rounded-pill overflow-hidden border bg-white ps-3">
                 <span className="bg-transparent border-0 d-flex align-items-center text-muted pe-2">
@@ -707,10 +724,11 @@ const ReportsPage: React.FC = () => {
                 <input
                   type="text"
                   className="form-control border-0 bg-transparent py-2"
-                  placeholder="Cliente, equipamento..."
+                  placeholder="Pesquisar..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
+                  style={{ fontSize: '0.9rem' }}
                 />
               </div>
             </div>
@@ -720,7 +738,7 @@ const ReportsPage: React.FC = () => {
                 <button
                   type="button"
                   className={`btn border-0 py-2 py-lg-2 fw-medium ${dateFilter === '' ? 'btn-primary' : 'btn-white text-muted'}`}
-                  style={{ fontSize: '0.85rem' }}
+                  style={{ fontSize: '0.8rem' }}
                   onClick={() => setDateFilter('')}
                 >
                   Tudo
@@ -728,7 +746,7 @@ const ReportsPage: React.FC = () => {
                 <button
                   type="button"
                   className={`btn border-0 py-2 py-lg-2 fw-medium ${dateFilter === 'today' ? 'btn-primary' : 'btn-white text-muted'}`}
-                  style={{ fontSize: '0.85rem' }}
+                  style={{ fontSize: '0.8rem' }}
                   onClick={() => setDateFilter('today')}
                 >
                   Hoje
@@ -736,7 +754,7 @@ const ReportsPage: React.FC = () => {
                 <button
                   type="button"
                   className={`btn border-0 py-2 py-lg-2 fw-medium ${dateFilter === 'week' ? 'btn-primary' : 'btn-white text-muted'}`}
-                  style={{ fontSize: '0.85rem' }}
+                  style={{ fontSize: '0.8rem' }}
                   onClick={() => setDateFilter('week')}
                 >
                   Semana
@@ -744,25 +762,38 @@ const ReportsPage: React.FC = () => {
                 <button
                   type="button"
                   className={`btn border-0 py-2 py-lg-2 fw-medium ${dateFilter === 'month' ? 'btn-primary' : 'btn-white text-muted'}`}
-                  style={{ fontSize: '0.85rem' }}
+                  style={{ fontSize: '0.8rem' }}
                   onClick={() => setDateFilter('month')}
                 >
                   Mês
                 </button>
               </div>
             </div>
-            <div className="col-md-3">
-              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Tipo de Serviço</label>
+            <div className="col-md-2">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Serviço</label>
               <select
                 className="form-select shadow-sm rounded-3 py-2 border"
-                style={{ fontSize: '0.9rem' }}
+                style={{ fontSize: '0.85rem' }}
                 value={serviceTypeFilter}
                 onChange={(e) => setServiceTypeFilter(e.target.value)}
               >
-                <option value="">Todos os tipos</option>
+                <option value="">Todos</option>
                 {Object.entries(SERVICE_TYPE_LABELS).map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
                 ))}
+              </select>
+            </div>
+            <div className="col-md-2">
+              <label className="form-label small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Assinatura</label>
+              <select
+                className="form-select shadow-sm rounded-3 py-2 border"
+                style={{ fontSize: '0.85rem' }}
+                value={signedFilter}
+                onChange={(e) => setSignedFilter(e.target.value as any)}
+              >
+                <option value="">Todas</option>
+                <option value="signed">Assinados</option>
+                <option value="unsigned">Não Assinados</option>
               </select>
             </div>
             <div className="col-md-2">
@@ -775,7 +806,7 @@ const ReportsPage: React.FC = () => {
                   <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                 ) : (
                   <>
-                    <Search size={20} />
+                    <Search size={18} />
                     <span>Filtrar</span>
                   </>
                 )}
@@ -784,12 +815,16 @@ const ReportsPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <ReportList
-        reports={reports}
-        onEditReport={handleEditReport}
-        onDeleteReport={handleDeleteReport}
-        isAdmin={isAdmin}
-      />
+      {isLoading && reports.length === 0 ? (
+        <LoadingState message="A carregar relatórios..." />
+      ) : (
+        <ReportList
+          reports={reports}
+          onEditReport={handleEditReport}
+          onDeleteReport={handleDeleteReport}
+          isAdmin={isAdmin}
+        />
+      )}
 
       {/* Pagination Controls */}
       {paginationInfo.totalPages > 1 && (

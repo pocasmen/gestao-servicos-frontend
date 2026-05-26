@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import StatCard from '../components/StatCard';
 import { Link } from 'react-router-dom';
+import LoadingState from '../components/LoadingState';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { TicketStatus } from '../constants/enums';
 import { getBillingStats, getBillingTasks } from '../services/billingService';
@@ -417,34 +418,7 @@ const DashboardPage: React.FC = () => {
   }, [weeklySchedules]);
 
   if (loading) {
-    return (
-      <div className="container py-5">
-        <div className="d-flex justify-content-between align-items-center mb-5">
-          <div>
-            <div className="skeleton skeleton-title" style={{ width: '250px' }}></div>
-            <div className="skeleton skeleton-text" style={{ width: '350px' }}></div>
-          </div>
-          <div className="skeleton rounded-4" style={{ width: '300px', height: '50px' }}></div>
-        </div>
-        <div className="row g-4 mb-5">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="col-12 col-md-6 col-xl-4">
-              <div className="card border-0 shadow-sm p-4" style={{ height: '220px' }}>
-                <div className="d-flex justify-content-between mb-4">
-                  <div className="skeleton skeleton-circle" style={{ width: '60px' }}></div>
-                  <div style={{ textAlign: 'right', width: '60%' }}>
-                    <div className="skeleton skeleton-title ms-auto"></div>
-                    <div className="skeleton skeleton-text ms-auto"></div>
-                  </div>
-                </div>
-                <div className="skeleton skeleton-text"></div>
-                <div className="skeleton skeleton-text" style={{ width: '80%' }}></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <LoadingState message="A carregar painel de controlo..." />;
   }
 
   return (

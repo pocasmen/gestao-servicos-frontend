@@ -71,7 +71,10 @@ const ClientProfilePage: React.FC = () => {
                 setPhone(currentUser.phone || '');
                 setSignature(currentUser.signature || '');
                 if (currentUser.notification_prefs) {
-                    setNotificationPrefs(currentUser.notification_prefs);
+                    setNotificationPrefs(prev => ({
+                        ...prev,
+                        ...currentUser.notification_prefs
+                    }));
                 }
             }
         }).catch(err => {

@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.2.5",
+    "date": "2026-05-26",
+    "staff": {
+      "title": "Filtro de Assinaturas e Indicadores Visuais em Relatórios",
+      "notes": [
+        "Adicionado filtro na página de relatórios para visualizar rapidamente relatórios 'Assinados' ou 'Não Assinados'.",
+        "Implementado indicador visual (badge) na listagem de relatórios para verificação imediata do estado de assinatura de cada intervenção.",
+        "Facilitação do fluxo administrativo para identificação de pendências de assinatura.",
+        "Adicionado filtro dinâmico por categoria de equipamento na página de Gestão de Utilizadores.",
+        "O sistema filtra automaticamente utilizadores associados a clientes que possuam equipamentos da categoria selecionada.",
+        "A nova funcionalidade permite uma segmentação rápida da base de utilizadores de acordo com o parque de equipamentos existente."
+      ]
+    }
+  },
+  {
     "version": "1.2.4",
     "date": "2026-05-20",
     "staff": {

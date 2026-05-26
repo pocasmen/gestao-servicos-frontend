@@ -382,3 +382,41 @@ h2 {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
   filter: brightness(0.97);
 }
+
+/* --- Animação do Loading State Mecânico --- */
+
+/* 1. Rotação contínua e suave da engrenagem de fundo */
+@keyframes mechanicalSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-mechanical-spin {
+  animation: mechanicalSpin 4s linear infinite;
+}
+
+/* 2. Movimento de vaivém da chave inglesa (simulando aperto) */
+@keyframes wrenchTighten {
+  0% { transform: rotate(0deg); }
+  30% { transform: rotate(25deg); }  /* Movimento de aperto */
+  40% { transform: rotate(25deg); }  /* Pequena pausa na força */
+  80% { transform: rotate(-5deg); }  /* Recuo suave */
+  100% { transform: rotate(0deg); }
+}
+
+.animate-wrench-tighten {
+  animation: wrenchTighten 1.6s ease-in-out infinite;
+  /* Define o ponto de rotação na base/cabeça da chave, e não no centro do quadrado */
+  transform-origin: 25% 75%; 
+}
+
+/* 3. Pulsação subtil do texto */
+@keyframes pulseText {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.animate-pulse-text {
+  animation: pulseText 1.6s ease-in-out infinite;
+  letter-spacing: 0.05em;
+}
