@@ -1,5 +1,23 @@
 [
   {
+    "version": "1.2.6",
+    "date": "2026-05-27",
+    "staff": {
+      "title": "Visibilidade Global de Serviços 'Para Revisão' e Melhoria no Calendário",
+      "notes": [
+        "Implementada a visibilidade global de todos os serviços marcados 'Para Revisão', independentemente do filtro temporal selecionado.",
+        "Novo sistema de alertas críticos no topo da página de faturação para sinalizar imediatamente pendências de revisão.",
+        "Botão de acesso rápido 'Ver Agora' integrado no alerta para filtragem instantânea dos itens que requerem atenção.",
+        "Otimização das estatísticas de faturação para refletir o estado real de pendências globais, evitando o esquecimento de serviços em períodos passados.",
+        "Calendário Técnico: Adicionada a exibição do número da semana (ex: S25) no cabeçalho das vistas de semana de trabalho para facilitar o planeamento técnico.",
+        "Arquitetura Backend: Implementação de padrão Event-Driven (EventEmitter) para desacoplamento de efeitos secundários (Notificações, Sincronização Google e Realtime), aumentando a resiliência e modularidade do sistema.",
+        "Maior Resiliência: Falhas em notificações ou sincronização externa já não interrompem a gravação de dados críticos na base de dados.",
+        "Performance Otimizada: Processamento assíncrono de efeitos secundários, libertando o fluxo principal para uma resposta mais rápida ao utilizador.",
+        "Manutenção Facilitada: Código mais modular e limpo, permitindo a adição de novas integrações sem alterar a lógica de negócio central."
+      ]
+    }
+  },
+  {
     "version": "1.2.5",
     "date": "2026-05-26",
     "staff": {

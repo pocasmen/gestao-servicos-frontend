@@ -4,7 +4,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
-import { format, parse, startOfWeek, getDay, addHours, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addHours, startOfMonth, endOfMonth, subMonths, addMonths, getISOWeek, addDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import apiClient from '../apiClient';
 import { supabase } from '../supabase';
@@ -33,7 +33,7 @@ const customFormats = {
   dayHeaderFormat: 'EEE dd/MM',
   weekHeaderFormat: 'MMM dd',
   dayRangeHeaderFormat: ({ start, end }: { start: Date, end: Date }) =>
-    format(start, 'dd/MM/yyyy', { locale: pt }) + ' - ' + format(end, 'dd/MM/yyyy', { locale: pt }),
+    format(start, 'MMMM d', { locale: pt }) + ' – ' + format(end, 'd', { locale: pt }) + ' (S' + getISOWeek(addDays(start, 2)) + ')',
   agendaDateFormat: 'dd/MM/yyyy',
   agendaDayFormat: 'dd/MM/yyyy',
   agendaHeaderFormat: ({ start, end }: { start: Date, end: Date }) =>
@@ -597,6 +597,21 @@ const CalendarPage: React.FC = () => {
 
   const handleNavigate = useCallback((newDate: Date) => setDate(newDate), []);
   const handleView = useCallback((newView: any) => setView(newView), []);
+
+  // Forçar a exibição do número da semana
+  useEffect(() => {
+    const updateWeekHeader = () => {
+      const header = document.querySelector('.rbc-toolbar-label');
+      if (header && !header.textContent?.includes('(S')) {
+        const weekNumber = getISOWeek(addDays(date, 2));
+        header.textContent = `${header.textContent} (S${weekNumber})`;
+      }
+    };
+    
+    // Pequeno delay para garantir que o componente renderizou
+    const timeout = setTimeout(updateWeekHeader, 100);
+    return () => clearTimeout(timeout);
+  }, [date, view]);
 
   // Helper memoizado para gerar gradientes, evitando recálculos no render
   const getTechnicianGradient = useCallback((technicians: Technician[]) => {

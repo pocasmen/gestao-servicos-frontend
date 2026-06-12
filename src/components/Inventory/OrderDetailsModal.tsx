@@ -99,12 +99,14 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
 
     // --- ADD ITEMS LOGIC ---
     const handleStartAdding = () => {
-        setNewItems([{ quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL }]);
+        const orderStockType = order?.items?.[0]?.stock_type || StockType.GENERAL;
+        setNewItems([{ quantity: 1, reference: '', designation: '', stockType: orderStockType }]);
         setIsAddingItems(true);
     };
 
     const handleAddPart = () => {
-        setNewItems(prev => [...prev, { quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL }]);
+        const orderStockType = order?.items?.[0]?.stock_type || StockType.GENERAL;
+        setNewItems(prev => [...prev, { quantity: 1, reference: '', designation: '', stockType: orderStockType }]);
     };
 
     const handleRemovePart = (index: number) => {
@@ -150,8 +152,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
     };
 
     const handleSaveNewItems = async () => {
-        const orderStockType = order?.items?.[0]?.stock_type || StockType.GENERAL;
-        const validItems = newItems.filter(i => i.reference && i.reference.trim() !== '' && i.quantity > 0).map(i => ({ ...i, stockType: orderStockType }));
+        const validItems = newItems.filter(i => i.reference && i.reference.trim() !== '' && i.quantity > 0);
         if (validItems.length === 0) return alert('É necessário incluir pelo menos um artigo válido (com referência) na encomenda.');
 
         setIsSubmitting(true);
@@ -161,7 +162,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
             setNewItems([]);
             queryClient.invalidateQueries({ queryKey: ['inventory_order_detail', orderId] });
             queryClient.invalidateQueries({ queryKey: ['inventory_orders'] });
-            // Show a quick success alert if needed or rely on modal redraw
         } catch (err: any) {
             alert(`Erro ao adicionar itens: ${err.response?.data?.details || err.message}`);
             logger.error(err, 'Add order items error:');

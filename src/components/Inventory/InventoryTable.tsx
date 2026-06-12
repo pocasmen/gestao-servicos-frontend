@@ -5,6 +5,7 @@ import { Pencil, Trash2, ArrowUpDown, Truck, Package, CalendarCheck, History, Ch
 import apiClient from '../../apiClient';
 import './InventoryTable.css';
 import { format } from 'date-fns';
+import { STOCK_TYPE_LABELS } from '../../constants';
 
 // ─── Transaction type config ─────────────────────────────────────────────────
 const TX_TYPE: Record<string, { label: string; colorCls: string; icon: React.ReactNode }> = {
@@ -83,7 +84,7 @@ const PartHistoryPanel: React.FC<{ partId: number; colSpan: number; onOpenDoc?: 
                                                 </td>
                                                 <td className="py-2">
                                                     <span className="fw-bold text-muted small">
-                                                        {tx.stock_type === 'contract' ? 'FOSS/Contrato' : 'Geral'}
+                                                        {['foss', 'contract'].includes(tx.stock_type) ? 'Foss' : 'Geral'}
                                                     </span>
                                                 </td>
                                                 <td className="py-2 text-center fw-bold text-muted">

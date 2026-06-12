@@ -222,6 +222,26 @@ const BillingPage: React.FC = () => {
                 </div>
             </div>
 
+            {stats.needs_review > 0 && (
+                <div className="alert alert-danger d-flex align-items-center shadow-sm border-0 mb-4 animate__animated animate__fadeIn" role="alert">
+                    <AlertTriangle size={24} className="me-3 flex-shrink-0" />
+                    <div className="flex-grow-1">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong className="fs-5">Serviços Para Revisão!</strong><br />
+                                Existem <strong>{stats.needs_review}</strong> serviços que requerem a sua atenção imediata, independentemente do período selecionado.
+                            </div>
+                            <button 
+                                className="btn btn-danger btn-sm rounded-pill px-3 shadow-sm"
+                                onClick={() => setFilter(BillingStatus.NEEDS_REVIEW)}
+                            >
+                                Ver Agora
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="row mb-4">
                 <div className="col">
                     <div className="card text-center shadow-sm">

@@ -25,7 +25,7 @@ import LinkToScheduleModal from '../components/LinkToScheduleModal';
 import LoadingState from '../components/LoadingState';
 
 const isExpressTicket = (ticket: Ticket) =>
-  ticket.status === TicketStatus.SCHEDULED && !ticket.scheduleId;
+  (ticket.status === TicketStatus.SCHEDULED || ticket.status === TicketStatus.CLOSED) && !ticket.scheduleId;
 
 const TicketsPage: React.FC = () => {
   const queryClient = useQueryClient();

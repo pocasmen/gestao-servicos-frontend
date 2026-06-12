@@ -612,6 +612,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       serviceType,
       includesTravel,
       classification,
+      priority,
       timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
       parts: partsPayload // Incluir as peças na requisição de conclusão
     };

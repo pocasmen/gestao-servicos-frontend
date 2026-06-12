@@ -28,6 +28,7 @@ import InventoryItemForm, { ComponentItem } from '../components/Inventory/Invent
 // Types
 import { Part } from '../types';
 import { StockType } from '../constants/enums';
+import { STOCK_TYPE_LABELS } from '../constants';
 
 // ─── Transaction type config ─────────────────────────────────────────────────
 const TX_TYPE: Record<string, { label: string; colorCls: string; icon: React.ReactNode }> = {
@@ -287,7 +288,7 @@ const MovementsPage: React.FC = () => {
                                             </td>
                                             <td className="py-3">
                                                 <span className="badge bg-light text-dark border-0 rounded-pill px-3 py-2 fw-medium" style={{ fontSize: '0.72rem' }}>
-                                                    {tx.stock_type === 'contract' ? 'FOSS/Contrato' : 'Geral'}
+                                                    {['foss', 'contract'].includes(tx.stock_type) ? 'Foss' : 'Geral'}
                                                 </span>
                                             </td>
                                             <td className="py-3 text-center fw-bold text-muted" style={{ fontSize: '0.9rem' }}>
