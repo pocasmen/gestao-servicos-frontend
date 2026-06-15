@@ -310,6 +310,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                                         <th className="text-center py-2" style={{ width: '80px' }}>Enc.</th>
                                                         <th className="text-center py-2" style={{ width: '80px' }}>Rec.</th>
                                                         <th className="pe-4 text-center py-2" style={{ width: '130px' }}>A Receber</th>
+                                                        <th className="py-2" style={{ minWidth: '150px' }}>Nota / Destino</th>
                                                         <th className="pe-3 py-2" style={{ width: '40px' }}></th>
                                                     </tr>
                                                 </thead>
@@ -345,6 +346,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                                                             disabled={isSubmitting || order.status === 'CANCELLED'}
                                                                         />
                                                                     )}
+                                                                </td>
+                                                                <td className="py-2">
+                                                                    <div className="small text-muted">
+                                                                        {item.note || '-'}
+                                                                    </div>
                                                                 </td>
                                                                 <td className="pe-3 py-2 text-end">
                                                                     {item.quantity_received === 0 && order.status !== 'CANCELLED' && (

@@ -14,6 +14,7 @@ import InventoryItemForm, { ComponentItem } from '../components/Inventory/Invent
 import InventoryStockModals from '../components/Inventory/InventoryStockModals';
 import InventoryReservationsModal from '../components/Inventory/InventoryReservationsModal';
 import OrderDetailsModal from '../components/Inventory/OrderDetailsModal';
+import SaleDetailsModal from '../components/Inventory/SaleDetailsModal';
 import LoadingState from '../components/LoadingState';
 import { supabase } from '../supabase';
 import logger from '../utils/logger';
@@ -56,6 +57,8 @@ const InventoryPage: React.FC = () => {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+  const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
 
   // States for Modals
   const [stockChange, setStockChange] = useState<number>(0);
@@ -310,8 +313,18 @@ const InventoryPage: React.FC = () => {
         if (err.response?.status === 404) alert('Esta encomenda já não existe.');
         else alert('Erro ao carregar documento.');
       }
+    } else if (tx.type === 'DIRECT_SALE') {
+      try {
+        await apiClient.get(`/api/inventory/sales/${tx.reference_id}`);
+        setSelectedSaleId(parseInt(tx.reference_id));
+        setIsSaleModalOpen(true);
+      } catch (err: any) {
+        if (err.response?.status === 404) alert('Esta saída/venda já não existe.');
+        else alert('Erro ao carregar documento.');
+      }
     }
-  };
+    };
+
 
   const handleAddItem = async () => {
     if (addItemMutation.isPending) return;
@@ -685,6 +698,15 @@ const InventoryPage: React.FC = () => {
           isOpen={isOrderModalOpen}
           onClose={() => setIsOrderModalOpen(false)}
           orderId={selectedOrderId}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['inventory'] })}
+        />
+      )}
+
+      {isSaleModalOpen && selectedSaleId && (
+        <SaleDetailsModal
+          isOpen={isSaleModalOpen}
+          saleId={selectedSaleId}
+          onClose={() => setIsSaleModalOpen(false)}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['inventory'] })}
         />
       )}

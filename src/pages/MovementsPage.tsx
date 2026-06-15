@@ -23,6 +23,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 // Components
 import ReportModal from '../components/ReportModal';
 import OrderDetailsModal from '../components/Inventory/OrderDetailsModal';
+import SaleDetailsModal from '../components/Inventory/SaleDetailsModal';
 import InventoryItemForm, { ComponentItem } from '../components/Inventory/InventoryItemForm';
 
 // Types
@@ -52,6 +53,9 @@ const MovementsPage: React.FC = () => {
 
     const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+
+    const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+    const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
 
     const [isPartModalOpen, setIsPartModalOpen] = useState(false);
     const [selectedPartId, setSelectedPartId] = useState<number | null>(null);
@@ -151,6 +155,20 @@ const MovementsPage: React.FC = () => {
                 } else {
                     alert('Erro ao carregar encomenda.');
                     logger.error(err, 'Error verifying order existence:');
+                }
+            }
+        } else if (tx.type === 'DIRECT_SALE') {
+            try {
+                // Verify existence first
+                await apiClient.get(`/api/inventory/sales/${tx.reference_id}`);
+                setSelectedSaleId(parseInt(tx.reference_id));
+                setIsSaleModalOpen(true);
+            } catch (err: any) {
+                if (err.response?.status === 404) {
+                    alert('Esta saída/venda já não existe ou foi eliminada.');
+                } else {
+                    alert('Erro ao carregar saída.');
+                    logger.error(err, 'Error verifying sale existence:');
                 }
             }
         }
@@ -387,6 +405,15 @@ const MovementsPage: React.FC = () => {
                     isOpen={isOrderModalOpen}
                     orderId={selectedOrderId}
                     onClose={() => setIsOrderModalOpen(false)}
+                    onSuccess={() => queryClient.invalidateQueries({ queryKey: ['inventory_movements'] })}
+                />
+            )}
+
+            {isSaleModalOpen && selectedSaleId && (
+                <SaleDetailsModal
+                    isOpen={isSaleModalOpen}
+                    saleId={selectedSaleId}
+                    onClose={() => setIsSaleModalOpen(false)}
                     onSuccess={() => queryClient.invalidateQueries({ queryKey: ['inventory_movements'] })}
                 />
             )}

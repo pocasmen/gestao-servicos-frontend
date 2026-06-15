@@ -48,6 +48,7 @@ const Header: React.FC = () => {
       'cli': '/clients',
       'equip': '/equipments',
       'inv': '/inventory',
+      'vend': '/inventory/sales',
       'perf': '/profile',
       'conf': '/settings',
       'fat': '/billing',
@@ -152,6 +153,11 @@ const Header: React.FC = () => {
                   <li>
                     <NavLink to="/inventory/orders" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
                       <Package size={16} /> Encomendas
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/inventory/sales" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
+                      <CreditCard size={16} /> Vendas
                     </NavLink>
                   </li>
                   <li>

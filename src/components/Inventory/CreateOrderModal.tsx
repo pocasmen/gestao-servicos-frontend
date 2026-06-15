@@ -16,6 +16,8 @@ interface OrderItem {
     stockType: string;
     isDesignationLocked?: boolean;
     image_path?: string;
+    availableStock?: number;
+    note?: string;
 }
 
 interface CreateOrderModalProps {
@@ -29,12 +31,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
     const [documentNumber, setDocumentNumber] = useState('');
     const [notes, setNotes] = useState('');
     const [orderStockType, setOrderStockType] = useState<StockType>(StockType.GENERAL);
-    const [items, setItems] = useState<OrderItem[]>([{ quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL }]);
+    const [items, setItems] = useState<OrderItem[]>([{ quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL, note: '' }]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { searchResults, searchParts } = usePartSearch();
 
     const handleAddPart = () => {
-        setItems(prev => [...prev, { quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL }]);
+        setItems(prev => [...prev, { quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL, note: '' }]);
     };
 
     const handleRemovePart = (index: number) => {
@@ -66,9 +68,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                 setItems(prev => {
                     const next = [...prev];
                     if (part) {
-                        next[index] = { ...next[index], partId: part.id, designation: part.designation, isDesignationLocked: true, image_path: part.image_path };
+                        const available = (orderStockType === StockType.FOSS) 
+                            ? ((part.stock_quantity_foss || 0) - (part.reserved_quantity_foss || 0))
+                            : ((part.stock_quantity || 0) - (part.reserved_quantity || 0));
+                        next[index] = { ...next[index], partId: part.id, designation: part.designation, isDesignationLocked: true, image_path: part.image_path, availableStock: available };
                     } else {
-                        next[index] = { ...next[index], partId: undefined, designation: '', isDesignationLocked: false, image_path: undefined };
+                        next[index] = { ...next[index], partId: undefined, designation: '', isDesignationLocked: false, image_path: undefined, availableStock: undefined };
                     }
                     return next;
                 });
@@ -90,7 +95,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
             await apiClient.post('/api/inventory/orders', {
                 document_number: documentNumber.trim(),
                 notes: notes.trim(),
-                items: validItems.map(i => ({ ...i, stockType: orderStockType }))
+                items: validItems.map(i => ({ 
+                    partId: i.partId,
+                    reference: i.reference,
+                    designation: i.designation,
+                    quantity: i.quantity,
+                    stockType: orderStockType,
+                    note: i.note 
+                }))
             });
             onSuccess();
         } catch (err: any) {
@@ -105,35 +117,32 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
 
     const modalContent = (
         <>
-            {/* Backdrop */}
             <div
                 className="modal-backdrop fade show"
                 style={{ zIndex: 1050, opacity: 1, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
                 onClick={!isSubmitting ? onClose : undefined}
             />
-            {/* Modal */}
             <div
                 className="modal show d-block"
                 style={{ zIndex: 1055 }}
                 tabIndex={-1}
                 role="dialog"
             >
-                <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                            {/* Header */}
-                            <div className="modal-header border-0 px-4 pt-4 pb-3">
-                                <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'var(--font-family-title)', color: '#111827' }}>
-                                    <span className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary">
-                                        <Package size={22} />
-                                    </span>
-                                    Nova Encomenda
-                                </h5>
-                                <button type="button" className="btn-close" onClick={onClose} disabled={isSubmitting} />
-                            </div>
+                <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', maxHeight: '90vh' }}>
+                        <div className="modal-header border-0 px-4 pt-4 pb-3">
+                            <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'var(--font-family-title)', color: '#111827' }}>
+                                <span className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary">
+                                    <Package size={22} />
+                                </span>
+                                Nova Encomenda
+                            </h5>
+                            <button type="button" className="btn-close" onClick={onClose} disabled={isSubmitting} />
+                        </div>
 
-                            {/* Body */}
-                            <div className="modal-body px-4 py-3 bg-light bg-opacity-50" style={{ overflowY: 'visible' }}>
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                            <div className="modal-body px-4 py-3 bg-light bg-opacity-50" style={{ overflowY: 'auto' }}>
+
                                 <div className="row g-3 mb-3">
                                     <div className="col-md-6">
                                         <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
@@ -165,7 +174,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                         </select>
                                     </div>
                                 </div>
-                                <div className="row g-3 mb-4">
+                                <div className="row g-3 mb-3">
                                     <div className="col-12">
                                         <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                             Notas
@@ -180,20 +189,21 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                     </div>
                                 </div>
 
-                                <h6 className="fw-bold text-dark mb-3 text-uppercase" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                <h6 className="fw-bold text-dark mb-2 text-uppercase" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                     <i className="bi bi-basket-fill me-2 text-primary opacity-50"></i>
                                     Artigos a Encomendar
                                 </h6>
 
-                                {/* Items table */}
-                                <div className="rounded-3 border border-light shadow-sm mb-3 bg-white" style={{ minHeight: '160px', overflow: 'visible' }}>
+                                <div className="rounded-3 border border-light shadow-sm mb-3 bg-white">
                                     <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
-                                        <thead className="table-light">
+                                        <thead>
                                             <tr className="text-uppercase small fw-bold text-muted" style={{ letterSpacing: '0.02em' }}>
                                                 <th className="ps-3 py-2 text-center" style={{ width: '50px' }}>Img</th>
                                                 <th className="text-center py-2" style={{ width: '70px' }}>Qt</th>
-                                                <th className="py-2" style={{ width: '150px' }}>Referência</th>
-                                                <th className="py-2">Designação</th>
+                                                <th className="py-2" style={{ width: '165px' }}>Referência</th>
+                                                <th className="py-2" style={{ minWidth: '200px' }}>Designação</th>
+                                                <th className="py-2 text-center" style={{ width: '70px' }}>Stock</th>
+                                                <th className="py-2" style={{ minWidth: '150px' }}>Nota / Destino</th>
                                                 <th className="pe-3 py-2" style={{ width: '40px' }}></th>
                                             </tr>
                                         </thead>
@@ -209,14 +219,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                                                     style={{ width: '32px', height: '32px', objectFit: 'cover' }}
                                                                     alt={item.reference}
                                                                 />
-                                                                <div className="inventory-photo-large shadow-lg rounded overflow-hidden">
-                                                                    <img 
-                                                                        src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`} 
-                                                                        alt={`${item.reference} - Grande`}
-                                                                        className="w-100 h-100"
-                                                                        style={{ objectFit: 'contain', backgroundColor: '#fff' }}
-                                                                    />
-                                                                </div>
                                                             </div>
                                                         ) : (
                                                             <div className="bg-light text-muted border rounded d-flex align-items-center justify-content-center m-auto" style={{ width: '32px', height: '32px' }}>
@@ -244,7 +246,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                                                 const val = e.target.value;
                                                                 const match = searchResults.find((p, i) => (p.reference + '\u200B'.repeat(i)) === val);
                                                                 if (match) {
-                                                                    handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, isDesignationLocked: true, image_path: match.image_path });
+                                                                    const available = (orderStockType === StockType.FOSS) 
+                                                                        ? ((match.stock_quantity_foss || 0) - (match.reserved_quantity_foss || 0))
+                                                                        : ((match.stock_quantity || 0) - (match.reserved_quantity || 0));
+                                                                    handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, isDesignationLocked: true, image_path: match.image_path, availableStock: available });
                                                                 } else {
                                                                     handlePartChange(index, 'reference', val);
                                                                 }
@@ -265,7 +270,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                                                 const val = e.target.value;
                                                                 const match = searchResults.find((p, i) => (p.designation + '\u200B'.repeat(i)) === val);
                                                                 if (match) {
-                                                                    handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, isDesignationLocked: true, image_path: match.image_path });
+                                                                    const available = (orderStockType === StockType.FOSS) 
+                                                                        ? ((match.stock_quantity_foss || 0) - (match.reserved_quantity_foss || 0))
+                                                                        : ((match.stock_quantity || 0) - (match.reserved_quantity || 0));
+                                                                    handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, isDesignationLocked: true, image_path: match.image_path, availableStock: available });
                                                                 } else {
                                                                     handlePartChange(index, 'designation', val);
                                                                 }
@@ -278,6 +286,20 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                                             }}
                                                             placeholder="Designação..."
                                                             disabled={item.isDesignationLocked}
+                                                        />
+                                                    </td>
+                                                    <td className="py-2 text-center">
+                                                        <span className={`badge rounded-pill ${item.availableStock && item.availableStock > 0 ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${item.availableStock && item.availableStock > 0 ? 'text-success' : 'text-danger'} fw-bold border-0`} style={{ fontSize: '0.8rem' }}>
+                                                            {item.availableStock ?? '-'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <input
+                                                            type="text"
+                                                            className="form-control form-control-sm border-0 bg-light rounded-pill px-3 shadow-none fw-medium py-2"
+                                                            value={item.note || ''}
+                                                            onChange={e => handlePartChange(index, 'note', e.target.value)}
+                                                            placeholder="Destino..."
                                                         />
                                                     </td>
                                                     <td className="pe-3 py-2 text-end">
@@ -298,7 +320,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                 </div>
                             </div>
 
-                            {/* Footer */}
                             <div className="modal-footer px-4 py-3 bg-light bg-opacity-50 border-top mt-auto">
                                 <button type="button" className="btn btn-light border rounded-pill px-4 fw-medium shadow-sm" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
                                 <button type="submit" className="btn btn-primary rounded-pill px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm" disabled={isSubmitting}>
@@ -310,7 +331,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                     </div>
                 </div>
 
-                {/* Datalists (fora do modal-dialog) */}
                 <datalist id="orderPartRefSuggestions">
                     {searchResults.map((p, i) => <option key={i} value={p.reference + '\u200B'.repeat(i)}>{p.designation}</option>)}
                 </datalist>

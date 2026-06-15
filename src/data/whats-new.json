@@ -1,5 +1,20 @@
 [
   {
+    "version": "1.2.7",
+    "date": "2026-06-13",
+    "staff": {
+      "title": "Módulo de Vendas e Saídas de Inventário",
+      "notes": [
+        "Lançamento do novo módulo de 'Vendas' para registo agrupado de saídas de stock não relacionadas com serviços.",
+        "Suporte para três tipos de saída: Venda (com fatura/guia), Oferta e Descarte/Abate de material.",
+        "Gestão simplificada: seleção de inventário de origem (Geral ou Foss) aplicada a todo o documento.",
+        "Interface otimizada: adição de itens com pesquisa por referência ou designação e visualização de fotos em tempo real.",
+        "Controlo de Stock: validação automática de disponibilidade antes da confirmação da saída.",
+        "Rastreabilidade Total: integração com o histórico de movimentos, permitindo a visualização de detalhes e eliminação com reposição automática de stock."
+      ]
+    }
+  },
+  {
     "version": "1.2.6",
     "date": "2026-05-27",
     "staff": {

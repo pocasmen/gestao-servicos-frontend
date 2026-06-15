@@ -146,8 +146,6 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
         setExpandedPartId(prev => prev === partId ? null : partId);
     };
 
-    const TOTAL_COLS = 11; // foto + 8 data cols + ações + 1 for history
-
     return (
         <div className="glass-card border-0 shadow-sm animate__animated animate__fadeIn rounded-4 mb-4" style={{ overflow: 'visible' }}>
             <div style={{ overflow: 'visible' }}>
@@ -270,28 +268,6 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                                 <Pencil size={18} strokeWidth={2.5} />
                                             </button>
 
-                                            {/* Column 4: Order */}
-                                            {!part.is_composed ? (
-                                                <button
-                                                    className="btn btn-icon btn-outline-warning rounded-circle shadow-sm transition-all border-2"
-                                                    onClick={() => onOpenModal(part, 'order')}
-                                                    title="Encomendar"
-                                                >
-                                                    <Truck size={18} strokeWidth={2.5} />
-                                                </button>
-                                            ) : <div style={{ width: '34px' }} />}
-
-                                            {/* Column 5: Receive */}
-                                            {!part.is_composed && ((part.ordered_quantity || 0) > 0 || (part.ordered_quantity_foss || 0) > 0) ? (
-                                                <button
-                                                    className="btn btn-icon btn-outline-info rounded-circle shadow-sm transition-all border-2"
-                                                    onClick={() => onOpenModal(part, 'receive')}
-                                                    title="Receber Encomenda"
-                                                >
-                                                    <Package size={18} strokeWidth={2.5} />
-                                                </button>
-                                            ) : <div style={{ width: '34px' }} />}
-
                                             {/* Column 6: Reservations */}
                                             {((part.reserved_quantity || 0) > 0 || (part.reserved_quantity_foss || 0) > 0) ? (
                                                 <button
@@ -319,7 +295,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                 {expandedPartId === part.id && (
                                     <PartHistoryPanel 
                                         partId={part.id!} 
-                                        colSpan={TOTAL_COLS} 
+                                        colSpan={9} 
                                         onOpenDoc={onOpenDoc}
                                     />
                                 )}
