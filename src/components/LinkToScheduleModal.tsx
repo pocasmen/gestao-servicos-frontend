@@ -140,9 +140,9 @@ const LinkToScheduleModal: React.FC<LinkToScheduleModalProps> = ({ isOpen, onClo
             </div>
           ) : (
             <div className="table-responsive rounded-4 border overflow-hidden">
-              <table className="table table-hover mb-0 align-middle">
+              <table className="table table-hover table-sm mb-0 align-middle">
                 <thead className="table-light">
-                  <tr className="small text-uppercase fw-bold text-muted">
+                  <tr className="small text-uppercase fw-bold text-muted" style={{ fontSize: '0.7rem' }}>
                     <th className="ps-4 py-3">Data / Hora</th>
                     <th className="py-3">Técnico</th>
                     <th className="py-3">Tipo de Serviço</th>
@@ -154,20 +154,15 @@ const LinkToScheduleModal: React.FC<LinkToScheduleModalProps> = ({ isOpen, onClo
                     <tr key={s.id}>
                       <td className="ps-4 py-3">
                         <div className="d-flex flex-column">
-                          <span className="fw-bold text-dark">
+                          <span className="fw-bold text-dark small">
                             {s.startDate ? format(new Date(s.startDate), 'dd/MM/yyyy', { locale: pt }) : 
                              (s.timeBlocks && s.timeBlocks.length > 0 ? format(new Date(s.timeBlocks[0].start), 'dd/MM/yyyy', { locale: pt }) : 'N/D')}
                           </span>
-                          <small className="text-muted">
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>
                             {s.startDate ? format(new Date(s.startDate), 'HH:mm', { locale: pt }) : 
                              (s.timeBlocks && s.timeBlocks.length > 0 ? format(new Date(s.timeBlocks[0].start), 'HH:mm', { locale: pt }) : '--:--')}
                           </small>
                         </div>
-                        {s.equipmentId && Number(s.equipmentId) === Number(ticket?.equipmentId) && (
-                          <span className="badge bg-success-subtle text-success border border-success-subtle mt-1" style={{ fontSize: '0.7rem' }}>
-                            Mesmo Equipamento
-                          </span>
-                        )}
                       </td>
                       <td className="py-3">
                         {s.technicians && s.technicians.length > 0 ? (
@@ -184,7 +179,7 @@ const LinkToScheduleModal: React.FC<LinkToScheduleModalProps> = ({ isOpen, onClo
                       </td>
                       <td className="py-3">
                         <span className="badge bg-light text-dark border fw-medium">
-                          {s.title || 'Visita Técnica'}
+                          Manutenção
                         </span>
                       </td>
                       <td className="text-end pe-4 py-3">

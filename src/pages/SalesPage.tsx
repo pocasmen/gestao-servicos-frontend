@@ -38,7 +38,8 @@ const SalesPage: React.FC = () => {
   const filteredSales = sales?.filter((s: any) =>
     s.document_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     s.id.toString().includes(searchTerm) ||
-    `${s.first_name} ${s.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
+    `${s.first_name} ${s.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.item_references && s.item_references.some((ref: string) => ref?.toLowerCase().includes(searchTerm.toLowerCase())))
   );
 
   if (isLoading) {
@@ -72,7 +73,7 @@ const SalesPage: React.FC = () => {
             <input
               type="text"
               className="form-control border-0 bg-transparent shadow-none"
-              placeholder="Procurar por Nº Doc, ID ou Utilizador..."
+              placeholder="Procurar por Nº Doc, ID, Utilizador ou Referência de Artigo..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />

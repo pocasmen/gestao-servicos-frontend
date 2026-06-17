@@ -42,7 +42,8 @@ const OrdersPage: React.FC = () => {
   const filteredOrders = orders?.filter((o: any) =>
     o.document_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.id.toString().includes(searchTerm) ||
-    `${o.first_name} ${o.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
+    `${o.first_name} ${o.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    o.search_text?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (isLoading) {
@@ -76,7 +77,7 @@ const OrdersPage: React.FC = () => {
             <input
               type="text"
               className="form-control border-0 bg-transparent shadow-none"
-              placeholder="Procurar por Nº Doc, ID ou Utilizador..."
+              placeholder="Procurar por Nº Doc, ID, Utilizador ou Ref. de Peça..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />

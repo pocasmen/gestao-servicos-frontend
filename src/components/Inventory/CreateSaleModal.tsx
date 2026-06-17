@@ -141,7 +141,7 @@ const CreateSaleModal: React.FC<CreateSaleModalProps> = ({ isOpen, onClose, onSu
             <div className="modal-backdrop fade show" style={{ zIndex: 1050, opacity: 1, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }} onClick={!isSubmitting ? onClose : undefined} />
             <div className="modal show d-block" style={{ zIndex: 1055 }} tabIndex={-1} role="dialog">
                 <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px' }}>
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', maxHeight: '90vh' }}>
                         <div className="modal-header border-0 px-4 pt-4 pb-3">
                             <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'var(--font-family-title)', color: '#111827' }}>
                                 <span className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary">
@@ -151,8 +151,8 @@ const CreateSaleModal: React.FC<CreateSaleModalProps> = ({ isOpen, onClose, onSu
                             </h5>
                             <button type="button" className="btn-close" onClick={onClose} disabled={isSubmitting} />
                         </div>
-                        <form onSubmit={handleSubmit} className="d-flex flex-column h-100">
-                            <div className="modal-body px-4 py-3 bg-light bg-opacity-50">
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                            <div className="modal-body px-4 py-3 bg-light bg-opacity-50" style={{ overflowY: 'auto' }}>
 
 
                                 <div className="row g-3 mb-3">
