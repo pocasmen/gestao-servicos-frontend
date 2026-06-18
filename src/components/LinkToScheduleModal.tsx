@@ -6,6 +6,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { SERVICE_TYPE_LABELS } from '../constants';
 
 interface LinkToScheduleModalProps {
   isOpen: boolean;
@@ -179,7 +180,9 @@ const LinkToScheduleModal: React.FC<LinkToScheduleModalProps> = ({ isOpen, onClo
                       </td>
                       <td className="py-3">
                         <span className="badge bg-light text-dark border fw-medium">
-                          Manutenção
+                          {Array.isArray(s.serviceType)
+                            ? (s.serviceType.map(t => SERVICE_TYPE_LABELS[t] || t).join(', ') || 'N/D')
+                            : (SERVICE_TYPE_LABELS[s.serviceType || ''] || s.serviceType || 'N/D')}
                         </span>
                       </td>
                       <td className="text-end pe-4 py-3">
