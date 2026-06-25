@@ -42,10 +42,12 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
             await alert('Não há peças para copiar.');
             return;
         }
-        const partsToCopy = validParts.map(({ quantity, reference, designation }) => ({
+        const partsToCopy = validParts.map(({ quantity, reference, designation, isApplied, stockType }) => ({
             quantity,
             reference,
-            designation
+            designation,
+            isApplied,
+            stockType
         }));
         const partsString = JSON.stringify(partsToCopy);
 
@@ -90,7 +92,9 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
                         quantity: Number(p.quantity) || 1,
                         reference: p.reference || '',
                         designation: p.designation || '',
-                        isDesignationLocked: !!p.reference
+                        isDesignationLocked: !!p.reference,
+                        isApplied: p.isApplied !== undefined ? p.isApplied : true,
+                        stockType: p.stockType || StockType.GENERAL
                     }));
 
                 if (newPartsFromPaste.length === 0) {

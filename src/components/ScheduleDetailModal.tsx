@@ -312,10 +312,12 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       await alert('Não há peças para copiar.');
       return;
     }
-    const partsToCopy = validParts.map(({ quantity, reference, designation }) => ({
+    const partsToCopy = validParts.map(({ quantity, reference, designation, isApplied, stockType }) => ({
       quantity,
       reference,
-      designation
+      designation,
+      isApplied,
+      stockType
     }));
     const partsString = JSON.stringify(partsToCopy);
 
@@ -361,7 +363,9 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
             quantity: Number(p.quantity) || 1,
             reference: p.reference || '',
             designation: p.designation || '',
-            isDesignationLocked: !!p.reference
+            isDesignationLocked: !!p.reference,
+            isApplied: p.isApplied !== undefined ? p.isApplied : true,
+            stockType: p.stockType || StockType.GENERAL
           }));
 
         if (newPartsFromPaste.length === 0) {

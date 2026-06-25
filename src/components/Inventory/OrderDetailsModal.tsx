@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { CheckCircle, Package, ArrowRight, ClipboardCheck, Plus, Save, Trash2, X } from 'lucide-react';
+import { CheckCircle, Package, ArrowRight, ClipboardCheck, Plus, Save, Trash2, X, RotateCcw } from 'lucide-react';
 import apiClient, { searchPartByReference } from '../../apiClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -92,6 +92,29 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
         } catch (err: any) {
             alert(`Erro ao processar receção: ${err.response?.data?.details || err.message}`);
             logger.error(err, 'Receive order items error:');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleRevert = async () => {
+        const ok = await confirm({
+            title: 'Reverter Receção',
+            message: 'Tem a certeza que deseja reverter a receção desta encomenda? As quantidades recebidas serão removidas do stock físico.',
+            confirmText: 'Reverter',
+            variant: 'danger',
+        });
+        if (!ok) return;
+
+        setIsSubmitting(true);
+        try {
+            await apiClient.post(`/api/inventory/orders/${orderId}/revert`);
+            onSuccess();
+            queryClient.invalidateQueries({ queryKey: ['inventory_order_detail', orderId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory_orders'] });
+        } catch (err: any) {
+            alert(`Erro ao reverter receção: ${err.response?.data?.details || err.message}`);
+            logger.error(err, 'Revert order items error:');
         } finally {
             setIsSubmitting(false);
         }
@@ -218,6 +241,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
 
     const statusInfo = order ? (STATUS_LABELS[order.status] ?? { label: order.status, cls: 'bg-secondary bg-opacity-10 text-secondary' }) : null;
     const hasReceivable = Object.values(receivingQtys).some(q => q > 0);
+    const hasAnyReceived = order?.items?.some((i: any) => i.quantity_received > 0);
     const orderStockType = order?.items?.[0]?.stock_type as StockType || StockType.GENERAL;
     const stockLabel = STOCK_TYPE_LABELS[orderStockType] || orderStockType;
 
@@ -520,7 +544,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
 
                         <div className="modal-footer px-4 py-3 bg-light bg-opacity-50 border-top mt-auto d-flex justify-content-between">
                             <div>
-                                {order?.status === 'PENDING' && !isAddingItems && (
+                                {order?.status === 'PENDING' && !isAddingItems && !hasAnyReceived && (
                                     <button 
                                         type="button" 
                                         className="btn btn-outline-danger border rounded-pill px-4 fw-medium shadow-sm d-flex align-items-center gap-2" 
@@ -528,6 +552,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                         disabled={isSubmitting}
                                     >
                                         <Trash2 size={16} /> Eliminar Encomenda
+                                    </button>
+                                )}
+                                {hasAnyReceived && !isAddingItems && (
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-outline-warning border rounded-pill px-4 fw-medium shadow-sm d-flex align-items-center gap-2" 
+                                        onClick={handleRevert} 
+                                        disabled={isSubmitting}
+                                    >
+                                        <RotateCcw size={16} /> Reverter Receção
                                     </button>
                                 )}
                             </div>
