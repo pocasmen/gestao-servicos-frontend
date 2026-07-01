@@ -171,7 +171,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
         setAssignedUserId(currentUser?.id || '');
         setIsPrivate(false);
         setShowOnCalendar(false);
-        setTimeBlocks([]);
+        
+        const now = new Date();
+        const end = new Date(now.getTime() + 60 * 60 * 1000);
+        setTimeBlocks([{ start_time: now, end_time: end }]);
+        
         setEstimatedHours(null);
         setIsCompleted(false);
         setCompletedAt(null);
@@ -181,9 +185,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
     };
 
     const handleAddBlock = () => {
-        const now = new Date();
-        const end = new Date(now.getTime() + 60 * 60 * 1000);
-        setTimeBlocks([...timeBlocks, { start_time: now, end_time: end }]);
+        let start = new Date();
+        if (timeBlocks.length > 0) {
+            start = new Date(timeBlocks[timeBlocks.length - 1].end_time);
+        }
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+        setTimeBlocks([...timeBlocks, { start_time: start, end_time: end }]);
     };
 
     const handleRemoveBlock = (index: number) => {
@@ -193,7 +200,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
     const handleBlockChange = (index: number, field: 'start_time' | 'end_time', value: Date | null) => {
         if (!value) return;
         const newBlocks = [...timeBlocks];
-        newBlocks[index] = { ...newBlocks[index], [field]: value };
+        const block = { ...newBlocks[index], [field]: value };
+        
+        if (block.start_time >= block.end_time) {
+            block.end_time = new Date(block.start_time.getTime() + 60 * 60 * 1000);
+        }
+        
+        newBlocks[index] = block;
         setTimeBlocks(newBlocks);
     };
 
