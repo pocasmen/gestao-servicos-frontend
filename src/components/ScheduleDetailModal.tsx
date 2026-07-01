@@ -434,15 +434,81 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       eventRest = rest;
     }
 
-    // Validação de stock insuficiente
-    // Só valida partes com dados de stock presentes (evita falsos positivos em peças coladas ou sem metadados)
-    const partsToValidate = parts.filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '' && p.track_stock !== false && p.stock_quantity !== undefined);
+    // Garantir que todas as peças com referência têm dados de stock atualizados antes de validar.
+    // Peças coladas ou adicionadas sem blur podem não ter estes dados.
+    const partsNeedingStockData = parts.filter(
+      p => p.quantity > 0 && p.reference && p.reference.trim() !== '' &&
+           p.track_stock !== false && p.stock_quantity === undefined &&
+           p.stockType !== StockType.CLIENT && p.stockType !== StockType.WARRANTY
+    );
+
+    // Buscar dados de stock em paralelo para peças que não os têm
+    let fetchResults: PromiseSettledResult<any>[] = [];
+    if (partsNeedingStockData.length > 0) {
+      fetchResults = await Promise.allSettled(
+        partsNeedingStockData.map(p => searchPartByReference(p.reference.trim()))
+      );
+      // Atualizar estado para refletir os dados novos (para re-renders futuros)
+      setParts(prev => {
+        const updated = [...prev];
+        partsNeedingStockData.forEach((p, i) => {
+          const result = fetchResults[i];
+          if (result.status === 'fulfilled' && result.value) {
+            const freshData = result.value;
+            const idx = updated.findIndex(u => u.reference.trim() === p.reference.trim());
+            if (idx !== -1) {
+              updated[idx] = {
+                ...updated[idx],
+                id: updated[idx].id ?? freshData.id,
+                stock_quantity: freshData.stock_quantity,
+                reserved_quantity: freshData.reserved_quantity,
+                stock_quantity_foss: freshData.stock_quantity_foss,
+                reserved_quantity_foss: freshData.reserved_quantity_foss,
+                min_stock: freshData.min_stock,
+                min_stock_foss: freshData.min_stock_foss,
+                track_stock: freshData.track_stock,
+              };
+            }
+          }
+        });
+        return updated;
+      });
+    }
+
+    // Construir lista enriquecida localmente (setState é assíncrono, não podemos aguardar)
+    const enrichedParts = parts.map(p => {
+      if (p.stock_quantity !== undefined) return p;
+      const fetchIdx = partsNeedingStockData.findIndex(pn => pn.reference.trim() === p.reference.trim());
+      if (fetchIdx === -1) return p;
+      const result = fetchResults[fetchIdx];
+      if (result?.status === 'fulfilled' && result.value) {
+        const freshData = result.value;
+        return {
+          ...p,
+          id: p.id ?? freshData.id,
+          stock_quantity: freshData.stock_quantity,
+          reserved_quantity: freshData.reserved_quantity,
+          stock_quantity_foss: freshData.stock_quantity_foss,
+          reserved_quantity_foss: freshData.reserved_quantity_foss,
+          min_stock: freshData.min_stock,
+          min_stock_foss: freshData.min_stock_foss,
+          track_stock: freshData.track_stock,
+        };
+      }
+      return p;
+    });
+
+
+    // Validação de stock insuficiente (usa dados enriquecidos)
+    const partsToValidate = enrichedParts.filter(
+      p => p.quantity > 0 && p.reference && p.reference.trim() !== '' &&
+           p.track_stock !== false && p.stock_quantity !== undefined
+    );
     const negativeStockParts = partsToValidate.filter(p => {
       if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
       const type = p.stockType || StockType.GENERAL;
-      // currentQtyInSchedule is the quantity of this part already in the current schedule
-      // This prevents false negatives when editing a schedule and reducing the quantity of a part.
-      // If the part is new, currentQtyInSchedule will be 0.
+      // currentQtyInSchedule: qty desta peça já reservada NESTE agendamento (só relevante na edição).
+      // Somamos de volta para não penalizar duplamente a reserva existente.
       const currentQtyInSchedule = (event?.parts || []).find(ep => Number(ep.id) === Number(p.id))?.quantity || 0;
 
       if (type === StockType.FOSS) {
@@ -454,6 +520,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       }
       return false;
     });
+
 
     if (negativeStockParts.length > 0) {
       const partNames = negativeStockParts.map(p => p.designation || p.reference).join(', ');
