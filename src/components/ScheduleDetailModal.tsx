@@ -435,7 +435,8 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
     }
 
     // Validação de stock insuficiente
-    const partsToValidate = parts.filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '' && p.track_stock !== false);
+    // Só valida partes com dados de stock presentes (evita falsos positivos em peças coladas ou sem metadados)
+    const partsToValidate = parts.filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '' && p.track_stock !== false && p.stock_quantity !== undefined);
     const negativeStockParts = partsToValidate.filter(p => {
       if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
       const type = p.stockType || StockType.GENERAL;
@@ -445,10 +446,10 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       const currentQtyInSchedule = (event?.parts || []).find(ep => Number(ep.id) === Number(p.id))?.quantity || 0;
 
       if (type === StockType.FOSS) {
-        const available = (p.stock_quantity_foss || 0) - (p.reserved_quantity_foss || 0) + currentQtyInSchedule;
+        const available = (p.stock_quantity_foss ?? 0) - (p.reserved_quantity_foss ?? 0) + currentQtyInSchedule;
         return available < p.quantity;
       } else if (type === StockType.GENERAL || type === StockType.CONTRACT || type === StockType.MSD) {
-        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0) + currentQtyInSchedule;
+        const available = (p.stock_quantity ?? 0) - (p.reserved_quantity ?? 0) + currentQtyInSchedule;
         return available < p.quantity;
       }
       return false;
@@ -473,11 +474,11 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       const currentQtyInSchedule = (event?.parts || []).find(ep => Number(ep.id) === Number(p.id))?.quantity || 0;
 
       if (type === StockType.FOSS) {
-        const available = (p.stock_quantity_foss || 0) - (p.reserved_quantity_foss || 0) - p.quantity + currentQtyInSchedule;
-        return available < (p.min_stock_foss || 0);
+        const available = (p.stock_quantity_foss ?? 0) - (p.reserved_quantity_foss ?? 0) - p.quantity + currentQtyInSchedule;
+        return available < (p.min_stock_foss ?? 0);
       } else if (type === StockType.GENERAL || type === StockType.CONTRACT || type === StockType.MSD) {
-        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0) - p.quantity + currentQtyInSchedule;
-        return available < (p.min_stock || 0);
+        const available = (p.stock_quantity ?? 0) - (p.reserved_quantity ?? 0) - p.quantity + currentQtyInSchedule;
+        return available < (p.min_stock ?? 0);
       }
       return false;
     });

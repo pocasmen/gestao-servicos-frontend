@@ -109,7 +109,7 @@ const MovementsPage: React.FC = () => {
 
     const addComponent = (part: Part) => {
         if (components.some(c => c.partId === part.id)) return;
-        setComponents([...components, { partId: part.id as number, quantity: 1, reference: part.reference, designation: part.designation }]);
+        setComponents([...components, { partId: part.id as number, quantity: 1, reference: part.reference, designation: part.designation, currentStock: (part.stock_quantity || 0) - (part.reserved_quantity || 0) }]);
         setShowCompResults(false);
         setCompSearch('');
     };

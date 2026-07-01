@@ -369,7 +369,8 @@ const InventoryPage: React.FC = () => {
       partId: part.id as number,
       quantity: 1,
       reference: part.reference,
-      designation: part.designation
+      designation: part.designation,
+      currentStock: (part.stock_quantity || 0) - (part.reserved_quantity || 0)
     }]);
     setCompSearch('');
     setShowCompResults(false);

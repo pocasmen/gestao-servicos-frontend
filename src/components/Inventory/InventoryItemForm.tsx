@@ -7,6 +7,7 @@ export interface ComponentItem {
     quantity: number;
     reference?: string;
     designation?: string;
+    currentStock?: number;
 }
 
 interface InventoryItemFormProps {
@@ -214,6 +215,7 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                                 <thead className="table-light">
                                     <tr>
                                         <th>Componente</th>
+                                        <th style={{ width: '120px' }}>Stock Atual</th>
                                         <th style={{ width: '100px' }}>Qtd</th>
                                         <th style={{ width: '50px' }}></th>
                                     </tr>
@@ -221,7 +223,7 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                                 <tbody>
                                     {components.length === 0 ? (
                                         <tr>
-                                            <td colSpan={3} className="text-center py-3 text-muted">
+                                            <td colSpan={4} className="text-center py-3 text-muted">
                                                 Nenhum componente adicionado.
                                             </td>
                                         </tr>
@@ -231,6 +233,19 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                                                 <td>
                                                     <strong>{c.reference}</strong><br />
                                                     <small className="text-muted">{c.designation}</small>
+                                                </td>
+                                                <td>
+                                                    {c.currentStock !== undefined ? (
+                                                        <span className={`badge ${
+                                                            c.currentStock <= 0 ? 'bg-danger' :
+                                                            c.currentStock < c.quantity ? 'bg-warning text-dark' :
+                                                            'bg-success'
+                                                        }`}>
+                                                            {c.currentStock}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted">—</span>
+                                                    )}
                                                 </td>
                                                 <td>
                                                     <input
