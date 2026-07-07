@@ -1,5 +1,16 @@
 [
   {
+    "version": "1.2.8",
+    "date": "2026-07-07",
+    "client": {
+      "title": "Correção na Recuperação de Password",
+      "notes": [
+        "Resolvido um problema que fazia com que o link de recuperação de password indicasse incorretamente que tinha expirado.",
+        "O processo de redefinição de password é agora mais rápido e fiável."
+      ]
+    }
+  },
+  {
     "version": "1.2.7",
     "date": "2026-06-13",
     "staff": {

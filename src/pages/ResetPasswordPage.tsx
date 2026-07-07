@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import logger from '../utils/logger';
 
 /**
- * Module-level capture — runs synchronously before Supabase SDK strips the hash.
- *
- * Supabase sends password-recovery emails with a link that contains either:
- *  - Legacy: #access_token=...&refresh_token=...&type=recovery   (hash)
- *  - PKCE:   ?token_hash=...&type=recovery                       (query string)
+ * O SDK do Supabase v2 (modo PKCE) consome o token_hash da URL automaticamente
+ * no arranque da aplicação (via getSession/onAuthStateChange).
+ * Chamar verifyOtp manualmente depois causa "token already used" — daí o falso
+ * "link expirou". A solução correcta é escutar o evento PASSWORD_RECOVERY que
+ * o SDK emite DEPOIS de já ter verificado e estabelecido a sessão.
  */
 type PageStatus = 'detecting' | 'ready' | 'loading' | 'success' | 'error' | 'no-token';
 
@@ -19,73 +19,39 @@ const ResetPasswordPage: React.FC = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [errorMessage, setErrorMessage]   = useState<string | null>(null);
 
-    // Captura os tokens apenas uma vez no momento em que o componente é montado
-    const captured = React.useMemo(() => {
-        const _search = new URLSearchParams(window.location.search);
-        const _hash   = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-        
-        return {
-            tokenHash:     _search.get('token_hash'),
-            typeFromQuery: _search.get('type'),
-            accessToken:   _hash.get('access_token'),
-            refreshToken:  _hash.get('refresh_token'),
-            typeFromHash:  _hash.get('type'),
-        };
-    }, []);
-
-    const isPKCE   = Boolean(captured.tokenHash && captured.typeFromQuery === 'recovery');
-    const isLegacy = Boolean(captured.accessToken && captured.typeFromHash === 'recovery');
-
     useEffect(() => {
-        const prepare = async () => {
-            if (isPKCE && captured.tokenHash) {
-                // PKCE: verify the token so the session is ready for updateUser
-                const { error } = await supabase.auth.verifyOtp({
-                    token_hash: captured.tokenHash,
-                    type: 'recovery',
-                });
-                if (error) {
-                    logger.error(error, '[ResetPassword] verifyOtp failed');
-                    setErrorMessage(
-                        error.message.includes('expired') || error.message.includes('invalid')
-                            ? 'Este link expirou ou já foi utilizado. Por favor, peça um novo link.'
-                            : error.message
-                    );
-                    setStatus('error');
-                    return;
-                }
-                window.history.replaceState(null, '', '/reset-password');
-                setStatus('ready');
-                return;
-            }
+        // Limpar a URL imediatamente para evitar re-processamento do token
+        window.history.replaceState(null, '', '/reset-password');
 
-            if (isLegacy && captured.accessToken && captured.refreshToken) {
-                // Legacy: explicitly set the session from hash tokens
-                const { error } = await supabase.auth.setSession({
-                    access_token: captured.accessToken,
-                    refresh_token: captured.refreshToken,
-                });
-                if (error) {
-                    logger.error(error, '[ResetPassword] setSession failed');
-                    setErrorMessage('Sessão de recuperação inválida. Por favor, peça um novo link.');
-                    setStatus('error');
-                    return;
-                }
-                window.history.replaceState(null, '', '/reset-password');
-                setStatus('ready');
-                return;
-            }
+        // Subscrever aos eventos de autenticação. O SDK vai emitir PASSWORD_RECOVERY
+        // assim que verificar o token_hash (PKCE) ou o access_token (legacy) da URL.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            logger.info({ event }, '[ResetPassword] onAuthStateChange event');
 
-            // Fallback: check if a recovery session already exists (e.g. fast navigation)
-            const { data: { session } } = await supabase.auth.getSession();
+            if (event === 'PASSWORD_RECOVERY') {
+                // SDK verificou o token com sucesso e criou uma sessão de recovery
+                setStatus('ready');
+            } else if (event === 'SIGNED_IN' && session) {
+                // Pode acontecer em alguns flows legacy — sessão válida, podemos avançar
+                setStatus('ready');
+            }
+        });
+
+        // Verificar se já existe uma sessão activa (ex: utilizador navegou de volta
+        // ou o evento já disparou antes da subscrição estar pronta)
+        supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
                 setStatus('ready');
             } else {
-                setStatus('no-token');
+                // Sem sessão e sem evento até agora — link inválido/expirado
+                // Aguardar um pequeno delay para dar tempo ao SDK de processar o hash
+                setTimeout(() => {
+                    setStatus(prev => prev === 'detecting' ? 'no-token' : prev);
+                }, 1500);
             }
-        };
+        });
 
-        prepare();
+        return () => subscription.unsubscribe();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
