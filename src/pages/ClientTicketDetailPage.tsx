@@ -663,7 +663,7 @@ const ClientTicketDetailPage: React.FC = () => {
 
           {isTicketClosed && (
             <div className="alert alert-warning" role="alert">
-              Este ticket está fechado. Pode responder a este ticket para reabri-lo.
+              Este ticket está fechado.
             </div>
           )}
 
@@ -711,32 +711,34 @@ const ClientTicketDetailPage: React.FC = () => {
           </div>
 
           {/* Reply Form */}
-          <div className="card mb-4">
-            <div className="card-header reply-form-header" id="replyHeading">
-              <button className="btn btn-link text-decoration-none w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#replyCollapse" aria-expanded="true" aria-controls="replyCollapse">
-                <i className="bi bi-pencil-square me-2"></i> Responder
-              </button>
-            </div>
-            <div id="replyCollapse" className="collapse show" aria-labelledby="replyHeading">
-              <div className="card-body">
-                <form onSubmit={handleReplySubmit}>
-                  <div className="mb-3">
-                    <textarea
-                      className="form-control"
-                      rows={10}
-                      placeholder="Escreva a sua resposta aqui..."
-                      value={replyContent}
-                      onChange={(e) => setReplyContent(e.target.value)}
-                      disabled={isReplying}
-                    ></textarea>
-                  </div>
-                  <button type="submit" className="btn btn-primary" disabled={isReplying}>
-                    {isReplying ? 'A enviar...' : 'Enviar Resposta'}
-                  </button>
-                </form>
+          {!isTicketClosed && (
+            <div className="card mb-4">
+              <div className="card-header reply-form-header" id="replyHeading">
+                <button className="btn btn-link text-decoration-none w-100 text-start" type="button" data-bs-toggle="collapse" data-bs-target="#replyCollapse" aria-expanded="true" aria-controls="replyCollapse">
+                  <i className="bi bi-pencil-square me-2"></i> Responder
+                </button>
+              </div>
+              <div id="replyCollapse" className="collapse show" aria-labelledby="replyHeading">
+                <div className="card-body">
+                  <form onSubmit={handleReplySubmit}>
+                    <div className="mb-3">
+                      <textarea
+                        className="form-control"
+                        rows={10}
+                        placeholder="Escreva a sua resposta aqui..."
+                        value={replyContent}
+                        onChange={(e) => setReplyContent(e.target.value)}
+                        disabled={isReplying}
+                      ></textarea>
+                    </div>
+                    <button type="submit" className="btn btn-primary" disabled={isReplying}>
+                      {isReplying ? 'A enviar...' : 'Enviar Resposta'}
+                    </button>
+                  </form>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

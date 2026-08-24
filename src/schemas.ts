@@ -229,6 +229,18 @@ export const DashboardStatsSchema = z.object({
         completed: z.number(),
         pending: z.number(),
     }),
+    backlog: z.object({
+        total: z.number(),
+        createdLast7Days: z.number(),
+        createdPrevious7Days: z.number(),
+        exitedLast7Days: z.number().default(0),
+        exitedPrevious7Days: z.number().default(0),
+        avgHoursInBacklog: z.number().nullable().default(null),
+        trendPercent: z.number().nullable(),
+        trendDirection: z.enum(['up', 'down', 'stable']),
+        oldestCreatedAt: z.string().nullable(),
+        oldestAgeDays: z.number().nullable(),
+    }).optional(),
 });
 
 export const AttachmentSchema = z.object({

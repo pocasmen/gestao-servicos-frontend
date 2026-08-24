@@ -283,19 +283,22 @@ const InventoryPage: React.FC = () => {
       try {
         const res = await apiClient.get(`/api/reports/${tx.reference_id}`);
         const report = res.data;
-        const schedRes = await apiClient.get(`/api/schedules/${report.scheduleId}`);
-        const schedule = schedRes.data;
+        let event: any = null;
+        if (report.scheduleId) {
+          const schedRes = await apiClient.get(`/api/schedules/${report.scheduleId}`);
+          const schedule = schedRes.data;
 
-        const event: ScheduleEvent = {
-          ...schedule,
-          start: schedule.startDate ? new Date(schedule.startDate) : undefined,
-          end: schedule.endDate ? new Date(schedule.endDate) : undefined,
-          timeBlocks: (schedule.timeBlocks || []).map((tb: any) => ({
-            ...tb,
-            start: new Date(tb.start || tb.start_time),
-            end: new Date(tb.end || tb.end_time)
-          }))
-        };
+          event = {
+            ...schedule,
+            start: schedule.startDate ? new Date(schedule.startDate) : undefined,
+            end: schedule.endDate ? new Date(schedule.endDate) : undefined,
+            timeBlocks: (schedule.timeBlocks || []).map((tb: any) => ({
+              ...tb,
+              start: new Date(tb.start || tb.start_time),
+              end: new Date(tb.end || tb.end_time)
+            }))
+          };
+        }
 
         setSelectedEvent(event);
         setReportToEdit(report);
@@ -684,7 +687,7 @@ const InventoryPage: React.FC = () => {
         />
       )}
 
-      {isReportModalOpen && selectedEvent && (
+      {isReportModalOpen && (
         <ReportModal
           isOpen={isReportModalOpen}
           onClose={handleCloseReportModal}

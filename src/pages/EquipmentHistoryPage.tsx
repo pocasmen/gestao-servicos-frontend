@@ -183,6 +183,13 @@ const EquipmentHistoryPage: React.FC = () => {
                 <div className="h6 fw-normal m-0">{details.serialNumber}</div>
               </div>
 
+              {details.nickname && (
+                <div className="mb-3">
+                  <label className="small fw-bold text-muted text-uppercase d-block mb-1" style={{ fontSize: '0.65rem' }}>Alcunha</label>
+                  <div className="h6 fw-normal m-0">{details.nickname}</div>
+                </div>
+              )}
+
               <div className="mb-3">
                 <label className="small fw-bold text-muted text-uppercase d-block mb-1" style={{ fontSize: '0.65rem' }}>Estado Operacional</label>
                 <span className={`badge ${details.status === 'active' ? 'bg-success' : 'bg-secondary'} rounded-pill px-3`}>

@@ -155,7 +155,14 @@ const TaskDistributionBar: React.FC<{
 const PerformanceGauge: React.FC<{ percentage: number; label: string }> = ({ percentage, label }) => {
   // Converte porcentagem (0-100) para rotação (-90 a 90 graus)
   // 0% = -90deg (Esquerda), 50% = 0deg (Topo), 100% = 90deg (Direita)
-  const rotation = (percentage / 100) * 180 - 90;
+  const targetRotation = (percentage / 100) * 180 - 90;
+  const [rotation, setRotation] = React.useState(-90); // começa em 0% (esquerda)
+
+  React.useEffect(() => {
+    // Pequeno delay para garantir que o CSS transition é acionado após o mount
+    const timer = setTimeout(() => setRotation(targetRotation), 100);
+    return () => clearTimeout(timer);
+  }, [targetRotation]);
 
   return (
     <div className="visualizer-container mb-3 text-center">
@@ -170,9 +177,16 @@ const PerformanceGauge: React.FC<{ percentage: number; label: string }> = ({ per
           <path d="M50,10 A40,40 0 0,1 78.3,21.7" fill="none" stroke="#fde047" strokeWidth="10" />
           <path d="M78.3,21.7 A40,40 0 0,1 90,50" fill="none" stroke="#10b981" strokeWidth="10" />
 
-          {/* Ponteiro */}
-          <g transform={`rotate(${rotation}, 50, 50)`}>
-            <line x1="50" y1="50" x2="50" y2="15" stroke="#fff" strokeWidth="3" strokeLinecap="round" className="gauge-pointer" />
+          {/* Ponteiro animado */}
+          <g
+            className="gauge-needle-group"
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              transformOrigin: '50px 50px',
+              transition: 'transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}
+          >
+            <line x1="50" y1="50" x2="50" y2="15" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
             <circle cx="50" cy="50" r="4" fill="#fff" />
           </g>
         </svg>
@@ -187,6 +201,73 @@ const PerformanceGauge: React.FC<{ percentage: number; label: string }> = ({ per
 };
 
 import { LayoutDashboard } from 'lucide-react';
+
+const BacklogExtra: React.FC<{
+  entradasActual: number;
+  entradasAnterior: number;
+  saidas: number;
+  avgHours: number | null;
+  oldestAgeDays: number | null;
+}> = ({ entradasActual, entradasAnterior, saidas, avgHours, oldestAgeDays }) => {
+  const net = entradasActual - saidas;
+  const netColor = net > 0 ? '#fca5a5' : net < 0 ? '#86efac' : 'rgba(255,255,255,0.55)';
+  const netIcon  = net > 0 ? 'bi-arrow-up-right' : net < 0 ? 'bi-arrow-down-right' : 'bi-dash-lg';
+  const netLabel = net > 0 ? `+${net} a crescer` : net < 0 ? `${net} a diminuir` : 'estável';
+
+  const total = entradasActual + saidas;
+  const entrPct = total > 0 ? (entradasActual / total) * 100 : 50;
+  const saidPct = total > 0 ? (saidas / total) * 100 : 50;
+
+  const avgLabel = avgHours !== null
+    ? avgHours >= 24 ? `${(avgHours / 24).toFixed(1)}d média` : `${avgHours.toFixed(0)}h média`
+    : null;
+
+  return (
+    <div className="visualizer-container" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {/* Flow bar: entradas vs saidas */}
+      {total > 0 ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <div style={{ display: 'flex', height: '6px', borderRadius: '4px', overflow: 'hidden', gap: '1px' }}>
+            <div title={`Entradas: ${entradasActual}`}
+              style={{ width: `${entrPct}%`, background: 'rgba(252,165,165,0.85)', borderRadius: '4px 0 0 4px', transition: 'width 0.4s ease' }} />
+            <div title={`Saídas: ${saidas}`}
+              style={{ width: `${saidPct}%`, background: 'rgba(134,239,172,0.85)', borderRadius: '0 4px 4px 0', transition: 'width 0.4s ease' }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontWeight: 600 }}>
+            <span style={{ color: 'rgba(252,165,165,0.9)' }}>↑ {entradasActual} entradas</span>
+            {entradasAnterior > 0 && <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem' }}>sem. ant.: {entradasAnterior}</span>}
+            <span style={{ color: 'rgba(134,239,172,0.9)' }}>{saidas} saídas ↓</span>
+          </div>
+        </div>
+      ) : (
+        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem' }}>Sem movimento esta semana</span>
+      )}
+
+      {/* Net flow + avg time + oldest alert */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 700, color: netColor }}>
+          <i className={`bi ${netIcon}`} />
+          {netLabel}
+        </span>
+        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+          {avgLabel && (
+            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
+              <i className="bi bi-hourglass-split me-1" style={{ fontSize: '0.6rem' }} />
+              {avgLabel}
+            </span>
+          )}
+          {oldestAgeDays !== null && oldestAgeDays > 14 && (
+            <span className="badge rounded-pill shadow-sm"
+              style={{ background: 'rgba(239,68,68,0.85)', fontSize: '0.68rem', padding: '0.3rem 0.55rem', color: '#fff' }}>
+              <i className="bi bi-exclamation-circle me-1"></i>
+              +antigo: {oldestAgeDays}d
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const DashboardPage: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -601,6 +682,28 @@ const DashboardPage: React.FC = () => {
                       label="ÍNDICE DE PERFORMANCE"
                     />
                   </>
+                }
+              />
+            </div>
+            <div className="col-12 col-md-6 col-xl-4">
+              <StatCard
+                title="Backlog"
+                value={stats.backlog?.total || 0}
+                linkTo="/calendar"
+                icon="bi bi-inbox"
+                color="dark"
+                details={[
+                  { label: 'Entradas (últ. 7 dias)', value: stats.backlog?.createdLast7Days || 0 },
+                  { label: 'Saídas (últ. 7 dias)', value: stats.backlog?.exitedLast7Days || 0 }
+                ]}
+                extra={
+                  <BacklogExtra
+                    entradasActual={stats.backlog?.createdLast7Days || 0}
+                    entradasAnterior={stats.backlog?.createdPrevious7Days || 0}
+                    saidas={stats.backlog?.exitedLast7Days || 0}
+                    avgHours={stats.backlog?.avgHoursInBacklog ?? null}
+                    oldestAgeDays={stats.backlog?.oldestAgeDays ?? null}
+                  />
                 }
               />
             </div>

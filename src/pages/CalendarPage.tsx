@@ -164,10 +164,11 @@ const CalendarPage: React.FC = () => {
       } as ScheduleEvent;
 
       const isUnscheduled = schedule.acknowledgementState === ScheduleStatus.PENDING_SCHEDULING || !schedule.startDate;
+      const hasTimeBlocks = schedule.timeBlocks && schedule.timeBlocks.length > 0;
 
       if (isUnscheduled && !isTask) {
         fetchedBacklog.push(baseEvent);
-      } else if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
+      } else if (hasTimeBlocks) {
         schedule.timeBlocks.forEach((tb, index: number) => {
           fetchedEvents.push({
             ...baseEvent,
@@ -176,7 +177,7 @@ const CalendarPage: React.FC = () => {
             end: new Date(tb.end),
           });
         });
-      } else {
+      } else if (!isTask) {
         fetchedEvents.push({
           ...baseEvent,
           id: schedule.id,

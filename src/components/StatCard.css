@@ -36,6 +36,10 @@
   background: linear-gradient(135deg, #64748b 0%, #334155 100%);
 }
 
+.bg-gradient-dark {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #1e293b 100%);
+}
+
 .stat-icon-wrapper {
   width: 60px;
   height: 60px;
@@ -276,16 +280,16 @@
 
 @keyframes gauge-pop {
   0% {
-    transform: scale(0.8) rotate(-90deg);
+    transform: scale(0.8);
     opacity: 0;
   }
 
   100% {
-    transform: scale(1) rotate(0);
+    transform: scale(1);
     opacity: 1;
   }
 }
 
 .gauge-wrapper {
-  animation: gauge-pop 1s ease-out forwards;
+  animation: gauge-pop 0.6s ease-out forwards;
 }

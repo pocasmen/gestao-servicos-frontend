@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
 import { useConfirm } from '../contexts/ConfirmContext';
@@ -9,8 +10,9 @@ import { AuthContext } from '../contexts/AuthContext';
 import { Client } from '../types';
 import { ClientSchema } from '../schemas';
 import LoadingState from '../components/LoadingState';
+import { EditClientModal } from '../components/EditClientModal';
 import logger from '../utils/logger';
-import { Pencil, Trash2, UserPlus, Plus, X, Check, Send, Search, Users, ShieldAlert, AlertTriangle } from 'lucide-react';
+import { Pencil, Trash2, UserPlus, Plus, X, Check, Send, Search, Users, ShieldAlert, AlertTriangle, Eye } from 'lucide-react';
 
 // Componente do Formulário (Criação)
 
@@ -145,10 +147,11 @@ const ClientForm: React.FC<{ onClientAdded: () => void }> = ({ onClientAdded }) 
 
 const ClientList: React.FC<{
   clients: Client[],
+  onView: (client: Client) => void,
   onInvite: (client: Client) => void,
   onEdit: (client: Client) => void,
   onDelete: (client: Client) => void
-}> = ({ clients, onInvite, onEdit, onDelete }) => {
+}> = ({ clients, onView, onInvite, onEdit, onDelete }) => {
   return (
     <div className="glass-card border-0 shadow-sm overflow-hidden animate__animated animate__fadeIn rounded-4">
       <div className="table-responsive">
@@ -201,6 +204,13 @@ const ClientList: React.FC<{
                   <td className="text-end pe-4 py-3">
                     <div className="d-flex justify-content-end gap-2">
                       <button
+                        className="btn btn-icon btn-outline-info rounded-circle border-2 shadow-sm transition-all"
+                        onClick={() => onView(client)}
+                        title="Ver Detalhes"
+                      >
+                        <Eye size={18} strokeWidth={2.5} />
+                      </button>
+                      <button
                         className="btn btn-icon btn-outline-primary rounded-circle border-2 shadow-sm transition-all"
                         onClick={() => onInvite(client)}
                         title="Convidar Utilizador"
@@ -233,159 +243,9 @@ const ClientList: React.FC<{
   );
 };
 
-// Componente Modal de Edição
-const EditClientModal: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
-  client: Client | null;
-  onSave: (updatedClient: Client) => Promise<void>;
-}> = ({ isOpen, onClose, client, onSave }) => {
-  const [name, setName] = useState('');
-  const [nickname, setNickname] = useState('');
-  const [address, setAddress] = useState('');
-  const [city, setCity] = useState('');
-  const [postCode, setPostCode] = useState('');
-  const [nif, setNif] = useState('');
-  const [isBlacklisted, setIsBlacklisted] = useState(false);
-  const [blacklistReason, setBlacklistReason] = useState('');
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (client) {
-      setName(client.name);
-      setNickname(client.nickname || '');
-      setAddress(client.address || '');
-      setCity(client.city || '');
-      setPostCode(client.postCode || '');
-      setNif(client.nif || '');
-      setIsBlacklisted(client.is_blacklisted || false);
-      setBlacklistReason(client.blacklist_reason || '');
-    }
-  }, [client]);
-
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (client) {
-      setIsSaving(true);
-      try {
-        await onSave({ ...client, name, nickname, address, city, postCode, nif, is_blacklisted: isBlacklisted, blacklist_reason: blacklistReason });
-      } finally {
-        setIsSaving(false);
-      }
-    }
-  };
-
-  if (!isOpen || !client) return null;
-
-  return (
-    <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center" style={{ zIndex: 1050, backgroundColor: 'rgba(0, 0, 0, 0.4)', backdropFilter: 'blur(8px)' }}>
-      <div className="glass-card glass-card--solid border-0 shadow-lg p-0 overflow-hidden animate__animated animate__zoomIn rounded-4" style={{ width: '90%', maxWidth: '600px' }} role="dialog" aria-modal="true">
-        <form onSubmit={handleSubmit}>
-          <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25">
-            <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', letterSpacing: '0.02em' }}>Editar Cliente</h5>
-            <button type="button" className="btn-close btn-close-white opacity-75 hover-opacity-100 transition-all" onClick={onClose} aria-label="Close"></button>
-          </div>
-          <div className="p-4" style={{ backgroundColor: 'rgba(255,255,255,0.5)' }}>
-            <div className="mb-4">
-              <SmartInput
-                label="Nome do Registo (Oficial)"
-                value={name}
-                onChange={setName}
-                required
-                options={{ minLength: 3, blockScripts: true }}
-              />
-            </div>
-            <div className="mb-4">
-              <SmartInput
-                label="Alcunha / Nome Curto"
-                value={nickname}
-                onChange={setNickname}
-                options={{ blockScripts: true }}
-              />
-            </div>
-            <div className="mb-4">
-              <SmartInput
-                label="Morada"
-                value={address}
-                onChange={setAddress}
-                options={{ blockScripts: true }}
-              />
-            </div>
-            <div className="row g-3">
-              <div className="col-md-8 mb-3">
-                <SmartInput
-                  label="Localidade"
-                  value={city}
-                  onChange={setCity}
-                  options={{ blockScripts: true }}
-                />
-              </div>
-              <div className="col-md-4 mb-3">
-                <SmartInput
-                  label="Cód. Postal"
-                  value={postCode}
-                  onChange={setPostCode}
-                  options={{ maxLength: 8 }}
-                />
-              </div>
-            </div>
-            <div className="mb-2">
-              <SmartInput
-                label="NIF"
-                value={nif}
-                onChange={setNif}
-                options={{ type: 'numeric', minLength: 9, maxLength: 9, disableHeuristics: true }}
-              />
-            </div>
-
-            <div className="mt-4 p-3 rounded-3 border border-danger border-opacity-10 bg-danger bg-opacity-10">
-              <div className="form-check form-switch d-flex align-items-center gap-3">
-                <input
-                  className="form-check-input mt-0 custom-switch-danger"
-                  type="checkbox"
-                  role="switch"
-                  id="blacklistSwitch"
-                  checked={isBlacklisted}
-                  onChange={(e) => setIsBlacklisted(e.target.checked)}
-                  style={{ width: '2.5rem', height: '1.25rem', cursor: 'pointer' }}
-                />
-                <label className="form-check-label fw-bold text-danger mb-0" htmlFor="blacklistSwitch" style={{ cursor: 'pointer' }}>
-                  Marcar na Black List (Pagamentos em Atraso)
-                </label>
-              </div>
-
-              {isBlacklisted && (
-                <div className="mt-3 animate__animated animate__fadeIn">
-                  <SmartInput
-                    label="Razão do Incumprimento / Notas"
-                    value={blacklistReason}
-                    onChange={setBlacklistReason}
-                    options={{ blockScripts: true }}
-                    placeholder="Ex: Faturas de Janeiro e Fevereiro em atraso..."
-                  />
-                </div>
-              )}
-            </div>
-          </div>
-          <div className="px-4 py-3 bg-light bg-opacity-75 border-top d-flex justify-content-end gap-2">
-            <button type="button" className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium hover-bg-light transition-all" onClick={onClose} disabled={isSaving}>
-              Cancelar
-            </button>
-            <button type="submit" className="btn btn-primary rounded-pill px-4 fw-bold shadow-sm d-flex align-items-center gap-2 transition-all" disabled={isSaving}>
-              {isSaving ? (
-                <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-              ) : <Check size={18} strokeWidth={2.5} />}
-              Guardar Alterações
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
 // Componente da Página Principal
 const ClientsPage: React.FC = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { confirm, alert } = useConfirm();
   const [searchQuery, setSearchQuery] = useState('');
@@ -652,6 +512,7 @@ const ClientsPage: React.FC = () => {
       ) : (
         <ClientList
           clients={clients}
+          onView={(client) => navigate(`/clients/${client.id}`)}
           onInvite={handleOpenInviteModal}
           onEdit={handleOpenEditModal}
           onDelete={handleDelete}

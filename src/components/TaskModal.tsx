@@ -217,6 +217,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
             return;
         }
 
+        if (showOnCalendar && timeBlocks.length === 0) {
+            await alert('Atenção: Ativou a opção "Visível no Calendário", mas não tem nenhum horário definido. Para que a tarefa apareça no calendário, terá de adicionar pelo menos um horário em "Agendamento e Horários".');
+            return;
+        }
+
         const payload = {
             title,
             description,

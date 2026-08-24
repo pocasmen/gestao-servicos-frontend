@@ -56,7 +56,7 @@ FICHEIRO: package.json
 
 {
   "name": "client",
-  "version": "1.2.4",
+  "version": "1.2.8",
   "private": true,
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
@@ -622,6 +622,7 @@ import whatsNewData from './data/whats-new.json';
 
 import Header from './components/Header';
 import ClientPortalHeader from './components/ClientPortalHeader';
+import LoadingState from './components/LoadingState';
 import { ConfirmProvider, useConfirm } from './contexts/ConfirmContext';
 import packageJson from '../package.json';
 import apiClient from './apiClient';
@@ -637,6 +638,7 @@ const EquipmentsPage = React.lazy(() => import('./pages/EquipmentsPage'));
 const EquipmentHistoryPage = React.lazy(() => import('./pages/EquipmentHistoryPage'));
 const InventoryPage = React.lazy(() => import('./pages/InventoryPage'));
 const OrdersPage = React.lazy(() => import('./pages/OrdersPage'));
+const SalesPage = React.lazy(() => import('./pages/SalesPage'));
 const MovementsPage = React.lazy(() => import('./pages/MovementsPage'));
 const TechniciansPage = React.lazy(() => import('./pages/TechniciansPage'));
 const UsersPage = React.lazy(() => import('./pages/UsersPage'));
@@ -709,7 +711,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, redirectP
   const location = useLocation();
 
   if (loading) {
-    return <div>A carregar...</div>; // Ou um spinner
+    return <LoadingState fullScreen={true} message="A carregar sessão segura..." />;
   }
 
   if (!user) {
@@ -850,7 +852,7 @@ const AppRoutes: React.FC = () => {
   }, [navigate]);
 
   if (loading) {
-    return <div className="d-flex justify-content-center align-items-center vh-100">A carregar sessão...</div>;
+    return <LoadingState fullScreen={true} message="A carregar sessão..." />;
   }
 
   const renderHeader = () => {
@@ -912,7 +914,7 @@ const AppRoutes: React.FC = () => {
           </div>
         )}
 
-        <React.Suspense fallback={<div className="d-flex justify-content-center mt-5"><div className="spinner-border text-primary" role="status"><span className="visually-hidden">A carregar...</span></div></div>}>
+        <React.Suspense fallback={<LoadingState message="A preparar módulos..." />}>
           <Routes>
             <Route path="/accept-invite" element={<AcceptInvitePage />} />
             <Route path="/test-email" element={<TestEmailPage />} />
@@ -947,6 +949,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/equipments/:id/history" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><EquipmentHistoryPage /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><InventoryPage /></ProtectedRoute>} />
             <Route path="/inventory/orders" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><OrdersPage /></ProtectedRoute>} />
+            <Route path="/inventory/sales" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><SalesPage /></ProtectedRoute>} />
             <Route path="/inventory/movements" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><MovementsPage /></ProtectedRoute>} />
             <Route path="/technicians" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><TechniciansPage /></ProtectedRoute>} />
             <Route path="/users" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><UsersPage /></ProtectedRoute>} />
@@ -1933,6 +1936,44 @@ h2 {
 .btn-outline-secondary:hover:not(:disabled) {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
   filter: brightness(0.97);
+}
+
+/* --- Animação do Loading State Mecânico --- */
+
+/* 1. Rotação contínua e suave da engrenagem de fundo */
+@keyframes mechanicalSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-mechanical-spin {
+  animation: mechanicalSpin 4s linear infinite;
+}
+
+/* 2. Movimento de vaivém da chave inglesa (simulando aperto) */
+@keyframes wrenchTighten {
+  0% { transform: rotate(0deg); }
+  30% { transform: rotate(25deg); }  /* Movimento de aperto */
+  40% { transform: rotate(25deg); }  /* Pequena pausa na força */
+  80% { transform: rotate(-5deg); }  /* Recuo suave */
+  100% { transform: rotate(0deg); }
+}
+
+.animate-wrench-tighten {
+  animation: wrenchTighten 1.6s ease-in-out infinite;
+  /* Define o ponto de rotação na base/cabeça da chave, e não no centro do quadrado */
+  transform-origin: 25% 75%; 
+}
+
+/* 3. Pulsação subtil do texto */
+@keyframes pulseText {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+.animate-pulse-text {
+  animation: pulseText 1.6s ease-in-out infinite;
+  letter-spacing: 0.05em;
 }
 
 ================================================================================
@@ -3220,6 +3261,7 @@ const Header: React.FC = () => {
       'cli': '/clients',
       'equip': '/equipments',
       'inv': '/inventory',
+      'vend': '/inventory/sales',
       'perf': '/profile',
       'conf': '/settings',
       'fat': '/billing',
@@ -3324,6 +3366,11 @@ const Header: React.FC = () => {
                   <li>
                     <NavLink to="/inventory/orders" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
                       <Package size={16} /> Encomendas
+                    </NavLink>
+                  </li>
+                  <li>
+                    <NavLink to="/inventory/sales" onClick={closeMenu} className="dropdown-item d-flex align-items-center gap-2">
+                      <CreditCard size={16} /> Vendas
                     </NavLink>
                   </li>
                   <li>
@@ -3478,6 +3525,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import logger from '../utils/logger';
 import { format } from 'date-fns';
 import { pt } from 'date-fns/locale';
+import { SERVICE_TYPE_LABELS } from '../constants';
 
 interface LinkToScheduleModalProps {
   isOpen: boolean;
@@ -3612,9 +3660,9 @@ const LinkToScheduleModal: React.FC<LinkToScheduleModalProps> = ({ isOpen, onClo
             </div>
           ) : (
             <div className="table-responsive rounded-4 border overflow-hidden">
-              <table className="table table-hover mb-0 align-middle">
+              <table className="table table-hover table-sm mb-0 align-middle">
                 <thead className="table-light">
-                  <tr className="small text-uppercase fw-bold text-muted">
+                  <tr className="small text-uppercase fw-bold text-muted" style={{ fontSize: '0.7rem' }}>
                     <th className="ps-4 py-3">Data / Hora</th>
                     <th className="py-3">Técnico</th>
                     <th className="py-3">Tipo de Serviço</th>
@@ -3626,20 +3674,15 @@ const LinkToScheduleModal: React.FC<LinkToScheduleModalProps> = ({ isOpen, onClo
                     <tr key={s.id}>
                       <td className="ps-4 py-3">
                         <div className="d-flex flex-column">
-                          <span className="fw-bold text-dark">
+                          <span className="fw-bold text-dark small">
                             {s.startDate ? format(new Date(s.startDate), 'dd/MM/yyyy', { locale: pt }) : 
                              (s.timeBlocks && s.timeBlocks.length > 0 ? format(new Date(s.timeBlocks[0].start), 'dd/MM/yyyy', { locale: pt }) : 'N/D')}
                           </span>
-                          <small className="text-muted">
+                          <small className="text-muted" style={{ fontSize: '0.75rem' }}>
                             {s.startDate ? format(new Date(s.startDate), 'HH:mm', { locale: pt }) : 
                              (s.timeBlocks && s.timeBlocks.length > 0 ? format(new Date(s.timeBlocks[0].start), 'HH:mm', { locale: pt }) : '--:--')}
                           </small>
                         </div>
-                        {s.equipmentId && Number(s.equipmentId) === Number(ticket?.equipmentId) && (
-                          <span className="badge bg-success-subtle text-success border border-success-subtle mt-1" style={{ fontSize: '0.7rem' }}>
-                            Mesmo Equipamento
-                          </span>
-                        )}
                       </td>
                       <td className="py-3">
                         {s.technicians && s.technicians.length > 0 ? (
@@ -3656,7 +3699,9 @@ const LinkToScheduleModal: React.FC<LinkToScheduleModalProps> = ({ isOpen, onClo
                       </td>
                       <td className="py-3">
                         <span className="badge bg-light text-dark border fw-medium">
-                          {s.title || 'Visita Técnica'}
+                          {Array.isArray(s.serviceType)
+                            ? (s.serviceType.map(t => SERVICE_TYPE_LABELS[t] || t).join(', ') || 'N/D')
+                            : (SERVICE_TYPE_LABELS[s.serviceType || ''] || s.serviceType || 'N/D')}
                         </span>
                       </td>
                       <td className="text-end pe-4 py-3">
@@ -3688,6 +3733,57 @@ const LinkToScheduleModal: React.FC<LinkToScheduleModalProps> = ({ isOpen, onClo
 };
 
 export default LinkToScheduleModal;
+
+
+================================================================================
+FICHEIRO: src\components\LoadingState.tsx
+================================================================================
+
+import React from 'react';
+import { Wrench, Settings } from 'lucide-react';
+
+interface LoadingStateProps {
+  message?: string;
+  fullScreen?: boolean;
+}
+
+const LoadingState: React.FC<LoadingStateProps> = ({ 
+  message = "A carregar dados do sistema...", 
+  fullScreen = false 
+}) => {
+  return (
+    <div className={`d-flex flex-column justify-content-center align-items-center ${fullScreen ? 'vh-100 w-100 bg-light bg-opacity-75' : 'py-5'}`}
+         style={fullScreen ? { position: 'fixed', top: 0, left: 0, zIndex: 9999, backdropFilter: 'blur(4px)' } : {}}>
+      
+      {/* Container da Animação Mecânica */}
+      <div className="position-relative mb-3 d-flex align-items-center justify-content-center" style={{ width: '80px', height: '80px' }}>
+        
+        {/* Engrenagem/Porca ao fundo que roda continuamente */}
+        <Settings 
+          size={56} 
+          className="text-secondary opacity-25 animate-mechanical-spin" 
+        />
+        
+        {/* Chave Inglesa à frente que faz o movimento de aperto */}
+        <div className="position-absolute animate-wrench-tighten" style={{ top: '12px', left: '12px' }}>
+          <Wrench 
+            size={36} 
+            className="text-primary" 
+            style={{ transform: 'rotate(-45deg)' }} // Inclina a chave para encaixar melhor
+          />
+        </div>
+        
+      </div>
+
+      {/* Mensagem de Feedback */}
+      <span className="fw-bold text-secondary text-uppercase small tracking-wider animate-pulse-text">
+        {message}
+      </span>
+    </div>
+  );
+};
+
+export default LoadingState;
 
 
 ================================================================================
@@ -4850,10 +4946,12 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       await alert('Não há peças para copiar.');
       return;
     }
-    const partsToCopy = validParts.map(({ quantity, reference, designation }) => ({
+    const partsToCopy = validParts.map(({ quantity, reference, designation, isApplied, stockType }) => ({
       quantity,
       reference,
-      designation
+      designation,
+      isApplied,
+      stockType
     }));
     const partsString = JSON.stringify(partsToCopy);
 
@@ -4899,7 +4997,9 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
             quantity: Number(p.quantity) || 1,
             reference: p.reference || '',
             designation: p.designation || '',
-            isDesignationLocked: !!p.reference
+            isDesignationLocked: !!p.reference,
+            isApplied: p.isApplied !== undefined ? p.isApplied : true,
+            stockType: p.stockType || StockType.GENERAL
           }));
 
         if (newPartsFromPaste.length === 0) {
@@ -4968,25 +5068,93 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       eventRest = rest;
     }
 
-    // Validação de stock insuficiente
-    const partsToValidate = parts.filter(p => p.quantity > 0 && p.reference && p.reference.trim() !== '' && p.track_stock !== false);
+    // Garantir que todas as peças com referência têm dados de stock atualizados antes de validar.
+    // Peças coladas ou adicionadas sem blur podem não ter estes dados.
+    const partsNeedingStockData = parts.filter(
+      p => p.quantity > 0 && p.reference && p.reference.trim() !== '' &&
+           p.track_stock !== false && p.stock_quantity === undefined &&
+           p.stockType !== StockType.CLIENT && p.stockType !== StockType.WARRANTY
+    );
+
+    // Buscar dados de stock em paralelo para peças que não os têm
+    let fetchResults: PromiseSettledResult<any>[] = [];
+    if (partsNeedingStockData.length > 0) {
+      fetchResults = await Promise.allSettled(
+        partsNeedingStockData.map(p => searchPartByReference(p.reference.trim()))
+      );
+      // Atualizar estado para refletir os dados novos (para re-renders futuros)
+      setParts(prev => {
+        const updated = [...prev];
+        partsNeedingStockData.forEach((p, i) => {
+          const result = fetchResults[i];
+          if (result.status === 'fulfilled' && result.value) {
+            const freshData = result.value;
+            const idx = updated.findIndex(u => u.reference.trim() === p.reference.trim());
+            if (idx !== -1) {
+              updated[idx] = {
+                ...updated[idx],
+                id: updated[idx].id ?? freshData.id,
+                stock_quantity: freshData.stock_quantity,
+                reserved_quantity: freshData.reserved_quantity,
+                stock_quantity_foss: freshData.stock_quantity_foss,
+                reserved_quantity_foss: freshData.reserved_quantity_foss,
+                min_stock: freshData.min_stock,
+                min_stock_foss: freshData.min_stock_foss,
+                track_stock: freshData.track_stock,
+              };
+            }
+          }
+        });
+        return updated;
+      });
+    }
+
+    // Construir lista enriquecida localmente (setState é assíncrono, não podemos aguardar)
+    const enrichedParts = parts.map(p => {
+      if (p.stock_quantity !== undefined) return p;
+      const fetchIdx = partsNeedingStockData.findIndex(pn => pn.reference.trim() === p.reference.trim());
+      if (fetchIdx === -1) return p;
+      const result = fetchResults[fetchIdx];
+      if (result?.status === 'fulfilled' && result.value) {
+        const freshData = result.value;
+        return {
+          ...p,
+          id: p.id ?? freshData.id,
+          stock_quantity: freshData.stock_quantity,
+          reserved_quantity: freshData.reserved_quantity,
+          stock_quantity_foss: freshData.stock_quantity_foss,
+          reserved_quantity_foss: freshData.reserved_quantity_foss,
+          min_stock: freshData.min_stock,
+          min_stock_foss: freshData.min_stock_foss,
+          track_stock: freshData.track_stock,
+        };
+      }
+      return p;
+    });
+
+
+    // Validação de stock insuficiente (usa dados enriquecidos)
+    const partsToValidate = enrichedParts.filter(
+      p => p.quantity > 0 && p.reference && p.reference.trim() !== '' &&
+           p.track_stock !== false && p.stock_quantity !== undefined
+    );
     const negativeStockParts = partsToValidate.filter(p => {
       if (p.stockType === StockType.CLIENT || p.stockType === StockType.WARRANTY) return false;
       const type = p.stockType || StockType.GENERAL;
-      // currentQtyInSchedule is the quantity of this part already in the current schedule
-      // This prevents false negatives when editing a schedule and reducing the quantity of a part.
-      // If the part is new, currentQtyInSchedule will be 0.
+      // currentQtyInSchedule: qty desta peça já reservada NESTE agendamento (só relevante na edição).
+      // Somamos de volta para não penalizar duplamente a reserva existente.
       const currentQtyInSchedule = (event?.parts || []).find(ep => Number(ep.id) === Number(p.id))?.quantity || 0;
 
       if (type === StockType.FOSS) {
-        const available = (p.stock_quantity_foss || 0) - (p.reserved_quantity_foss || 0) + currentQtyInSchedule;
+        const available = (p.stock_quantity_foss ?? 0) - (p.reserved_quantity_foss ?? 0) + currentQtyInSchedule;
         return available < p.quantity;
       } else if (type === StockType.GENERAL || type === StockType.CONTRACT || type === StockType.MSD) {
-        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0) + currentQtyInSchedule;
+        const available = (p.stock_quantity ?? 0) - (p.reserved_quantity ?? 0) + currentQtyInSchedule;
         return available < p.quantity;
       }
       return false;
     });
+
 
     if (negativeStockParts.length > 0) {
       const partNames = negativeStockParts.map(p => p.designation || p.reference).join(', ');
@@ -5007,11 +5175,11 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       const currentQtyInSchedule = (event?.parts || []).find(ep => Number(ep.id) === Number(p.id))?.quantity || 0;
 
       if (type === StockType.FOSS) {
-        const available = (p.stock_quantity_foss || 0) - (p.reserved_quantity_foss || 0) - p.quantity + currentQtyInSchedule;
-        return available < (p.min_stock_foss || 0);
+        const available = (p.stock_quantity_foss ?? 0) - (p.reserved_quantity_foss ?? 0) - p.quantity + currentQtyInSchedule;
+        return available < (p.min_stock_foss ?? 0);
       } else if (type === StockType.GENERAL || type === StockType.CONTRACT || type === StockType.MSD) {
-        const available = (p.stock_quantity || 0) - (p.reserved_quantity || 0) - p.quantity + currentQtyInSchedule;
-        return available < (p.min_stock || 0);
+        const available = (p.stock_quantity ?? 0) - (p.reserved_quantity ?? 0) - p.quantity + currentQtyInSchedule;
+        return available < (p.min_stock ?? 0);
       }
       return false;
     });
@@ -5150,6 +5318,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
       serviceType,
       includesTravel,
       classification,
+      priority,
       timeBlocks: timeBlocks.map(b => ({ start: b.start.toISOString(), end: b.end.toISOString() })),
       parts: partsPayload // Incluir as peças na requisição de conclusão
     };
@@ -6835,7 +7004,11 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
         setAssignedUserId(currentUser?.id || '');
         setIsPrivate(false);
         setShowOnCalendar(false);
-        setTimeBlocks([]);
+        
+        const now = new Date();
+        const end = new Date(now.getTime() + 60 * 60 * 1000);
+        setTimeBlocks([{ start_time: now, end_time: end }]);
+        
         setEstimatedHours(null);
         setIsCompleted(false);
         setCompletedAt(null);
@@ -6845,9 +7018,12 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
     };
 
     const handleAddBlock = () => {
-        const now = new Date();
-        const end = new Date(now.getTime() + 60 * 60 * 1000);
-        setTimeBlocks([...timeBlocks, { start_time: now, end_time: end }]);
+        let start = new Date();
+        if (timeBlocks.length > 0) {
+            start = new Date(timeBlocks[timeBlocks.length - 1].end_time);
+        }
+        const end = new Date(start.getTime() + 60 * 60 * 1000);
+        setTimeBlocks([...timeBlocks, { start_time: start, end_time: end }]);
     };
 
     const handleRemoveBlock = (index: number) => {
@@ -6857,7 +7033,13 @@ const TaskModal: React.FC<TaskModalProps> = ({ isOpen, onClose, task, onTaskSave
     const handleBlockChange = (index: number, field: 'start_time' | 'end_time', value: Date | null) => {
         if (!value) return;
         const newBlocks = [...timeBlocks];
-        newBlocks[index] = { ...newBlocks[index], [field]: value };
+        const block = { ...newBlocks[index], [field]: value };
+        
+        if (block.start_time >= block.end_time) {
+            block.end_time = new Date(block.start_time.getTime() + 60 * 60 * 1000);
+        }
+        
+        newBlocks[index] = block;
         setTimeBlocks(newBlocks);
     };
 
@@ -7714,6 +7896,8 @@ interface OrderItem {
     stockType: string;
     isDesignationLocked?: boolean;
     image_path?: string;
+    availableStock?: number;
+    note?: string;
 }
 
 interface CreateOrderModalProps {
@@ -7727,12 +7911,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
     const [documentNumber, setDocumentNumber] = useState('');
     const [notes, setNotes] = useState('');
     const [orderStockType, setOrderStockType] = useState<StockType>(StockType.GENERAL);
-    const [items, setItems] = useState<OrderItem[]>([{ quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL }]);
+    const [items, setItems] = useState<OrderItem[]>([{ quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL, note: '' }]);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { searchResults, searchParts } = usePartSearch();
 
     const handleAddPart = () => {
-        setItems(prev => [...prev, { quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL }]);
+        setItems(prev => [...prev, { quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL, note: '' }]);
     };
 
     const handleRemovePart = (index: number) => {
@@ -7764,9 +7948,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                 setItems(prev => {
                     const next = [...prev];
                     if (part) {
-                        next[index] = { ...next[index], partId: part.id, designation: part.designation, isDesignationLocked: true, image_path: part.image_path };
+                        const available = (orderStockType === StockType.FOSS) 
+                            ? ((part.stock_quantity_foss || 0) - (part.reserved_quantity_foss || 0))
+                            : ((part.stock_quantity || 0) - (part.reserved_quantity || 0));
+                        next[index] = { ...next[index], partId: part.id, designation: part.designation, isDesignationLocked: true, image_path: part.image_path, availableStock: available };
                     } else {
-                        next[index] = { ...next[index], partId: undefined, designation: '', isDesignationLocked: false, image_path: undefined };
+                        next[index] = { ...next[index], partId: undefined, designation: '', isDesignationLocked: false, image_path: undefined, availableStock: undefined };
                     }
                     return next;
                 });
@@ -7788,7 +7975,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
             await apiClient.post('/api/inventory/orders', {
                 document_number: documentNumber.trim(),
                 notes: notes.trim(),
-                items: validItems.map(i => ({ ...i, stockType: orderStockType }))
+                items: validItems.map(i => ({ 
+                    partId: i.partId,
+                    reference: i.reference,
+                    designation: i.designation,
+                    quantity: i.quantity,
+                    stockType: orderStockType,
+                    note: i.note 
+                }))
             });
             onSuccess();
         } catch (err: any) {
@@ -7803,35 +7997,32 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
 
     const modalContent = (
         <>
-            {/* Backdrop */}
             <div
                 className="modal-backdrop fade show"
                 style={{ zIndex: 1050, opacity: 1, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
                 onClick={!isSubmitting ? onClose : undefined}
             />
-            {/* Modal */}
             <div
                 className="modal show d-block"
                 style={{ zIndex: 1055 }}
                 tabIndex={-1}
                 role="dialog"
             >
-                <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
-                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                            {/* Header */}
-                            <div className="modal-header border-0 px-4 pt-4 pb-3">
-                                <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'var(--font-family-title)', color: '#111827' }}>
-                                    <span className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary">
-                                        <Package size={22} />
-                                    </span>
-                                    Nova Encomenda
-                                </h5>
-                                <button type="button" className="btn-close" onClick={onClose} disabled={isSubmitting} />
-                            </div>
+                <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', maxHeight: '90vh' }}>
+                        <div className="modal-header border-0 px-4 pt-4 pb-3">
+                            <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'var(--font-family-title)', color: '#111827' }}>
+                                <span className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary">
+                                    <Package size={22} />
+                                </span>
+                                Nova Encomenda
+                            </h5>
+                            <button type="button" className="btn-close" onClick={onClose} disabled={isSubmitting} />
+                        </div>
 
-                            {/* Body */}
-                            <div className="modal-body px-4 py-3 bg-light bg-opacity-50" style={{ overflowY: 'visible' }}>
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                            <div className="modal-body px-4 py-3 bg-light bg-opacity-50" style={{ overflowY: 'auto' }}>
+
                                 <div className="row g-3 mb-3">
                                     <div className="col-md-6">
                                         <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
@@ -7863,7 +8054,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                         </select>
                                     </div>
                                 </div>
-                                <div className="row g-3 mb-4">
+                                <div className="row g-3 mb-3">
                                     <div className="col-12">
                                         <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                             Notas
@@ -7878,20 +8069,21 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                     </div>
                                 </div>
 
-                                <h6 className="fw-bold text-dark mb-3 text-uppercase" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                <h6 className="fw-bold text-dark mb-2 text-uppercase" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
                                     <i className="bi bi-basket-fill me-2 text-primary opacity-50"></i>
                                     Artigos a Encomendar
                                 </h6>
 
-                                {/* Items table */}
-                                <div className="rounded-3 border border-light shadow-sm mb-3 bg-white" style={{ minHeight: '160px', overflow: 'visible' }}>
+                                <div className="rounded-3 border border-light shadow-sm mb-3 bg-white">
                                     <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
-                                        <thead className="table-light">
+                                        <thead>
                                             <tr className="text-uppercase small fw-bold text-muted" style={{ letterSpacing: '0.02em' }}>
                                                 <th className="ps-3 py-2 text-center" style={{ width: '50px' }}>Img</th>
                                                 <th className="text-center py-2" style={{ width: '70px' }}>Qt</th>
-                                                <th className="py-2" style={{ width: '150px' }}>Referência</th>
-                                                <th className="py-2">Designação</th>
+                                                <th className="py-2" style={{ width: '165px' }}>Referência</th>
+                                                <th className="py-2" style={{ minWidth: '200px' }}>Designação</th>
+                                                <th className="py-2 text-center" style={{ width: '70px' }}>Stock</th>
+                                                <th className="py-2" style={{ minWidth: '150px' }}>Nota / Destino</th>
                                                 <th className="pe-3 py-2" style={{ width: '40px' }}></th>
                                             </tr>
                                         </thead>
@@ -7907,14 +8099,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                                                     style={{ width: '32px', height: '32px', objectFit: 'cover' }}
                                                                     alt={item.reference}
                                                                 />
-                                                                <div className="inventory-photo-large shadow-lg rounded overflow-hidden">
-                                                                    <img 
-                                                                        src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`} 
-                                                                        alt={`${item.reference} - Grande`}
-                                                                        className="w-100 h-100"
-                                                                        style={{ objectFit: 'contain', backgroundColor: '#fff' }}
-                                                                    />
-                                                                </div>
                                                             </div>
                                                         ) : (
                                                             <div className="bg-light text-muted border rounded d-flex align-items-center justify-content-center m-auto" style={{ width: '32px', height: '32px' }}>
@@ -7942,7 +8126,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                                                 const val = e.target.value;
                                                                 const match = searchResults.find((p, i) => (p.reference + '\u200B'.repeat(i)) === val);
                                                                 if (match) {
-                                                                    handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, isDesignationLocked: true, image_path: match.image_path });
+                                                                    const available = (orderStockType === StockType.FOSS) 
+                                                                        ? ((match.stock_quantity_foss || 0) - (match.reserved_quantity_foss || 0))
+                                                                        : ((match.stock_quantity || 0) - (match.reserved_quantity || 0));
+                                                                    handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, isDesignationLocked: true, image_path: match.image_path, availableStock: available });
                                                                 } else {
                                                                     handlePartChange(index, 'reference', val);
                                                                 }
@@ -7963,7 +8150,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                                                 const val = e.target.value;
                                                                 const match = searchResults.find((p, i) => (p.designation + '\u200B'.repeat(i)) === val);
                                                                 if (match) {
-                                                                    handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, isDesignationLocked: true, image_path: match.image_path });
+                                                                    const available = (orderStockType === StockType.FOSS) 
+                                                                        ? ((match.stock_quantity_foss || 0) - (match.reserved_quantity_foss || 0))
+                                                                        : ((match.stock_quantity || 0) - (match.reserved_quantity || 0));
+                                                                    handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, isDesignationLocked: true, image_path: match.image_path, availableStock: available });
                                                                 } else {
                                                                     handlePartChange(index, 'designation', val);
                                                                 }
@@ -7976,6 +8166,20 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                                             }}
                                                             placeholder="Designação..."
                                                             disabled={item.isDesignationLocked}
+                                                        />
+                                                    </td>
+                                                    <td className="py-2 text-center">
+                                                        <span className={`badge rounded-pill ${item.availableStock && item.availableStock > 0 ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${item.availableStock && item.availableStock > 0 ? 'text-success' : 'text-danger'} fw-bold border-0`} style={{ fontSize: '0.8rem' }}>
+                                                            {item.availableStock ?? '-'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <input
+                                                            type="text"
+                                                            className="form-control form-control-sm border-0 bg-light rounded-pill px-3 shadow-none fw-medium py-2"
+                                                            value={item.note || ''}
+                                                            onChange={e => handlePartChange(index, 'note', e.target.value)}
+                                                            placeholder="Destino..."
                                                         />
                                                     </td>
                                                     <td className="pe-3 py-2 text-end">
@@ -7996,7 +8200,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                                 </div>
                             </div>
 
-                            {/* Footer */}
                             <div className="modal-footer px-4 py-3 bg-light bg-opacity-50 border-top mt-auto">
                                 <button type="button" className="btn btn-light border rounded-pill px-4 fw-medium shadow-sm" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
                                 <button type="submit" className="btn btn-primary rounded-pill px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm" disabled={isSubmitting}>
@@ -8008,7 +8211,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
                     </div>
                 </div>
 
-                {/* Datalists (fora do modal-dialog) */}
                 <datalist id="orderPartRefSuggestions">
                     {searchResults.map((p, i) => <option key={i} value={p.reference + '\u200B'.repeat(i)}>{p.designation}</option>)}
                 </datalist>
@@ -8023,6 +8225,316 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, on
 };
 
 export default CreateOrderModal;
+
+
+================================================================================
+FICHEIRO: src\components\Inventory\CreateSaleModal.tsx
+================================================================================
+
+import React, { useState, useCallback } from 'react';
+import ReactDOM from 'react-dom';
+import { Save, Plus, Trash2, ShoppingCart, Image as ImageIcon } from 'lucide-react';
+import apiClient, { searchPartByReference } from '../../apiClient';
+import { usePartSearch } from '../../hooks/usePartSearch';
+import { StockType } from '../../constants/enums';
+import { STOCK_TYPE_LABELS } from '../../constants';
+import logger from '../../utils/logger';
+import { useConfirm } from '../../contexts/ConfirmContext';
+
+interface SaleItem {
+    partId: number;
+    reference: string;
+    designation: string;
+    quantity: number;
+    image_path?: string;
+    availableStock?: number;
+}
+
+interface CreateSaleModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onSuccess: () => void;
+}
+
+const CreateSaleModal: React.FC<CreateSaleModalProps> = ({ isOpen, onClose, onSuccess }) => {
+    const { alert } = useConfirm();
+    const [documentNumber, setDocumentNumber] = useState('');
+    const [saleType, setSaleType] = useState('SALE');
+    const [notes, setNotes] = useState('');
+    const [saleStockType, setSaleStockType] = useState<StockType>(StockType.GENERAL);
+    const [items, setItems] = useState<Partial<SaleItem>[]>([{ quantity: 1, reference: '', designation: '' }]);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const { searchResults, searchParts } = usePartSearch();
+
+    const handleAddPart = () => {
+        setItems(prev => [...prev, { quantity: 1, reference: '', designation: '' }]);
+    };
+
+    const handleRemovePart = (index: number) => {
+        setItems(prev => prev.filter((_, i) => i !== index));
+    };
+
+    const handlePartChange = useCallback((index: number, fieldOrUpdates: keyof SaleItem | Partial<SaleItem>, value?: any) => {
+        setItems(prev => {
+            const next = [...prev];
+            if (typeof fieldOrUpdates === 'string') {
+                next[index] = { ...next[index], [fieldOrUpdates]: value };
+            } else {
+                next[index] = { ...next[index], ...fieldOrUpdates };
+            }
+            return next;
+        });
+    }, []);
+
+    const handleReferenceBlur = async (index: number) => {
+        let reference = items[index].reference;
+        if (reference) {
+            reference = reference.trim().replace(/\s+/g, ' ');
+            handlePartChange(index, 'reference', reference);
+        }
+
+        if (reference) {
+            try {
+                const part = await searchPartByReference(reference);
+                if (part) {
+                    const available = (saleStockType === StockType.FOSS) 
+                        ? ((part.stock_quantity_foss || 0) - (part.reserved_quantity_foss || 0))
+                        : ((part.stock_quantity || 0) - (part.reserved_quantity || 0));
+
+                    handlePartChange(index, { 
+                        partId: part.id, 
+                        designation: part.designation, 
+                        image_path: part.image_path,
+                        availableStock: available
+                    });
+                } else {
+                    handlePartChange(index, { partId: undefined, designation: '', image_path: undefined, availableStock: undefined });
+                }
+            } catch (err) {
+                logger.error(err, 'Error searching part:');
+            }
+        }
+    };
+
+    const handleStockTypeChange = (newType: StockType) => {
+        setSaleStockType(newType);
+        // Update available stock for all items based on new global stock type
+        setItems(prev => prev.map(item => {
+            if (!item.partId) return item;
+            // Since searchResults might not have all parts, we might need a better way, 
+            // but for simple cases we look in searchResults or just reset availableStock to trigger re-fetch if needed.
+            // For now, let's try to find it in searchResults.
+            const part = searchResults.find(p => p.id === item.partId);
+            if (part) {
+                const available = (newType === StockType.FOSS) 
+                    ? ((part.stock_quantity_foss || 0) - (part.reserved_quantity_foss || 0))
+                    : ((part.stock_quantity || 0) - (part.reserved_quantity || 0));
+                return { ...item, availableStock: available };
+            }
+            return item;
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!documentNumber.trim()) return alert('Número do documento é obrigatório.');
+
+        const validItems = items.filter(i => i.partId && i.quantity && i.quantity > 0);
+        if (validItems.length === 0) return alert('É necessário incluir pelo menos um artigo válido (com referência) na lista.');
+
+        // Check stock
+        for (const item of validItems) {
+            if (item.quantity! > (item.availableStock || 0)) {
+                return alert(`Stock insuficiente para o artigo ${item.reference}. Disponível: ${item.availableStock}`);
+            }
+        }
+
+        setIsSubmitting(true);
+        try {
+            await apiClient.post('/api/inventory/sales', {
+                document_number: documentNumber.trim(),
+                sale_type: saleType,
+                stockType: saleStockType,
+                notes: notes.trim(),
+                items: validItems
+            });
+            onSuccess();
+        } catch (err: any) {
+            alert(`Erro ao registar saída: ${err.response?.data?.details || err.message}`);
+            logger.error(err, 'Create Sale error:');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    const modalContent = (
+        <>
+            <div className="modal-backdrop fade show" style={{ zIndex: 1050, opacity: 1, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }} onClick={!isSubmitting ? onClose : undefined} />
+            <div className="modal show d-block" style={{ zIndex: 1055 }} tabIndex={-1} role="dialog">
+                <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', maxHeight: '90vh' }}>
+                        <div className="modal-header border-0 px-4 pt-4 pb-3">
+                            <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'var(--font-family-title)', color: '#111827' }}>
+                                <span className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary">
+                                    <ShoppingCart size={22} />
+                                </span>
+                                Nova Venda / Saída
+                            </h5>
+                            <button type="button" className="btn-close" onClick={onClose} disabled={isSubmitting} />
+                        </div>
+                        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden' }}>
+                            <div className="modal-body px-4 py-3 bg-light bg-opacity-50" style={{ overflowY: 'auto' }}>
+
+
+                                <div className="row g-3 mb-3">
+                                    <div className="col-md-3">
+                                        <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem' }}>Tipo de Saída</label>
+                                        <select className="form-select border-0 bg-white shadow-sm rounded-3 py-2 fw-medium px-3" value={saleType} onChange={e => setSaleType(e.target.value)}>
+                                            <option value="SALE">Venda</option>
+                                            <option value="GIVEAWAY">Oferta</option>
+                                            <option value="DISCARD">Descarte / Abate</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem' }}>Inventário de Saída</label>
+                                        <select className="form-select border-0 bg-white shadow-sm rounded-3 py-2 fw-medium px-3" value={saleStockType} onChange={e => handleStockTypeChange(e.target.value as StockType)}>
+                                            <option value={StockType.GENERAL}>Geral</option>
+                                            <option value={StockType.FOSS}>Foss</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem' }}>Nº Documento <span className="text-danger">*</span></label>
+                                        <input type="text" className="form-control border-0 bg-white shadow-sm rounded-3 py-2 fw-medium px-3" placeholder="Ex: FT-2024/001" value={documentNumber} onChange={e => setDocumentNumber(e.target.value)} required />
+                                    </div>
+                                    <div className="col-md-3">
+                                        <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem' }}>Notas</label>
+                                        <input type="text" className="form-control border-0 bg-white shadow-sm rounded-3 py-2 fw-medium px-3" placeholder="Obs..." value={notes} onChange={e => setNotes(e.target.value)} />
+                                    </div>
+                                </div>
+
+                                <h6 className="fw-bold text-dark mb-3 text-uppercase" style={{ fontSize: '0.85rem' }}>Artigos a Sair</h6>
+                                <div className="rounded-3 border border-light shadow-sm mb-3 bg-white" style={{ minHeight: '160px', overflow: 'visible' }}>
+                                    <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
+                                        <thead className="table-light">
+                                            <tr className="text-uppercase small fw-bold text-muted">
+                                                <th className="ps-3 py-2 text-center" style={{ width: '60px' }}>Img</th>
+                                                <th className="py-2 text-center" style={{ width: '80px' }}>Qt</th>
+                                                <th className="py-2" style={{ width: '150px' }}>Referência</th>
+                                                <th className="py-2">Designação</th>
+                                                <th className="py-2 text-center" style={{ width: '80px' }}>Stock</th>
+                                                <th className="pe-3 py-2" style={{ width: '40px' }}></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {items.map((item, index) => (
+                                                <tr key={index} className="border-bottom border-light">
+                                                    <td className="ps-3 py-2 text-center">
+                                                        {item.image_path ? (
+                                                            <div className="inventory-photo-container d-inline-block text-start">
+                                                                <img
+                                                                    src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`}
+                                                                    className="rounded shadow-sm border p-1"
+                                                                    style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                                                                    alt={item.reference}
+                                                                />
+                                                                <div className="inventory-photo-large shadow-lg rounded overflow-hidden">
+                                                                    <img 
+                                                                        src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`} 
+                                                                        alt={`${item.reference} - Grande`}
+                                                                        className="w-100 h-100"
+                                                                        style={{ objectFit: 'contain', backgroundColor: '#fff' }}
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="bg-light text-muted border rounded d-flex align-items-center justify-content-center m-auto" style={{ width: '32px', height: '32px' }}>
+                                                                <ImageIcon size={14} />
+                                                            </div>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <input type="number" className="form-control form-control-sm text-center border-0 bg-light rounded-pill fw-bold py-2 px-1" value={item.quantity} onChange={e => handlePartChange(index, 'quantity', parseInt(e.target.value) || 1)} min="1" required />
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <input type="text" className="form-control form-control-sm border-0 bg-light rounded-pill px-3 fw-medium py-2" list="salePartRefSuggestions" value={item.reference} onChange={e => {
+                                                            const val = e.target.value;
+                                                            const match = searchResults.find((p, i) => (p.reference + '\u200B'.repeat(i)) === val);
+                                                            if (match) {
+                                                                const available = (saleStockType === StockType.FOSS) 
+                                                                    ? ((match.stock_quantity_foss || 0) - (match.reserved_quantity_foss || 0))
+                                                                    : ((match.stock_quantity || 0) - (match.reserved_quantity || 0));
+                                                                handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, image_path: match.image_path, availableStock: available });
+                                                            } else {
+                                                                handlePartChange(index, 'reference', val);
+                                                            }
+                                                            searchParts(val);
+                                                        }} onBlur={() => handleReferenceBlur(index)} placeholder="Ref..." required />
+                                                    </td>
+                                                    <td className="py-2">
+                                                        <input type="text" className="form-control form-control-sm border-0 bg-light rounded-pill px-3 fw-medium py-2" list="salePartDesigSuggestions" value={item.designation} onChange={e => {
+                                                            const val = e.target.value;
+                                                            const match = searchResults.find((p, i) => (p.designation + '\u200B'.repeat(i)) === val);
+                                                            if (match) {
+                                                                const available = (saleStockType === StockType.FOSS) 
+                                                                    ? ((match.stock_quantity_foss || 0) - (match.reserved_quantity_foss || 0))
+                                                                    : ((match.stock_quantity || 0) - (match.reserved_quantity || 0));
+                                                                handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, image_path: match.image_path, availableStock: available });
+                                                            } else {
+                                                                handlePartChange(index, 'designation', val);
+                                                            }
+                                                            searchParts(val);
+                                                        }} onBlur={() => {
+                                                            if (item.designation) {
+                                                                handlePartChange(index, 'designation', item.designation.trim().replace(/\s+/g, ' '));
+                                                            }
+                                                        }} placeholder="Designação..." required />
+                                                    </td>
+                                                    <td className="py-2 text-center">
+                                                        <span className={`badge rounded-pill ${item.availableStock && item.availableStock > 0 ? 'bg-success' : 'bg-danger'} bg-opacity-10 ${item.availableStock && item.availableStock > 0 ? 'text-success' : 'text-danger'} fw-bold border-0`} style={{ fontSize: '0.85rem' }}>
+                                                            {item.availableStock ?? '-'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="pe-3 py-2 text-end">
+                                                        <button type="button" className="btn btn-sm btn-outline-danger border-0 rounded-circle p-1" onClick={() => handleRemovePart(index)} style={{ width: '28px', height: '28px' }}>
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div className="d-flex justify-content-end">
+                                    <button type="button" className="btn btn-sm btn-outline-primary rounded-pill px-4 fw-bold mt-1 shadow-sm" onClick={handleAddPart}><Plus size={16} className="me-1" /> Adicionar Artigo</button>
+                                </div>
+                            </div>
+
+                            <div className="modal-footer px-4 py-3 bg-light bg-opacity-50 border-top mt-auto">
+                                <button type="button" className="btn btn-light border rounded-pill px-4 fw-medium shadow-sm" onClick={onClose} disabled={isSubmitting}>Cancelar</button>
+                                <button type="submit" className="btn btn-primary rounded-pill px-4 fw-semibold d-flex align-items-center gap-2 shadow-sm" disabled={isSubmitting}>
+                                    {isSubmitting ? <span className="spinner-border spinner-border-sm" /> : <Save size={16} />}
+                                    Confirmar Saída
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <datalist id="salePartRefSuggestions">
+                    {searchResults.map((p, i) => <option key={i} value={p.reference + '\u200B'.repeat(i)}>{p.designation}</option>)}
+                </datalist>
+                <datalist id="salePartDesigSuggestions">
+                    {searchResults.map((p, i) => <option key={i} value={p.designation + '\u200B'.repeat(i)}>{p.reference}</option>)}
+                </datalist>
+            </div>
+        </>
+    );
+
+    return ReactDOM.createPortal(modalContent, document.body);
+};
+
+export default CreateSaleModal;
 
 
 ================================================================================
@@ -8306,6 +8818,7 @@ export interface ComponentItem {
     quantity: number;
     reference?: string;
     designation?: string;
+    currentStock?: number;
 }
 
 interface InventoryItemFormProps {
@@ -8513,6 +9026,7 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                                 <thead className="table-light">
                                     <tr>
                                         <th>Componente</th>
+                                        <th style={{ width: '120px' }}>Stock Atual</th>
                                         <th style={{ width: '100px' }}>Qtd</th>
                                         <th style={{ width: '50px' }}></th>
                                     </tr>
@@ -8520,7 +9034,7 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                                 <tbody>
                                     {components.length === 0 ? (
                                         <tr>
-                                            <td colSpan={3} className="text-center py-3 text-muted">
+                                            <td colSpan={4} className="text-center py-3 text-muted">
                                                 Nenhum componente adicionado.
                                             </td>
                                         </tr>
@@ -8530,6 +9044,19 @@ const InventoryItemForm: React.FC<InventoryItemFormProps> = ({
                                                 <td>
                                                     <strong>{c.reference}</strong><br />
                                                     <small className="text-muted">{c.designation}</small>
+                                                </td>
+                                                <td>
+                                                    {c.currentStock !== undefined ? (
+                                                        <span className={`badge ${
+                                                            c.currentStock <= 0 ? 'bg-danger' :
+                                                            c.currentStock < c.quantity ? 'bg-warning text-dark' :
+                                                            'bg-success'
+                                                        }`}>
+                                                            {c.currentStock}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-muted">—</span>
+                                                    )}
                                                 </td>
                                                 <td>
                                                     <input
@@ -9107,6 +9634,7 @@ import { Pencil, Trash2, ArrowUpDown, Truck, Package, CalendarCheck, History, Ch
 import apiClient from '../../apiClient';
 import './InventoryTable.css';
 import { format } from 'date-fns';
+import { STOCK_TYPE_LABELS } from '../../constants';
 
 // ─── Transaction type config ─────────────────────────────────────────────────
 const TX_TYPE: Record<string, { label: string; colorCls: string; icon: React.ReactNode }> = {
@@ -9185,7 +9713,7 @@ const PartHistoryPanel: React.FC<{ partId: number; colSpan: number; onOpenDoc?: 
                                                 </td>
                                                 <td className="py-2">
                                                     <span className="fw-bold text-muted small">
-                                                        {tx.stock_type === 'contract' ? 'FOSS/Contrato' : 'Geral'}
+                                                        {['foss', 'contract'].includes(tx.stock_type) ? 'Foss' : 'Geral'}
                                                     </span>
                                                 </td>
                                                 <td className="py-2 text-center fw-bold text-muted">
@@ -9246,8 +9774,6 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
     const toggleHistory = (partId: number) => {
         setExpandedPartId(prev => prev === partId ? null : partId);
     };
-
-    const TOTAL_COLS = 11; // foto + 8 data cols + ações + 1 for history
 
     return (
         <div className="glass-card border-0 shadow-sm animate__animated animate__fadeIn rounded-4 mb-4" style={{ overflow: 'visible' }}>
@@ -9371,28 +9897,6 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                                 <Pencil size={18} strokeWidth={2.5} />
                                             </button>
 
-                                            {/* Column 4: Order */}
-                                            {!part.is_composed ? (
-                                                <button
-                                                    className="btn btn-icon btn-outline-warning rounded-circle shadow-sm transition-all border-2"
-                                                    onClick={() => onOpenModal(part, 'order')}
-                                                    title="Encomendar"
-                                                >
-                                                    <Truck size={18} strokeWidth={2.5} />
-                                                </button>
-                                            ) : <div style={{ width: '34px' }} />}
-
-                                            {/* Column 5: Receive */}
-                                            {!part.is_composed && ((part.ordered_quantity || 0) > 0 || (part.ordered_quantity_foss || 0) > 0) ? (
-                                                <button
-                                                    className="btn btn-icon btn-outline-info rounded-circle shadow-sm transition-all border-2"
-                                                    onClick={() => onOpenModal(part, 'receive')}
-                                                    title="Receber Encomenda"
-                                                >
-                                                    <Package size={18} strokeWidth={2.5} />
-                                                </button>
-                                            ) : <div style={{ width: '34px' }} />}
-
                                             {/* Column 6: Reservations */}
                                             {((part.reserved_quantity || 0) > 0 || (part.reserved_quantity_foss || 0) > 0) ? (
                                                 <button
@@ -9420,7 +9924,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                                 {expandedPartId === part.id && (
                                     <PartHistoryPanel 
                                         partId={part.id!} 
-                                        colSpan={TOTAL_COLS} 
+                                        colSpan={9} 
                                         onOpenDoc={onOpenDoc}
                                     />
                                 )}
@@ -9527,7 +10031,7 @@ FICHEIRO: src\components\Inventory\OrderDetailsModal.tsx
 
 import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
-import { CheckCircle, Package, ArrowRight, ClipboardCheck, Plus, Save, Trash2, X } from 'lucide-react';
+import { CheckCircle, Package, ArrowRight, ClipboardCheck, Plus, Save, Trash2, X, RotateCcw } from 'lucide-react';
 import apiClient, { searchPartByReference } from '../../apiClient';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -9624,14 +10128,39 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
         }
     };
 
+    const handleRevert = async () => {
+        const ok = await confirm({
+            title: 'Reverter Receção',
+            message: 'Tem a certeza que deseja reverter a receção desta encomenda? As quantidades recebidas serão removidas do stock físico.',
+            confirmText: 'Reverter',
+            variant: 'danger',
+        });
+        if (!ok) return;
+
+        setIsSubmitting(true);
+        try {
+            await apiClient.post(`/api/inventory/orders/${orderId}/revert`);
+            onSuccess();
+            queryClient.invalidateQueries({ queryKey: ['inventory_order_detail', orderId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory_orders'] });
+        } catch (err: any) {
+            alert(`Erro ao reverter receção: ${err.response?.data?.details || err.message}`);
+            logger.error(err, 'Revert order items error:');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     // --- ADD ITEMS LOGIC ---
     const handleStartAdding = () => {
-        setNewItems([{ quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL }]);
+        const orderStockType = order?.items?.[0]?.stock_type || StockType.GENERAL;
+        setNewItems([{ quantity: 1, reference: '', designation: '', stockType: orderStockType }]);
         setIsAddingItems(true);
     };
 
     const handleAddPart = () => {
-        setNewItems(prev => [...prev, { quantity: 1, reference: '', designation: '', stockType: StockType.GENERAL }]);
+        const orderStockType = order?.items?.[0]?.stock_type || StockType.GENERAL;
+        setNewItems(prev => [...prev, { quantity: 1, reference: '', designation: '', stockType: orderStockType }]);
     };
 
     const handleRemovePart = (index: number) => {
@@ -9677,8 +10206,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
     };
 
     const handleSaveNewItems = async () => {
-        const orderStockType = order?.items?.[0]?.stock_type || StockType.GENERAL;
-        const validItems = newItems.filter(i => i.reference && i.reference.trim() !== '' && i.quantity > 0).map(i => ({ ...i, stockType: orderStockType }));
+        const validItems = newItems.filter(i => i.reference && i.reference.trim() !== '' && i.quantity > 0);
         if (validItems.length === 0) return alert('É necessário incluir pelo menos um artigo válido (com referência) na encomenda.');
 
         setIsSubmitting(true);
@@ -9688,7 +10216,6 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
             setNewItems([]);
             queryClient.invalidateQueries({ queryKey: ['inventory_order_detail', orderId] });
             queryClient.invalidateQueries({ queryKey: ['inventory_orders'] });
-            // Show a quick success alert if needed or rely on modal redraw
         } catch (err: any) {
             alert(`Erro ao adicionar itens: ${err.response?.data?.details || err.message}`);
             logger.error(err, 'Add order items error:');
@@ -9745,6 +10272,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
 
     const statusInfo = order ? (STATUS_LABELS[order.status] ?? { label: order.status, cls: 'bg-secondary bg-opacity-10 text-secondary' }) : null;
     const hasReceivable = Object.values(receivingQtys).some(q => q > 0);
+    const hasAnyReceived = order?.items?.some((i: any) => i.quantity_received > 0);
     const orderStockType = order?.items?.[0]?.stock_type as StockType || StockType.GENERAL;
     const stockLabel = STOCK_TYPE_LABELS[orderStockType] || orderStockType;
 
@@ -9752,7 +10280,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
         <>
             <div className="modal-backdrop fade show" style={{ zIndex: 1050, opacity: 1, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }} onClick={!isSubmitting ? onClose : undefined} />
             <div className="modal show d-block" style={{ zIndex: 1055 }} tabIndex={-1} role="dialog">
-                <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
                     <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px', overflow: 'hidden' }}>
                         <div className="modal-header bg-dark text-white border-0 px-4 py-3">
                             <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'var(--font-family-title)' }}>
@@ -9837,6 +10365,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                                         <th className="text-center py-2" style={{ width: '80px' }}>Enc.</th>
                                                         <th className="text-center py-2" style={{ width: '80px' }}>Rec.</th>
                                                         <th className="pe-4 text-center py-2" style={{ width: '130px' }}>A Receber</th>
+                                                        <th className="py-2" style={{ minWidth: '150px' }}>Nota / Destino</th>
                                                         <th className="pe-3 py-2" style={{ width: '40px' }}></th>
                                                     </tr>
                                                 </thead>
@@ -9872,6 +10401,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                                                             disabled={isSubmitting || order.status === 'CANCELLED'}
                                                                         />
                                                                     )}
+                                                                </td>
+                                                                <td className="py-2">
+                                                                    <div className="small text-muted">
+                                                                        {item.note || '-'}
+                                                                    </div>
                                                                 </td>
                                                                 <td className="pe-3 py-2 text-end">
                                                                     {item.quantity_received === 0 && order.status !== 'CANCELLED' && (
@@ -10041,7 +10575,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
 
                         <div className="modal-footer px-4 py-3 bg-light bg-opacity-50 border-top mt-auto d-flex justify-content-between">
                             <div>
-                                {order?.status === 'PENDING' && !isAddingItems && (
+                                {order?.status === 'PENDING' && !isAddingItems && !hasAnyReceived && (
                                     <button 
                                         type="button" 
                                         className="btn btn-outline-danger border rounded-pill px-4 fw-medium shadow-sm d-flex align-items-center gap-2" 
@@ -10049,6 +10583,16 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
                                         disabled={isSubmitting}
                                     >
                                         <Trash2 size={16} /> Eliminar Encomenda
+                                    </button>
+                                )}
+                                {hasAnyReceived && !isAddingItems && (
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-outline-warning border rounded-pill px-4 fw-medium shadow-sm d-flex align-items-center gap-2" 
+                                        onClick={handleRevert} 
+                                        disabled={isSubmitting}
+                                    >
+                                        <RotateCcw size={16} /> Reverter Receção
                                     </button>
                                 )}
                             </div>
@@ -10087,6 +10631,393 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ isOpen, orderId, 
 };
 
 export default OrderDetailsModal;
+
+
+================================================================================
+FICHEIRO: src\components\Inventory\SaleDetailsModal.tsx
+================================================================================
+
+import React, { useState, useCallback } from 'react';
+import ReactDOM from 'react-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { FileText, Calendar, User, CreditCard, Gift, Trash2, Image as ImageIcon, Trash, ShoppingCart, Plus, Save, X } from 'lucide-react';
+import apiClient from '../../apiClient';
+import { format } from 'date-fns';
+import { useConfirm } from '../../contexts/ConfirmContext';
+import logger from '../../utils/logger';
+import { usePartSearch } from '../../hooks/usePartSearch';
+import { StockType } from '../../constants/enums';
+
+interface SaleDetailsModalProps {
+    isOpen: boolean;
+    saleId: number;
+    onClose: () => void;
+    onSuccess?: () => void;
+}
+
+const SALE_TYPE_LABELS: Record<string, { label: string; cls: string }> = {
+    SALE: { label: 'Venda', cls: 'bg-success bg-opacity-10 text-success' },
+    GIVEAWAY: { label: 'Oferta', cls: 'bg-info bg-opacity-10 text-info' },
+    DISCARD: { label: 'Descarte', cls: 'bg-danger bg-opacity-10 text-danger' },
+};
+
+const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({ isOpen, saleId, onClose, onSuccess }) => {
+    const { confirm, alert } = useConfirm();
+    const queryClient = useQueryClient();
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Add items state
+    const [isAddingItems, setIsAddingItems] = useState(false);
+    const [newItems, setNewItems] = useState<any[]>([]);
+    const { searchResults, searchParts } = usePartSearch();
+
+    const { data: sale, isLoading } = useQuery({
+        queryKey: ['inventory_sale_detail', saleId],
+        queryFn: async () => {
+            const response = await apiClient.get(`/api/inventory/sales/${saleId}`);
+            return response.data;
+        },
+        enabled: !!saleId
+    });
+
+    if (!isOpen) return null;
+
+    const handleDeleteSale = async () => {
+        const confirmed = await confirm({
+            title: 'Eliminar Saída',
+            message: `Tem a certeza que deseja eliminar a saída #${sale.id} (${sale.document_number})? Os itens serão repostos no inventário ${sale.stock_type === 'contract' ? 'Foss' : 'Geral'}.`,
+            confirmText: 'Sim, Eliminar',
+            cancelText: 'Cancelar',
+            variant: 'danger'
+        });
+
+        if (confirmed) {
+            setIsDeleting(true);
+            try {
+                await apiClient.delete(`/api/inventory/sales/${saleId}`);
+                onSuccess?.();
+                onClose();
+            } catch (err: any) {
+                alert(`Erro ao eliminar saída: ${err.response?.data?.details || err.message}`);
+                logger.error(err, 'Delete Sale error:');
+            } finally {
+                setIsDeleting(false);
+            }
+        }
+    };
+
+    // --- ADD ITEMS LOGIC ---
+    const handleStartAdding = () => {
+        setNewItems([{ quantity: 1, reference: '', designation: '' }]);
+        setIsAddingItems(true);
+    };
+
+    const handleAddPart = () => {
+        setNewItems(prev => [...prev, { quantity: 1, reference: '', designation: '' }]);
+    };
+
+    const handleRemovePart = (index: number) => {
+        setNewItems(prev => prev.filter((_, i) => i !== index));
+        if (newItems.length === 1) setIsAddingItems(false);
+    };
+
+    const handlePartChange = useCallback((index: number, fieldOrUpdates: any, value?: any) => {
+        setNewItems(prev => {
+            const next = [...prev];
+            if (typeof fieldOrUpdates === 'string') {
+                next[index] = { ...next[index], [fieldOrUpdates]: value };
+            } else {
+                next[index] = { ...next[index], ...fieldOrUpdates };
+            }
+            return next;
+        });
+    }, []);
+
+    const handleSaveNewItems = async () => {
+        const validItems = newItems.filter(i => i.partId && i.quantity && i.quantity > 0);
+        if (validItems.length === 0) return alert('É necessário incluir pelo menos um artigo válido (com referência) na lista.');
+
+        setIsSubmitting(true);
+        try {
+            await apiClient.post(`/api/inventory/sales/${saleId}/items`, { items: validItems });
+            setIsAddingItems(false);
+            setNewItems([]);
+            queryClient.invalidateQueries({ queryKey: ['inventory_sale_detail', saleId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory_sales'] });
+        } catch (err: any) {
+            alert(`Erro ao adicionar itens: ${err.response?.data?.details || err.message}`);
+            logger.error(err, 'Add sale items error:');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleDeleteItem = async (itemId: number) => {
+        const ok = await confirm({
+            title: 'Remover Peça',
+            message: 'Tem a certeza que deseja remover esta peça da venda? A peça será reposta no inventário.',
+            confirmText: 'Remover',
+            variant: 'danger',
+        });
+        if (!ok) return;
+
+        setIsSubmitting(true);
+        try {
+            await apiClient.delete(`/api/inventory/sales/${saleId}/items/${itemId}`);
+            queryClient.invalidateQueries({ queryKey: ['inventory_sale_detail', saleId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory_sales'] });
+        } catch (err: any) {
+            alert(`Erro ao remover peça: ${err.response?.data?.details || err.message}`);
+            logger.error(err, 'Delete sale item error:');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const saleTypeInfo = sale ? (SALE_TYPE_LABELS[sale.sale_type] ?? { label: sale.sale_type, cls: 'bg-secondary bg-opacity-10 text-secondary' }) : null;
+
+    const modalContent = (
+        <>
+            <div className="modal-backdrop fade show" style={{ zIndex: 1050, opacity: 1, backgroundColor: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }} onClick={!isDeleting && !isSubmitting ? onClose : undefined} />
+            <div className="modal show d-block" style={{ zIndex: 1055 }} tabIndex={-1} role="dialog">
+                <div className="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                    <div className="modal-content border-0 shadow-lg" style={{ borderRadius: '20px' }}>
+                        <div className="modal-header bg-dark text-white border-0 px-4 py-3">
+                            <h5 className="modal-title fw-bold d-flex align-items-center gap-2 m-0" style={{ fontFamily: 'var(--font-family-title)' }}>
+                                <span className="p-2 rounded-3 d-flex align-items-center justify-content-center bg-white bg-opacity-10 text-white">
+                                    <ShoppingCart size={22} />
+                                </span>
+                                Detalhes da Saída #{saleId}
+                            </h5>
+                            <button type="button" className="btn-close btn-close-white" onClick={onClose} disabled={isDeleting || isSubmitting} />
+                        </div>
+
+                        <div className="modal-body px-4 py-4 bg-light bg-opacity-50">
+                            {isLoading ? (
+                                <div className="text-center py-5">
+                                    <div className="spinner-border text-primary" role="status" />
+                                    <p className="mt-3 text-muted">A carregar detalhes...</p>
+                                </div>
+                            ) : sale && (
+                                <>
+                                    <div className="row g-3 mb-4">
+                                        <div className="col-md-3">
+                                            <div className="rounded-4 p-3 bg-white shadow-sm h-100 d-flex flex-column border border-light">
+                                                <div className="small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Nº Documento</div>
+                                                <div className="fw-bold text-primary fs-5 m-0" style={{ wordBreak: 'break-word', lineHeight: '1.1' }}>{sale.document_number}</div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-3">
+                                            <div className="rounded-4 p-3 bg-white shadow-sm h-100 d-flex flex-column border border-light">
+                                                <div className="small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Tipo de Saída</div>
+                                                <div>
+                                                    {saleTypeInfo && (
+                                                        <span className={`badge px-3 py-2 rounded-pill fw-semibold border-0 ${saleTypeInfo.cls} align-self-start d-inline-block`}>{saleTypeInfo.label}</span>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-3">
+                                            <div className="rounded-4 p-3 bg-white shadow-sm h-100 d-flex flex-column border border-light">
+                                                <div className="small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Inventário</div>
+                                                <div>
+                                                    <span className="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-3 py-2 fw-bold text-uppercase d-inline-block">
+                                                        {sale.stock_type === 'contract' ? 'Foss' : 'Geral'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="col-md-3">
+                                            <div className="rounded-4 p-3 bg-white shadow-sm h-100 d-flex flex-column border border-light">
+                                                <div className="small fw-bold text-muted text-uppercase mb-2" style={{ fontSize: '0.65rem', letterSpacing: '0.06em' }}>Registado por</div>
+                                                <div className="fw-bold text-truncate" style={{ lineHeight: '1.1', fontSize: '0.95rem' }}>{sale.first_name} {sale.last_name || ''}</div>
+                                                <div className="small text-muted mt-1" style={{ fontSize: '0.75rem', lineHeight: '1' }}>{format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm')}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {sale.notes && (
+                                        <div className="rounded-4 p-3 bg-white shadow-sm mb-4 small text-secondary border border-light">
+                                            <span className="fw-bold text-muted me-1" style={{ fontSize: '0.65rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Notas:</span>
+                                            {sale.notes}
+                                        </div>
+                                    )}
+
+                                    <div className="p-3 bg-white border border-light rounded-4 shadow-sm mb-4 text-start">
+                                        <div className="d-flex align-items-center justify-content-between mb-3">
+                                            <h6 className="fw-bold text-dark m-0 text-uppercase" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>
+                                                <i className="bi bi-box-seam me-2 text-primary opacity-50"></i>
+                                                Artigos da Saída
+                                            </h6>
+                                            {!isAddingItems && (
+                                                <button 
+                                                    className="btn btn-sm btn-outline-primary rounded-pill fw-bold d-flex align-items-center gap-1 shadow-sm px-3"
+                                                    onClick={handleStartAdding}
+                                                >
+                                                    <Plus size={16} /> Adicionar Peças
+                                                </button>
+                                            )}
+                                        </div>
+
+                                        <div className="rounded-3 overflow-hidden border border-light shadow-sm bg-white mb-2">
+                                            <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
+                                                <thead className="table-light">
+                                                    <tr className="small text-uppercase fw-bold text-muted">
+                                                        <th className="ps-3 py-2 text-center" style={{ width: '60px' }}>Img</th>
+                                                        <th className="py-2 text-center" style={{ width: '80px' }}>Qt</th>
+                                                        <th className="py-2" style={{ width: '150px' }}>Referência</th>
+                                                        <th className="py-2">Designação</th>
+                                                        <th className="pe-3 py-2" style={{ width: '40px' }}></th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {sale.items?.map((item: any) => (
+                                                        <tr key={item.id} className="border-bottom border-light">
+                                                            <td className="ps-3 py-2 text-center">
+                                                                {item.image_path ? (
+                                                                    <div className="inventory-photo-container d-inline-block text-start">
+                                                                        <img
+                                                                            src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/inventory/${item.image_path}`}
+                                                                            className="rounded shadow-sm border p-1"
+                                                                            style={{ width: '32px', height: '32px', objectFit: 'cover' }}
+                                                                            alt={item.reference}
+                                                                        />
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="bg-light text-muted border rounded d-flex align-items-center justify-content-center m-auto" style={{ width: '32px', height: '32px' }}>
+                                                                        <ImageIcon size={14} />
+                                                                    </div>
+                                                                )}
+                                                            </td>
+                                                            <td className="py-3 text-center">
+                                                                <span className="badge bg-dark rounded-pill px-3 py-2">{item.quantity}</span>
+                                                            </td>
+                                                            <td className="py-3 fw-bold text-primary">{item.reference}</td>
+                                                            <td className="py-3">
+                                                                <div className="fw-medium">{item.designation}</div>
+                                                            </td>
+                                                            <td className="pe-3 py-3 text-end">
+                                                                <button 
+                                                                    type="button" 
+                                                                    className="btn btn-sm btn-outline-danger border-0 rounded-circle shadow-none p-1" 
+                                                                    onClick={() => handleDeleteItem(item.id)} 
+                                                                    style={{ width: '28px', height: '28px' }}
+                                                                    disabled={isDeleting || isSubmitting}
+                                                                    title="Remover peça"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    {isAddingItems && (
+                                        <div className="rounded-4 p-4 border border-primary bg-white shadow-sm mb-4 position-relative">
+                                            <button 
+                                                className="btn btn-sm btn-link text-secondary position-absolute top-0 end-0 mt-2 me-2 shadow-none"
+                                                onClick={() => setIsAddingItems(false)}
+                                            >
+                                                <X size={20} />
+                                            </button>
+                                            <h6 className="fw-bold text-primary mb-3 text-uppercase" style={{ fontSize: '0.85rem', letterSpacing: '0.05em' }}>Novas Peças a Adicionar</h6>
+                                            
+                                            {/* Table for adding items */}
+                                            <div className="rounded-3 border border-light shadow-sm mb-3 bg-white">
+                                                <table className="table table-hover align-middle mb-0" style={{ fontSize: '0.85rem' }}>
+                                                    <thead>
+                                                        <tr className="text-uppercase small fw-bold text-muted">
+                                                            <th className="ps-3 py-2 text-center" style={{ width: '60px' }}>Qt</th>
+                                                            <th className="py-2" style={{ width: '150px' }}>Referência</th>
+                                                            <th className="py-2">Designação</th>
+                                                            <th className="pe-3 py-2" style={{ width: '40px' }}></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="bg-white">
+                                                        {newItems.map((item, index) => (
+                                                            <tr key={index} className="border-bottom border-light">
+                                                                <td className="py-2">
+                                                                    <input type="number" className="form-control form-control-sm text-center border-0 bg-light rounded-pill fw-bold py-2 px-1" value={item.quantity} onChange={e => handlePartChange(index, 'quantity', parseInt(e.target.value) || 1)} min="1" required />
+                                                                </td>
+                                                                <td className="py-2">
+                                                                    <input type="text" className="form-control form-control-sm border-0 bg-light rounded-pill px-3 fw-medium py-2" list="salePartRefSuggestionsModal" value={item.reference} onChange={e => {
+                                                                        const val = e.target.value;
+                                                                        const match = searchResults.find((p, i) => (p.reference + '\u200B'.repeat(i)) === val);
+                                                                        if (match) {
+                                                                            handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, image_path: match.image_path });
+                                                                        } else {
+                                                                            handlePartChange(index, 'reference', val);
+                                                                        }
+                                                                        searchParts(val);
+                                                                    }} placeholder="Ref..." required />
+                                                                </td>
+                                                                <td className="py-2">
+                                                                    <input type="text" className="form-control form-control-sm border-0 bg-light rounded-pill px-3 fw-medium py-2" list="salePartDesigSuggestionsModal" value={item.designation} onChange={e => {
+                                                                        const val = e.target.value;
+                                                                        const match = searchResults.find((p, i) => (p.designation + '\u200B'.repeat(i)) === val);
+                                                                        if (match) {
+                                                                            handlePartChange(index, { partId: match.id, reference: match.reference, designation: match.designation, image_path: match.image_path });
+                                                                        } else {
+                                                                            handlePartChange(index, 'designation', val);
+                                                                        }
+                                                                        searchParts(val);
+                                                                    }} placeholder="Designação..." required />
+                                                                </td>
+
+                                                                <td className="pe-3 py-2 text-end">
+                                                                    <button type="button" className="btn btn-sm btn-outline-danger border-0 rounded-circle p-1" onClick={() => handleRemovePart(index)} style={{ width: '28px', height: '28px' }}><Trash2 size={16} /></button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            <div className="d-flex justify-content-end mt-3 gap-2">
+                                                <button type="button" className="btn btn-sm btn-outline-primary rounded-pill px-4 fw-bold" onClick={handleAddPart}><Plus size={16} className="me-1" /> Nova Linha</button>
+                                                <button className="btn btn-primary rounded-pill px-4 fw-bold" onClick={handleSaveNewItems} disabled={isSubmitting}>Confirmar Adição</button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            <div className="modal-footer px-4 py-3 bg-light bg-opacity-50 border-top mt-auto d-flex justify-content-between">
+                                <button 
+                                    type="button" 
+                                    className="btn btn-outline-danger border rounded-pill px-4 fw-medium shadow-sm d-flex align-items-center gap-2" 
+                                    onClick={handleDeleteSale} 
+                                    disabled={isDeleting || isSubmitting || isLoading}
+                                >
+                                    {isDeleting ? <span className="spinner-border spinner-border-sm" /> : <Trash2 size={16} />} 
+                                    Eliminar Venda
+                                </button>
+                                <button type="button" className="btn btn-light border rounded-pill px-4 fw-medium shadow-sm" onClick={onClose} disabled={isDeleting || isSubmitting}>
+                                    Sair
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <datalist id="salePartRefSuggestionsModal">
+                    {searchResults.map((p, i) => <option key={i} value={p.reference + '\u200B'.repeat(i)}>{p.designation}</option>)}
+                </datalist>
+                <datalist id="salePartDesigSuggestionsModal">
+                    {searchResults.map((p, i) => <option key={i} value={p.designation + '\u200B'.repeat(i)}>{p.reference}</option>)}
+                </datalist>
+            </div>
+        </>
+    );
+
+    return ReactDOM.createPortal(modalContent, document.body);
+};
+
+export default SaleDetailsModal;
 
 
 ================================================================================
@@ -10294,10 +11225,12 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
             await alert('Não há peças para copiar.');
             return;
         }
-        const partsToCopy = validParts.map(({ quantity, reference, designation }) => ({
+        const partsToCopy = validParts.map(({ quantity, reference, designation, isApplied, stockType }) => ({
             quantity,
             reference,
-            designation
+            designation,
+            isApplied,
+            stockType
         }));
         const partsString = JSON.stringify(partsToCopy);
 
@@ -10342,7 +11275,9 @@ const ReportPartsTable: React.FC<ReportPartsTableProps> = ({
                         quantity: Number(p.quantity) || 1,
                         reference: p.reference || '',
                         designation: p.designation || '',
-                        isDesignationLocked: !!p.reference
+                        isDesignationLocked: !!p.reference,
+                        isApplied: p.isApplied !== undefined ? p.isApplied : true,
+                        stockType: p.stockType || StockType.GENERAL
                     }));
 
                 if (newPartsFromPaste.length === 0) {
@@ -12321,6 +13256,50 @@ FICHEIRO: src\data\whats-new.json
 
 [
   {
+    "version": "1.2.8",
+    "date": "2026-07-07",
+    "client": {
+      "title": "Correção na Recuperação de Password",
+      "notes": [
+        "Resolvido um problema que fazia com que o link de recuperação de password indicasse incorretamente que tinha expirado.",
+        "O processo de redefinição de password é agora mais rápido e fiável."
+      ]
+    }
+  },
+  {
+    "version": "1.2.7",
+    "date": "2026-06-13",
+    "staff": {
+      "title": "Módulo de Vendas e Saídas de Inventário",
+      "notes": [
+        "Lançamento do novo módulo de 'Vendas' para registo agrupado de saídas de stock não relacionadas com serviços.",
+        "Suporte para três tipos de saída: Venda (com fatura/guia), Oferta e Descarte/Abate de material.",
+        "Gestão simplificada: seleção de inventário de origem (Geral ou Foss) aplicada a todo o documento.",
+        "Interface otimizada: adição de itens com pesquisa por referência ou designação e visualização de fotos em tempo real.",
+        "Controlo de Stock: validação automática de disponibilidade antes da confirmação da saída.",
+        "Rastreabilidade Total: integração com o histórico de movimentos, permitindo a visualização de detalhes e eliminação com reposição automática de stock."
+      ]
+    }
+  },
+  {
+    "version": "1.2.6",
+    "date": "2026-05-27",
+    "staff": {
+      "title": "Visibilidade Global de Serviços 'Para Revisão' e Melhoria no Calendário",
+      "notes": [
+        "Implementada a visibilidade global de todos os serviços marcados 'Para Revisão', independentemente do filtro temporal selecionado.",
+        "Novo sistema de alertas críticos no topo da página de faturação para sinalizar imediatamente pendências de revisão.",
+        "Botão de acesso rápido 'Ver Agora' integrado no alerta para filtragem instantânea dos itens que requerem atenção.",
+        "Otimização das estatísticas de faturação para refletir o estado real de pendências globais, evitando o esquecimento de serviços em períodos passados.",
+        "Calendário Técnico: Adicionada a exibição do número da semana (ex: S25) no cabeçalho das vistas de semana de trabalho para facilitar o planeamento técnico.",
+        "Arquitetura Backend: Implementação de padrão Event-Driven (EventEmitter) para desacoplamento de efeitos secundários (Notificações, Sincronização Google e Realtime), aumentando a resiliência e modularidade do sistema.",
+        "Maior Resiliência: Falhas em notificações ou sincronização externa já não interrompem a gravação de dados críticos na base de dados.",
+        "Performance Otimizada: Processamento assíncrono de efeitos secundários, libertando o fluxo principal para uma resposta mais rápida ao utilizador.",
+        "Manutenção Facilitada: Código mais modular e limpo, permitindo a adição de novas integrações sem alterar a lógica de negócio central."
+      ]
+    }
+  },
+  {
     "version": "1.2.5",
     "date": "2026-05-26",
     "staff": {
@@ -12328,7 +13307,10 @@ FICHEIRO: src\data\whats-new.json
       "notes": [
         "Adicionado filtro na página de relatórios para visualizar rapidamente relatórios 'Assinados' ou 'Não Assinados'.",
         "Implementado indicador visual (badge) na listagem de relatórios para verificação imediata do estado de assinatura de cada intervenção.",
-        "Facilitação do fluxo administrativo para identificação de pendências de assinatura."
+        "Facilitação do fluxo administrativo para identificação de pendências de assinatura.",
+        "Adicionado filtro dinâmico por categoria de equipamento na página de Gestão de Utilizadores.",
+        "O sistema filtra automaticamente utilizadores associados a clientes que possuam equipamentos da categoria selecionada.",
+        "A nova funcionalidade permite uma segmentação rápida da base de utilizadores de acordo com o parque de equipamentos existente."
       ]
     }
   },
@@ -13289,6 +14271,26 @@ const BillingPage: React.FC = () => {
                 </div>
             </div>
 
+            {stats.needs_review > 0 && (
+                <div className="alert alert-danger d-flex align-items-center shadow-sm border-0 mb-4 animate__animated animate__fadeIn" role="alert">
+                    <AlertTriangle size={24} className="me-3 flex-shrink-0" />
+                    <div className="flex-grow-1">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong className="fs-5">Serviços Para Revisão!</strong><br />
+                                Existem <strong>{stats.needs_review}</strong> serviços que requerem a sua atenção imediata, independentemente do período selecionado.
+                            </div>
+                            <button 
+                                className="btn btn-danger btn-sm rounded-pill px-3 shadow-sm"
+                                onClick={() => setFilter(BillingStatus.NEEDS_REVIEW)}
+                            >
+                                Ver Agora
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="row mb-4">
                 <div className="col">
                     <div className="card text-center shadow-sm">
@@ -13741,7 +14743,7 @@ import { useConfirm } from '../contexts/ConfirmContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
-import { format, parse, startOfWeek, getDay, addHours, startOfMonth, endOfMonth, subMonths, addMonths } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addHours, startOfMonth, endOfMonth, subMonths, addMonths, getISOWeek, addDays } from 'date-fns';
 import { pt } from 'date-fns/locale';
 import apiClient from '../apiClient';
 import { supabase } from '../supabase';
@@ -13770,7 +14772,7 @@ const customFormats = {
   dayHeaderFormat: 'EEE dd/MM',
   weekHeaderFormat: 'MMM dd',
   dayRangeHeaderFormat: ({ start, end }: { start: Date, end: Date }) =>
-    format(start, 'dd/MM/yyyy', { locale: pt }) + ' - ' + format(end, 'dd/MM/yyyy', { locale: pt }),
+    format(start, 'MMMM d', { locale: pt }) + ' – ' + format(end, 'd', { locale: pt }) + ' (S' + getISOWeek(addDays(start, 2)) + ')',
   agendaDateFormat: 'dd/MM/yyyy',
   agendaDayFormat: 'dd/MM/yyyy',
   agendaHeaderFormat: ({ start, end }: { start: Date, end: Date }) =>
@@ -14334,6 +15336,21 @@ const CalendarPage: React.FC = () => {
 
   const handleNavigate = useCallback((newDate: Date) => setDate(newDate), []);
   const handleView = useCallback((newView: any) => setView(newView), []);
+
+  // Forçar a exibição do número da semana
+  useEffect(() => {
+    const updateWeekHeader = () => {
+      const header = document.querySelector('.rbc-toolbar-label');
+      if (header && !header.textContent?.includes('(S')) {
+        const weekNumber = getISOWeek(addDays(date, 2));
+        header.textContent = `${header.textContent} (S${weekNumber})`;
+      }
+    };
+    
+    // Pequeno delay para garantir que o componente renderizou
+    const timeout = setTimeout(updateWeekHeader, 100);
+    return () => clearTimeout(timeout);
+  }, [date, view]);
 
   // Helper memoizado para gerar gradientes, evitando recálculos no render
   const getTechnicianGradient = useCallback((technicians: Technician[]) => {
@@ -15651,7 +16668,10 @@ const ClientProfilePage: React.FC = () => {
                 setPhone(currentUser.phone || '');
                 setSignature(currentUser.signature || '');
                 if (currentUser.notification_prefs) {
-                    setNotificationPrefs(currentUser.notification_prefs);
+                    setNotificationPrefs(prev => ({
+                        ...prev,
+                        ...currentUser.notification_prefs
+                    }));
                 }
             }
         }).catch(err => {
@@ -16086,6 +17106,7 @@ import { AuthContext } from '../contexts/AuthContext';
 
 import { Client } from '../types';
 import { ClientSchema } from '../schemas';
+import LoadingState from '../components/LoadingState';
 import logger from '../utils/logger';
 import { Pencil, Trash2, UserPlus, Plus, X, Check, Send, Search, Users, ShieldAlert, AlertTriangle } from 'lucide-react';
 
@@ -16694,7 +17715,7 @@ const ClientsPage: React.FC = () => {
             onChange={(e) => setSelectedCategory(e.target.value)}
             style={{ fontSize: '0.95rem', cursor: 'pointer' }}
           >
-            <option value="">Equipamentos: Todos</option>
+            <option value="">Categorias: Todas</option>
             {categories.map(cat => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
@@ -16721,11 +17742,7 @@ const ClientsPage: React.FC = () => {
       )}
 
       {isLoading ? (
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Carregando...</span>
-          </div>
-        </div>
+        <LoadingState message="A carregar lista de clientes..." />
       ) : isError ? (
         <div className="alert alert-danger">
           Erro ao carregar clientes: {(error as any)?.message || 'Erro desconhecido'}
@@ -18189,6 +19206,7 @@ import React, { useState, useEffect } from 'react';
 import apiClient from '../apiClient';
 import StatCard from '../components/StatCard';
 import { Link } from 'react-router-dom';
+import LoadingState from '../components/LoadingState';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { TicketStatus } from '../constants/enums';
 import { getBillingStats, getBillingTasks } from '../services/billingService';
@@ -18604,34 +19622,7 @@ const DashboardPage: React.FC = () => {
   }, [weeklySchedules]);
 
   if (loading) {
-    return (
-      <div className="container py-5">
-        <div className="d-flex justify-content-between align-items-center mb-5">
-          <div>
-            <div className="skeleton skeleton-title" style={{ width: '250px' }}></div>
-            <div className="skeleton skeleton-text" style={{ width: '350px' }}></div>
-          </div>
-          <div className="skeleton rounded-4" style={{ width: '300px', height: '50px' }}></div>
-        </div>
-        <div className="row g-4 mb-5">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="col-12 col-md-6 col-xl-4">
-              <div className="card border-0 shadow-sm p-4" style={{ height: '220px' }}>
-                <div className="d-flex justify-content-between mb-4">
-                  <div className="skeleton skeleton-circle" style={{ width: '60px' }}></div>
-                  <div style={{ textAlign: 'right', width: '60%' }}>
-                    <div className="skeleton skeleton-title ms-auto"></div>
-                    <div className="skeleton skeleton-text ms-auto"></div>
-                  </div>
-                </div>
-                <div className="skeleton skeleton-text"></div>
-                <div className="skeleton skeleton-text" style={{ width: '80%' }}></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <LoadingState message="A carregar painel de controlo..." />;
   }
 
   return (
@@ -19903,6 +20894,7 @@ import { Equipment, Client } from '../types';
 import { EquipmentSchema, ClientSchema } from '../schemas';
 import logger from '../utils/logger';
 import { Pencil, Trash2, History, Plus, X, Check, Search, Cpu, Building2 } from 'lucide-react';
+import LoadingState from '../components/LoadingState';
 
 // Formulário de Criação (com estilo Bootstrap Card)
 const EquipmentForm: React.FC<{ onEquipmentAdded: () => void }> = ({ onEquipmentAdded }) => {
@@ -20508,11 +21500,7 @@ const EquipmentsPage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-5">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Carregando...</span>
-          </div>
-        </div>
+        <LoadingState message="A carregar equipamentos..." />
       ) : isError ? (
         <div className="alert alert-danger">
           Erro ao carregar equipamentos: {(error as any)?.message || 'Erro desconhecido'}
@@ -20704,6 +21692,8 @@ import InventoryItemForm, { ComponentItem } from '../components/Inventory/Invent
 import InventoryStockModals from '../components/Inventory/InventoryStockModals';
 import InventoryReservationsModal from '../components/Inventory/InventoryReservationsModal';
 import OrderDetailsModal from '../components/Inventory/OrderDetailsModal';
+import SaleDetailsModal from '../components/Inventory/SaleDetailsModal';
+import LoadingState from '../components/LoadingState';
 import { supabase } from '../supabase';
 import logger from '../utils/logger';
 import { useNavigate } from 'react-router-dom';
@@ -20745,6 +21735,8 @@ const InventoryPage: React.FC = () => {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+  const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
 
   // States for Modals
   const [stockChange, setStockChange] = useState<number>(0);
@@ -20999,8 +21991,18 @@ const InventoryPage: React.FC = () => {
         if (err.response?.status === 404) alert('Esta encomenda já não existe.');
         else alert('Erro ao carregar documento.');
       }
+    } else if (tx.type === 'DIRECT_SALE') {
+      try {
+        await apiClient.get(`/api/inventory/sales/${tx.reference_id}`);
+        setSelectedSaleId(parseInt(tx.reference_id));
+        setIsSaleModalOpen(true);
+      } catch (err: any) {
+        if (err.response?.status === 404) alert('Esta saída/venda já não existe.');
+        else alert('Erro ao carregar documento.');
+      }
     }
-  };
+    };
+
 
   const handleAddItem = async () => {
     if (addItemMutation.isPending) return;
@@ -21045,7 +22047,8 @@ const InventoryPage: React.FC = () => {
       partId: part.id as number,
       quantity: 1,
       reference: part.reference,
-      designation: part.designation
+      designation: part.designation,
+      currentStock: (part.stock_quantity || 0) - (part.reserved_quantity || 0)
     }]);
     setCompSearch('');
     setShowCompResults(false);
@@ -21209,12 +22212,7 @@ const InventoryPage: React.FC = () => {
   const filteredInventory = useMemo(() => inventory, [inventory]);
 
   if (loading && !inventory.length) {
-    return (
-      <div className="container-fluid mt-4">
-        <div className="skeleton skeleton-title" style={{ width: '300px' }}></div>
-        <div className="skeleton mb-4" style={{ height: '60px', borderRadius: '12px' }}></div>
-      </div>
-    );
+    return <LoadingState message="A sincronizar inventário..." />;
   }
 
   return (
@@ -21379,6 +22377,15 @@ const InventoryPage: React.FC = () => {
           isOpen={isOrderModalOpen}
           onClose={() => setIsOrderModalOpen(false)}
           orderId={selectedOrderId}
+          onSuccess={() => queryClient.invalidateQueries({ queryKey: ['inventory'] })}
+        />
+      )}
+
+      {isSaleModalOpen && selectedSaleId && (
+        <SaleDetailsModal
+          isOpen={isSaleModalOpen}
+          saleId={selectedSaleId}
+          onClose={() => setIsSaleModalOpen(false)}
           onSuccess={() => queryClient.invalidateQueries({ queryKey: ['inventory'] })}
         />
       )}
@@ -21957,11 +22964,13 @@ import { useConfirm } from '../contexts/ConfirmContext';
 // Components
 import ReportModal from '../components/ReportModal';
 import OrderDetailsModal from '../components/Inventory/OrderDetailsModal';
+import SaleDetailsModal from '../components/Inventory/SaleDetailsModal';
 import InventoryItemForm, { ComponentItem } from '../components/Inventory/InventoryItemForm';
 
 // Types
 import { Part } from '../types';
 import { StockType } from '../constants/enums';
+import { STOCK_TYPE_LABELS } from '../constants';
 
 // ─── Transaction type config ─────────────────────────────────────────────────
 const TX_TYPE: Record<string, { label: string; colorCls: string; icon: React.ReactNode }> = {
@@ -21985,6 +22994,9 @@ const MovementsPage: React.FC = () => {
 
     const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
     const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
+
+    const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+    const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
 
     const [isPartModalOpen, setIsPartModalOpen] = useState(false);
     const [selectedPartId, setSelectedPartId] = useState<number | null>(null);
@@ -22038,7 +23050,7 @@ const MovementsPage: React.FC = () => {
 
     const addComponent = (part: Part) => {
         if (components.some(c => c.partId === part.id)) return;
-        setComponents([...components, { partId: part.id as number, quantity: 1, reference: part.reference, designation: part.designation }]);
+        setComponents([...components, { partId: part.id as number, quantity: 1, reference: part.reference, designation: part.designation, currentStock: (part.stock_quantity || 0) - (part.reserved_quantity || 0) }]);
         setShowCompResults(false);
         setCompSearch('');
     };
@@ -22084,6 +23096,20 @@ const MovementsPage: React.FC = () => {
                 } else {
                     alert('Erro ao carregar encomenda.');
                     logger.error(err, 'Error verifying order existence:');
+                }
+            }
+        } else if (tx.type === 'DIRECT_SALE') {
+            try {
+                // Verify existence first
+                await apiClient.get(`/api/inventory/sales/${tx.reference_id}`);
+                setSelectedSaleId(parseInt(tx.reference_id));
+                setIsSaleModalOpen(true);
+            } catch (err: any) {
+                if (err.response?.status === 404) {
+                    alert('Esta saída/venda já não existe ou foi eliminada.');
+                } else {
+                    alert('Erro ao carregar saída.');
+                    logger.error(err, 'Error verifying sale existence:');
                 }
             }
         }
@@ -22221,7 +23247,7 @@ const MovementsPage: React.FC = () => {
                                             </td>
                                             <td className="py-3">
                                                 <span className="badge bg-light text-dark border-0 rounded-pill px-3 py-2 fw-medium" style={{ fontSize: '0.72rem' }}>
-                                                    {tx.stock_type === 'contract' ? 'FOSS/Contrato' : 'Geral'}
+                                                    {['foss', 'contract'].includes(tx.stock_type) ? 'Foss' : 'Geral'}
                                                 </span>
                                             </td>
                                             <td className="py-3 text-center fw-bold text-muted" style={{ fontSize: '0.9rem' }}>
@@ -22324,6 +23350,15 @@ const MovementsPage: React.FC = () => {
                 />
             )}
 
+            {isSaleModalOpen && selectedSaleId && (
+                <SaleDetailsModal
+                    isOpen={isSaleModalOpen}
+                    saleId={selectedSaleId}
+                    onClose={() => setIsSaleModalOpen(false)}
+                    onSuccess={() => queryClient.invalidateQueries({ queryKey: ['inventory_movements'] })}
+                />
+            )}
+
             {isPartModalOpen && (
                 <div className="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center p-3" style={{ zIndex: 1060, backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)' }}>
                     <div className="glass-card glass-card--solid border-0 shadow-lg overflow-hidden animate__animated animate__zoomIn w-100" style={{ maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
@@ -22389,13 +23424,20 @@ const OrdersPage: React.FC = () => {
   const [selectedOrderId, setSelectedOrderId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { data: orders, isLoading } = useQuery({
+  const { data: orders, isLoading, error } = useQuery({
     queryKey: ['inventory_orders'],
     queryFn: async () => {
       const response = await apiClient.get('/api/inventory/orders');
+      console.log('API Response Orders:', response.data);
       return response.data;
     }
   });
+
+  React.useEffect(() => {
+    if (error) {
+        console.error('Error fetching orders:', error);
+    }
+  }, [error]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -22410,7 +23452,8 @@ const OrdersPage: React.FC = () => {
   const filteredOrders = orders?.filter((o: any) =>
     o.document_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     o.id.toString().includes(searchTerm) ||
-    `${o.first_name} ${o.last_name}`.toLowerCase().includes(searchTerm.toLowerCase())
+    `${o.first_name} ${o.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    o.search_text?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (isLoading) {
@@ -22444,7 +23487,7 @@ const OrdersPage: React.FC = () => {
             <input
               type="text"
               className="form-control border-0 bg-transparent shadow-none"
-              placeholder="Procurar por Nº Doc, ID ou Utilizador..."
+              placeholder="Procurar por Nº Doc, ID, Utilizador ou Ref. de Peça..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -24932,6 +25975,7 @@ import { format, parseISO } from 'date-fns';
 import { UserRole } from '../constants/enums';
 import ReportModal from '../components/ReportModal';
 import DeleteReportModal from '../components/DeleteReportModal';
+import LoadingState from '../components/LoadingState';
 import { Trash2, Pencil, Eye, Printer, Plus, X, Check, Search, Copy, Clipboard, Send, FileText, FileCheck, FileWarning } from 'lucide-react';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { SERVICE_TYPE_LABELS, SERVICE_CLASSIFICATIONS_LIST } from '../constants';
@@ -25740,12 +26784,16 @@ const ReportsPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <ReportList
-        reports={reports}
-        onEditReport={handleEditReport}
-        onDeleteReport={handleDeleteReport}
-        isAdmin={isAdmin}
-      />
+      {isLoading && reports.length === 0 ? (
+        <LoadingState message="A carregar relatórios..." />
+      ) : (
+        <ReportList
+          reports={reports}
+          onEditReport={handleEditReport}
+          onDeleteReport={handleDeleteReport}
+          isAdmin={isAdmin}
+        />
+      )}
 
       {/* Pagination Controls */}
       {paginationInfo.totalPages > 1 && (
@@ -25831,17 +26879,17 @@ export default ReportsPage;
 FICHEIRO: src\pages\ResetPasswordPage.tsx
 ================================================================================
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../supabase';
 import logger from '../utils/logger';
 
 /**
- * Module-level capture — runs synchronously before Supabase SDK strips the hash.
- *
- * Supabase sends password-recovery emails with a link that contains either:
- *  - Legacy: #access_token=...&refresh_token=...&type=recovery   (hash)
- *  - PKCE:   ?token_hash=...&type=recovery                       (query string)
+ * O SDK do Supabase v2 (modo PKCE) consome o token_hash da URL automaticamente
+ * no arranque da aplicação (via getSession/onAuthStateChange).
+ * Chamar verifyOtp manualmente depois causa "token already used" — daí o falso
+ * "link expirou". A solução correcta é escutar o evento PASSWORD_RECOVERY que
+ * o SDK emite DEPOIS de já ter verificado e estabelecido a sessão.
  */
 type PageStatus = 'detecting' | 'ready' | 'loading' | 'success' | 'error' | 'no-token';
 
@@ -25852,73 +26900,39 @@ const ResetPasswordPage: React.FC = () => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [errorMessage, setErrorMessage]   = useState<string | null>(null);
 
-    // Captura os tokens apenas uma vez no momento em que o componente é montado
-    const captured = React.useMemo(() => {
-        const _search = new URLSearchParams(window.location.search);
-        const _hash   = new URLSearchParams(window.location.hash.replace(/^#/, ''));
-        
-        return {
-            tokenHash:     _search.get('token_hash'),
-            typeFromQuery: _search.get('type'),
-            accessToken:   _hash.get('access_token'),
-            refreshToken:  _hash.get('refresh_token'),
-            typeFromHash:  _hash.get('type'),
-        };
-    }, []);
-
-    const isPKCE   = Boolean(captured.tokenHash && captured.typeFromQuery === 'recovery');
-    const isLegacy = Boolean(captured.accessToken && captured.typeFromHash === 'recovery');
-
     useEffect(() => {
-        const prepare = async () => {
-            if (isPKCE && captured.tokenHash) {
-                // PKCE: verify the token so the session is ready for updateUser
-                const { error } = await supabase.auth.verifyOtp({
-                    token_hash: captured.tokenHash,
-                    type: 'recovery',
-                });
-                if (error) {
-                    logger.error(error, '[ResetPassword] verifyOtp failed');
-                    setErrorMessage(
-                        error.message.includes('expired') || error.message.includes('invalid')
-                            ? 'Este link expirou ou já foi utilizado. Por favor, peça um novo link.'
-                            : error.message
-                    );
-                    setStatus('error');
-                    return;
-                }
-                window.history.replaceState(null, '', '/reset-password');
-                setStatus('ready');
-                return;
-            }
+        // Limpar a URL imediatamente para evitar re-processamento do token
+        window.history.replaceState(null, '', '/reset-password');
 
-            if (isLegacy && captured.accessToken && captured.refreshToken) {
-                // Legacy: explicitly set the session from hash tokens
-                const { error } = await supabase.auth.setSession({
-                    access_token: captured.accessToken,
-                    refresh_token: captured.refreshToken,
-                });
-                if (error) {
-                    logger.error(error, '[ResetPassword] setSession failed');
-                    setErrorMessage('Sessão de recuperação inválida. Por favor, peça um novo link.');
-                    setStatus('error');
-                    return;
-                }
-                window.history.replaceState(null, '', '/reset-password');
-                setStatus('ready');
-                return;
-            }
+        // Subscrever aos eventos de autenticação. O SDK vai emitir PASSWORD_RECOVERY
+        // assim que verificar o token_hash (PKCE) ou o access_token (legacy) da URL.
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            logger.info({ event }, '[ResetPassword] onAuthStateChange event');
 
-            // Fallback: check if a recovery session already exists (e.g. fast navigation)
-            const { data: { session } } = await supabase.auth.getSession();
+            if (event === 'PASSWORD_RECOVERY') {
+                // SDK verificou o token com sucesso e criou uma sessão de recovery
+                setStatus('ready');
+            } else if (event === 'SIGNED_IN' && session) {
+                // Pode acontecer em alguns flows legacy — sessão válida, podemos avançar
+                setStatus('ready');
+            }
+        });
+
+        // Verificar se já existe uma sessão activa (ex: utilizador navegou de volta
+        // ou o evento já disparou antes da subscrição estar pronta)
+        supabase.auth.getSession().then(({ data: { session } }) => {
             if (session) {
                 setStatus('ready');
             } else {
-                setStatus('no-token');
+                // Sem sessão e sem evento até agora — link inválido/expirado
+                // Aguardar um pequeno delay para dar tempo ao SDK de processar o hash
+                setTimeout(() => {
+                    setStatus(prev => prev === 'detecting' ? 'no-token' : prev);
+                }, 1500);
             }
-        };
+        });
 
-        prepare();
+        return () => subscription.unsubscribe();
     }, []);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -26121,6 +27135,186 @@ const ResetPasswordPage: React.FC = () => {
 };
 
 export default ResetPasswordPage;
+
+
+================================================================================
+FICHEIRO: src\pages\SalesPage.tsx
+================================================================================
+
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import apiClient from '../apiClient';
+import { Plus, ShoppingCart, Eye, Calendar, User, FileText, Search, CreditCard, Gift, Trash2 } from 'lucide-react';
+import { useConfirm } from '../contexts/ConfirmContext';
+import { format } from 'date-fns';
+import CreateSaleModal from '../components/Inventory/CreateSaleModal';
+import SaleDetailsModal from '../components/Inventory/SaleDetailsModal';
+
+const SalesPage: React.FC = () => {
+  const queryClient = useQueryClient();
+  const { alert } = useConfirm();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const { data: sales, isLoading } = useQuery({
+    queryKey: ['inventory_sales'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/inventory/sales');
+      return response.data;
+    }
+  });
+
+  const getSaleTypeBadge = (type: string) => {
+    switch (type) {
+      case 'SALE': 
+        return <span className="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill fw-bold border-0 shadow-none d-flex align-items-center gap-1"><CreditCard size={12}/> Venda</span>;
+      case 'GIVEAWAY': 
+        return <span className="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill fw-bold border-0 shadow-none d-flex align-items-center gap-1"><Gift size={12}/> Oferta</span>;
+      case 'DISCARD': 
+        return <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold border-0 shadow-none d-flex align-items-center gap-1"><Trash2 size={12}/> Descarte</span>;
+      default: 
+        return <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill fw-bold border-0 shadow-none">{type}</span>;
+    }
+  };
+
+  const filteredSales = sales?.filter((s: any) =>
+    s.document_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.id.toString().includes(searchTerm) ||
+    `${s.first_name} ${s.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.item_references && s.item_references.some((ref: string) => ref?.toLowerCase().includes(searchTerm.toLowerCase())))
+  );
+
+  if (isLoading) {
+    return (
+      <div className="container-fluid py-4 px-md-5">
+        <div className="skeleton skeleton-title" style={{ width: '300px', height: '40px' }}></div>
+        <div className="skeleton mb-4 rounded-4" style={{ height: '400px' }}></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container-fluid py-4 px-md-5 animate__animated animate__fadeIn" style={{ minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+          <div className="d-flex align-items-center gap-3">
+            <ShoppingCart size={40} strokeWidth={2.5} className="text-primary" />
+            <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Gestão de Vendas e Saídas</h1>
+          </div>
+          <p className="text-muted small m-0 fst-italic">Registo de vendas diretas, ofertas e descartes de material</p>
+        </div>
+        <button className="btn btn-primary d-flex align-items-center justify-content-center gap-2 rounded-pill px-4 py-2 shadow-sm fw-semibold transform-active" onClick={() => setShowCreateModal(true)} style={{ transition: 'all 0.2s' }}>
+          <Plus size={20} /> Nova Venda/Saída
+        </button>
+      </div>
+
+      <div className="row mb-4">
+        <div className="col-12">
+          <div className="glass-panel p-3 rounded-4 shadow-sm border-0 d-flex align-items-center gap-2">
+            <Search size={18} className="text-muted ms-2" />
+            <input
+              type="text"
+              className="form-control border-0 bg-transparent shadow-none"
+              placeholder="Procurar por Nº Doc, ID, Utilizador ou Referência de Artigo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="card border-0 shadow-sm overflow-hidden" style={{ borderRadius: '24px' }}>
+        <div className="table-responsive">
+          <table className="table table-hover align-middle mb-0" style={{ borderCollapse: 'separate', borderSpacing: '0' }}>
+            <thead>
+              <tr className="bg-dark text-white text-uppercase small fw-bold" style={{ letterSpacing: '0.05em', fontFamily: 'var(--font-family-title)' }}>
+                <th className="ps-4 py-3 border-0">Data / ID</th>
+                <th className="py-3 border-0">Documento</th>
+                <th className="py-3 border-0">Tipo</th>
+                <th className="py-3 border-0">Utilizador</th>
+                <th className="py-3 border-0">Peças</th>
+                <th className="text-end pe-4 py-3 border-0">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="border-top-0">
+              {filteredSales?.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-5 text-muted fw-medium">
+                    <ShoppingCart size={48} className="opacity-10 mb-3 d-block mx-auto" />
+                    Nenhuma venda ou saída encontrada.
+                  </td>
+                </tr>
+              ) : (
+                filteredSales?.map((sale: any) => (
+                  <tr key={sale.id} className="border-bottom border-light">
+                    <td className="ps-4">
+                      <div className="fw-bold text-primary">#{sale.id}</div>
+                      <div className="small text-muted d-flex align-items-center gap-1" style={{ fontSize: '0.7rem' }}>
+                        <Calendar size={10} /> {format(new Date(sale.created_at), 'dd/MM/yyyy HH:mm')}
+                      </div>
+                    </td>
+                    <td>
+                      <div className="d-flex align-items-center gap-2 fw-semibold" style={{ color: '#334155' }}>
+                        <FileText size={16} className="text-muted" />
+                        {sale.document_number}
+                      </div>
+                    </td>
+                    <td>{getSaleTypeBadge(sale.sale_type)}</td>
+                    <td>
+                      <div className="d-flex align-items-center gap-2 small fw-medium">
+                        <div className="bg-secondary bg-opacity-10 p-1 rounded-circle">
+                          <User size={12} className="text-secondary" />
+                        </div>
+                        {sale.first_name} {sale.last_name || ''}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="badge bg-light text-dark border-0 px-3 py-2 rounded-pill fw-bold">{sale.item_count} <span className="fw-normal opacity-50">itens</span></span>
+                    </td>
+                    <td className="text-end pe-4">
+                      <button className="btn btn-sm btn-outline-primary border-2 rounded-pill px-3 fw-bold" onClick={() => setSelectedSaleId(sale.id)}>
+                        <Eye size={16} className="me-1" /> Detalhes
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {showCreateModal && (
+        <CreateSaleModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            queryClient.invalidateQueries({ queryKey: ['inventory_sales'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+          }}
+        />
+      )}
+
+      {selectedSaleId && (
+        <SaleDetailsModal
+          isOpen={!!selectedSaleId}
+          saleId={selectedSaleId}
+          onClose={() => setSelectedSaleId(null)}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['inventory_sales'] });
+            queryClient.invalidateQueries({ queryKey: ['inventory_sale_detail', selectedSaleId] });
+            queryClient.invalidateQueries({ queryKey: ['inventory'] });
+          }}
+        />
+      )}
+
+    </div>
+  );
+};
+
+export default SalesPage;
 
 
 ================================================================================
@@ -26649,6 +27843,7 @@ import TaskModal from '../components/TaskModal';
 import logger from '../utils/logger';
 import { InternalTask } from '../types';
 import { AuthContext } from '../contexts/AuthContext';
+import LoadingState from '../components/LoadingState';
 
 const TasksPage: React.FC = () => {
     const queryClient = useQueryClient();
@@ -26901,10 +28096,7 @@ const TasksPage: React.FC = () => {
 
                 <div className="p-4 bg-light bg-opacity-50">
                     {isLoading ? (
-                        <div className="text-center py-5">
-                            <div className="spinner-border text-primary mb-3" role="status" style={{ width: '3rem', height: '3rem' }}></div>
-                            <p className="text-muted fw-bold">A carregar tarefas...</p>
-                        </div>
+                        <LoadingState message="A carregar tarefas..." />
                     ) : isError ? (
                         <div className="alert alert-danger border-0 shadow-sm d-flex align-items-center gap-3 p-4 rounded-4">
                             <AlertTriangle size={24} /> <div><strong>Erro:</strong> {(error as any).message}</div>
@@ -27027,6 +28219,7 @@ FICHEIRO: src\pages\TechniciansPage.tsx
 ================================================================================
 
 import React, { useState, useEffect, useContext } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
 import UserDetailModal from '../components/TechnicianDetailModal';
 import { AuthContext } from '../contexts/AuthContext';
@@ -27215,23 +28408,18 @@ const UserList: React.FC<{ users: AppUser[], onSelectUser: (user: AppUser) => vo
 // Main page, updated to use the new components and data fetching
 const TechniciansPage: React.FC = () => {
   const { user, startImpersonation } = useContext(AuthContext);
-  const [users, setUsers] = useState<AppUser[]>([]);
+  const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const { confirm, alert } = useConfirm();
 
-  const fetchUsers = () => {
-    apiClient.get('/api/technicians').then(response => {
-      setUsers(response.data);
-    })
-      .catch((error: any) => {
-        logger.error(error, "Erro ao carregar utilizadores:");
-      });
-  };
-
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const { data: users = [], isLoading, isError, error } = useQuery({
+    queryKey: ['technicians'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/technicians');
+      return response.data as AppUser[];
+    }
+  });
 
   const handleSelectUser = (user: AppUser) => {
     setSelectedUser(user);
@@ -27244,7 +28432,7 @@ const TechniciansPage: React.FC = () => {
   };
 
   const handleUserChange = () => {
-    fetchUsers();
+    queryClient.invalidateQueries({ queryKey: ['technicians'] });
   };
 
   return (
@@ -27261,7 +28449,19 @@ const TechniciansPage: React.FC = () => {
 
       <InviteTechnicianForm onUserInvited={handleUserChange} currentUserRole={user?.user_metadata?.role as UserRole} />
       
-      <UserList users={users} onSelectUser={handleSelectUser} />
+      {isLoading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
+          </div>
+        </div>
+      ) : isError ? (
+        <div className="alert alert-danger">
+          Erro ao carregar técnicos: {(error as any)?.message || 'Erro desconhecido'}
+        </div>
+      ) : (
+        <UserList users={users} onSelectUser={handleSelectUser} />
+      )}
 
       {selectedUser && (
         <UserDetailModal
@@ -28602,9 +29802,10 @@ import {
 
 import logger from '../utils/logger';
 import LinkToScheduleModal from '../components/LinkToScheduleModal';
+import LoadingState from '../components/LoadingState';
 
 const isExpressTicket = (ticket: Ticket) =>
-  ticket.status === TicketStatus.SCHEDULED && !ticket.scheduleId;
+  (ticket.status === TicketStatus.SCHEDULED || ticket.status === TicketStatus.CLOSED) && !ticket.scheduleId;
 
 const TicketsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -28979,12 +30180,7 @@ const TicketsPage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="text-center py-5 glass-card shadow-sm border-0">
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Carregando...</span>
-          </div>
-          <p className="mt-3 text-muted fw-medium">A carregar tickets...</p>
-        </div>
+        <LoadingState message="A carregar tickets..." />
       ) : isError ? (
         <div className="alert alert-danger rounded-4 shadow-sm border-0 animate__animated animate__shakeX">
           <X className="me-2" />
@@ -29017,6 +30213,7 @@ FICHEIRO: src\pages\UsersPage.tsx
 ================================================================================
 
 import React, { useState, useEffect, useContext } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
 import UserDetailModal from '../components/TechnicianDetailModal';
 import { AuthContext } from '../contexts/AuthContext';
@@ -29131,8 +30328,7 @@ const UserList: React.FC<{ users: AppUser[], onSelectUser: (user: AppUser) => vo
 
 const UsersPage: React.FC = () => {
   const { user, startImpersonation } = useContext(AuthContext);
-  const [users, setUsers] = useState<AppUser[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -29140,24 +30336,13 @@ const UsersPage: React.FC = () => {
   const [selectedUser, setSelectedUser] = useState<AppUser | null>(null);
   const { confirm, alert } = useConfirm();
 
-  const fetchUsers = (search?: string, category?: string) => {
-    const params: any = {};
-    if (search) params.search = search;
-    if (category) params.category = category;
-    
-    apiClient.get('/api/auth/users', { params }).then(response => {
-      setUsers(response.data);
-    })
-      .catch((error: any) => {
-        logger.error(error, "Erro ao carregar utilizadores:");
-      });
-  };
-
-  useEffect(() => {
-    apiClient.get('/api/equipments/categories').then(response => {
-      setCategories(response.data);
-    }).catch(err => logger.error(err, "Erro ao carregar categorias"));
-  }, []);
+  const { data: categories = [] } = useQuery({
+    queryKey: ['equipment-categories'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/equipments/categories');
+      return response.data as string[];
+    }
+  });
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -29169,9 +30354,16 @@ const UsersPage: React.FC = () => {
     };
   }, [searchQuery]);
 
-  useEffect(() => {
-    fetchUsers(debouncedSearchQuery, selectedCategory);
-  }, [debouncedSearchQuery, selectedCategory]);
+  const { data: users = [], isLoading, isError, error } = useQuery({
+    queryKey: ['users', debouncedSearchQuery, selectedCategory],
+    queryFn: async () => {
+      const params: any = {};
+      if (debouncedSearchQuery) params.search = debouncedSearchQuery;
+      if (selectedCategory) params.category = selectedCategory;
+      const response = await apiClient.get('/api/auth/users', { params });
+      return response.data as AppUser[];
+    }
+  });
 
   useEffect(() => {
     const handleImpersonateEvent = async (e: Event) => {
@@ -29203,7 +30395,7 @@ const UsersPage: React.FC = () => {
     return () => {
       document.removeEventListener('initImpersonate', handleImpersonateEvent);
     };
-  }, []);
+  }, [confirm, startImpersonation, alert]);
 
   const handleSelectUser = (user: AppUser) => {
     setSelectedUser(user);
@@ -29216,7 +30408,7 @@ const UsersPage: React.FC = () => {
   };
 
   const handleUserChange = () => {
-    fetchUsers(debouncedSearchQuery);
+    queryClient.invalidateQueries({ queryKey: ['users'] });
   };
 
   return (
@@ -29248,7 +30440,19 @@ const UsersPage: React.FC = () => {
         </div>
       </div>
 
-      <UserList users={users} onSelectUser={handleSelectUser} />
+      {isLoading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Carregando...</span>
+          </div>
+        </div>
+      ) : isError ? (
+        <div className="alert alert-danger">
+          Erro ao carregar utilizadores: {(error as any)?.message || 'Erro desconhecido'}
+        </div>
+      ) : (
+        <UserList users={users} onSelectUser={handleSelectUser} />
+      )}
 
       {selectedUser && (
         <UserDetailModal

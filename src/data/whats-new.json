@@ -1,5 +1,41 @@
 [
   {
+    "version": "1.2.9",
+    "date": "2026-08-24",
+    "staff": {
+      "title": "Página de Perfil Detalhado de Cliente, Segurança JWT e Gestão de Utilizadores Inativos",
+      "notes": [
+        "Nova página dedicada de detalhe de cliente acessível em '/clients/:id', substituindo o antigo modal por uma vista completa.",
+        "Cabeçalho rico com nome, alcunha, NIF e morada do cliente numa card com design glassmorphism.",
+        "Alerta visual de Blacklist no topo da página quando o cliente se encontra em incumprimento, com destaque do motivo registado.",
+        "Cards interativos com contador de Utilizadores Associados e Equipamentos Registados — clique para expandir/recolher cada secção.",
+        "Tabela de Utilizadores com acesso rápido ao modal de detalhe individual de cada utilizador do cliente.",
+        "Tabela de Equipamentos com marca, modelo, nº de série, alcunha e categoria, com botão direto para o histórico do equipamento.",
+        "Botão 'Gerir Equipamentos' com navegação filtrada para a página de inventário do cliente.",
+        "Integração do modal de edição de cliente (EditClientModal) diretamente na página, com invalidação automática de cache ao guardar.",
+        "Atualização da lista de Categorias de Negócio",
+        "Os seletores (switches) nas definições de perfil para controlo dos vários tipos de notificações já se encontram totalmente funcionais.",
+        "Implementação de autenticação JWT do lado do cliente, substituindo sessões tradicionais para maior segurança e escalabilidade.",
+        "Melhoria na estabilidade das sessões e proteção avançada de rotas da aplicação.",
+        "Correção de um problema que impedia a visualização de relatórios de serviço no módulo de Inventário quando estes não possuíam agendamentos associados.",
+        "Novo cartão de estatística de Backlog no Dashboard com rastreio de fluxo (entradas e saídas reais dos últimos 7 dias), barra visual proporcional, indicador de crescimento/redução, cálculo de tempo médio em espera e alerta para serviços pendentes antigos.",
+        "Rastreabilidade temporal em agendamentos com registo dedicado de timestamps de entrada e saída de backlog (entered_backlog_at e exited_backlog_at).",
+        "Implementada validação inteligente de tarefas no calendário: impede o preenchimento indevido da greha e do backlog com tarefas sem horários definidos, alertando o utilizador caso ative a visibilidade sem associar tempos.",
+        "Gestão e ciclo de vida de utilizadores: segregação clara de roles inativos entre clientes ('inactive_client') e equipa técnica ('inactive_technician').",
+        "Listagem em '/users': exibição diferenciada de utilizadores inativos com destaque visual e badges informativos.",
+        "Reativação simplificada de utilizadores: restauro imediato de acesso e credenciais de login a partir do modal de detalhe.",
+        "Eliminação definitiva segura (Safe Hard Delete): remoção permanente da base de dados e auth apenas quando o utilizador não possui histórico associado (tickets, relatórios ou tarefas), libertando o email para novos convites."
+      ]
+    },
+    "client": {
+      "title": "Maior Segurança na Autenticação (JWT)",
+      "notes": [
+        "O sistema utiliza agora tecnologia JWT (JSON Web Tokens) para gerir as sessões, garantindo maior proteção dos seus dados.",
+        "Acesso mais rápido e sessões mais estáveis enquanto navega no portal."
+      ]
+    }
+  },
+  {
     "version": "1.2.8",
     "date": "2026-07-07",
     "client": {

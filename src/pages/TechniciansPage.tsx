@@ -25,6 +25,7 @@ export interface AppUser {
   has_password?: boolean;
   is_profile_complete?: boolean;
   has_signature?: boolean;
+  client_role?: string;
   client_users?: { client_id: number; name: string }[];
 }
 

@@ -7,15 +7,24 @@ import { Settings, Box } from 'lucide-react';
 import VirtualPartsSettings from '../components/Settings/VirtualPartsSettings';
 import EquipmentCategoriesSettings from '../components/Settings/EquipmentCategoriesSettings';
 
+
+const DEFAULT_SETTINGS: Record<string, string> = {
+  ticket_notification_active: 'true',
+  ticket_notification_time: '17:00',
+  google_calendar_sync_enabled: 'false',
+  client_notifications_enabled: 'true',
+  global_notify_new_schedule: 'true',
+  global_notify_new_report: 'true',
+  global_notify_ticket_reply: 'true',
+  global_notify_ticket_opened: 'true',
+  global_notify_ticket_closed: 'true',
+  global_notify_docs_uploaded: 'true',
+  img_compression_quality: '0.7',
+  img_compression_max_width: '1280'
+};
+
 const SettingsPage: React.FC = () => {
-  const [settings, setSettings] = useState<Record<string, string>>({
-    ticket_notification_active: 'true',
-    ticket_notification_time: '17:00',
-    google_calendar_sync_enabled: 'false',
-    client_notifications_enabled: 'true',
-    img_compression_quality: '0.7',
-    img_compression_max_width: '1280'
-  });
+  const [settings, setSettings] = useState<Record<string, string>>(DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(true);
   const { confirm, alert } = useConfirm();
   const [emailTemplates, setEmailTemplates] = useState<Record<string, any>>({});
@@ -29,7 +38,9 @@ const SettingsPage: React.FC = () => {
     setIsLoading(true);
     try {
       const response = await apiClient.get('/api/settings');
-      setSettings(response.data);
+      // Merge: defaults first, then DB values on top. This ensures
+      // global_notify_* keys are always present even if never saved to DB yet.
+      setSettings({ ...DEFAULT_SETTINGS, ...response.data });
 
       const templatesResponse = await apiClient.get('/api/email-templates');
       setEmailTemplates(templatesResponse.data);
@@ -191,9 +202,47 @@ const SettingsPage: React.FC = () => {
               Ativar Notificações para Clientes (Email & Telegram)
             </label>
           </div>
-          <p className="text-muted small m-0">
+                    <p className="text-muted small m-0">
             Se desativado, <strong>nenhuma</strong> notificação será enviada para utilizadores com perfil de Cliente, independentemente das suas preferências individuais.
           </p>
+        </div>
+      </div>
+
+      <div className="card mb-4 border-warning shadow-sm">
+        <div className="card-header bg-warning text-dark fw-bold">
+          Kill-Switch de Notificações por Tipo (Global)
+        </div>
+        <div className="card-body">
+          <p className="text-muted small mb-3">
+            Estes botões permitem desativar tipos específicos de notificações para <strong>todos</strong> os utilizadores do sistema (Técnicos e Clientes).
+          </p>
+          <div className="row g-3">
+            {[
+              { key: 'global_notify_new_schedule', label: 'Novo Agendamento' },
+              { key: 'global_notify_new_report', label: 'Novo Relatório Técnico' },
+              { key: 'global_notify_ticket_reply', label: 'Nova Resposta' },
+              { key: 'global_notify_ticket_opened', label: 'Confirmação de Abertura' },
+              { key: 'global_notify_ticket_closed', label: 'Ticket Fechado' },
+              { key: 'global_notify_docs_uploaded', label: 'Documentos Carregados' },
+            ].map((item) => (
+              <div className="col-md-6 col-lg-4" key={item.key}>
+                <div className="form-check form-switch border rounded p-2 px-3 bg-light">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    id={item.key}
+                    name={item.key}
+                    checked={settings[item.key] === 'true'}
+                    onChange={handleInputChange}
+                  />
+                  <label className="form-check-label fw-semibold" htmlFor={item.key}>
+                    {item.label}
+                  </label>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -238,7 +287,7 @@ const SettingsPage: React.FC = () => {
                   onChange={(e) => handleTemplateChange('subject', e.target.value)}
                 />
               </div>
-              <div className="mb-3">
+                            <div className="mb-3">
                 <label className="form-label">Corpo (HTML)</label>
                 <textarea
                   className="form-control"
@@ -247,7 +296,13 @@ const SettingsPage: React.FC = () => {
                   onChange={(e) => handleTemplateChange('body', e.target.value)}
                 />
                 <div className="form-text">
-                  Pode usar HTML. Variáveis disponíveis: <code>{"{{login_url}}"}</code>, <code>{"{{setup_url}}"}</code>, <code>{"{{first_name}}"}</code>
+                  Pode usar HTML. Variáveis disponíveis para este template:
+                  {selectedTemplateKey === 'ticket_opened' && <code> {"{{first_name}}"}, {"{{ticketId}}"}, {"{{ticketTitle}}"}, {"{{clientUrl}}"}</code>}
+                  {selectedTemplateKey === 'ticket_reply' && <code> {"{{first_name}}"}, {"{{ticketId}}"}, {"{{ticketTitle}}"}, {"{{message}}"}, {"{{clientUrl}}"}</code>}
+                  {selectedTemplateKey === 'ticket_closed' && <code> {"{{first_name}}"}, {"{{ticketId}}"}, {"{{ticketTitle}}"}, {"{{clientUrl}}"}</code>}
+                  {selectedTemplateKey === 'new_schedule' && <code> {"{{first_name}}"}, {"{{scheduleId}}"}, {"{{scheduleTitle}}"}, {"{{serviceType}}"}, {"{{equipmentInfo}}"}, {"{{startDate}}"}, {"{{endDate}}"}, {"{{clientUrl}}"}</code>}
+                  {selectedTemplateKey === 'new_report' && <code> {"{{first_name}}"}, {"{{reportId}}"}, {"{{reportNumber}}"}, {"{{equipInfo}}"}, {"{{reportUrl}}"} (link direto), {"{{clientUrl}}"} (portal)</code>}
+                  {(selectedTemplateKey === 'approval' || selectedTemplateKey === 'approval_pending_password') && <code> {"{{first_name}}"}, {"{{login_url}}"}, {"{{setup_url}}"}</code>}
                 </div>
               </div>
               <div className="mb-3">

@@ -22,6 +22,18 @@ export interface DashboardStats {
     completed: number;
     pending: number;
   };
+  backlog?: {
+    total: number;
+    createdLast7Days: number;
+    createdPrevious7Days: number;
+    exitedLast7Days: number;
+    exitedPrevious7Days: number;
+    avgHoursInBacklog: number | null;
+    trendPercent: number | null;
+    trendDirection: 'up' | 'down' | 'stable';
+    oldestCreatedAt: string | null;
+    oldestAgeDays: number | null;
+  };
 }
 
 export enum BillingStatus {

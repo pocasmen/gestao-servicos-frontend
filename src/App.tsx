@@ -19,6 +19,7 @@ import './theme.css';
 const CalendarPage = React.lazy(() => import('./pages/CalendarPage'));
 const DashboardPage = React.lazy(() => import('./pages/DashboardPage'));
 const ClientsPage = React.lazy(() => import('./pages/ClientsPage'));
+const ClientDetailPage = React.lazy(() => import('./pages/ClientDetailPage'));
 const EquipmentsPage = React.lazy(() => import('./pages/EquipmentsPage'));
 const EquipmentHistoryPage = React.lazy(() => import('./pages/EquipmentHistoryPage'));
 const InventoryPage = React.lazy(() => import('./pages/InventoryPage'));
@@ -330,6 +331,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/dashboard" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><DashboardPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><CalendarPage /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><ClientsPage /></ProtectedRoute>} />
+            <Route path="/clients/:id" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><ClientDetailPage /></ProtectedRoute>} />
             <Route path="/equipments" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><EquipmentsPage /></ProtectedRoute>} />
             <Route path="/equipments/:id/history" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><EquipmentHistoryPage /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><InventoryPage /></ProtectedRoute>} />
