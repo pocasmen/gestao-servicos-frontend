@@ -139,35 +139,35 @@ export const processSignature = (canvas: HTMLCanvasElement): string => {
         const contentWidth = maxX - minX + 1;
         const contentHeight = maxY - minY + 1;
 
-        // Criar um canvas temporário para o resultado final
+        // Criar um canvas temporário com dimensões otimizadas (evita base64 de centenas de KB)
+        const MAX_SIG_WIDTH = 400;
+        const MAX_SIG_HEIGHT = 200;
+
         const resultCanvas = document.createElement('canvas');
-        resultCanvas.width = width;
-        resultCanvas.height = height;
+        resultCanvas.width = MAX_SIG_WIDTH;
+        resultCanvas.height = MAX_SIG_HEIGHT;
         const resultCtx = resultCanvas.getContext('2d');
-        if (!resultCtx) return canvas.toDataURL('image/jpeg', 0.5);
+        if (!resultCtx) return canvas.toDataURL('image/jpeg', 0.6);
 
         // Preencher fundo com branco
         resultCtx.fillStyle = 'white';
-        resultCtx.fillRect(0, 0, width, height);
+        resultCtx.fillRect(0, 0, MAX_SIG_WIDTH, MAX_SIG_HEIGHT);
 
-        // Calcular escala para ocupar 90% da área (seja em largura ou altura)
+        // Calcular escala para ocupar 90% da área do canvas otimizado
         const targetRatio = 0.9;
-        const maxTargetWidth = width * targetRatio;
-        const maxTargetHeight = height * targetRatio;
+        const maxTargetWidth = MAX_SIG_WIDTH * targetRatio;
+        const maxTargetHeight = MAX_SIG_HEIGHT * targetRatio;
         
         const scaleX = maxTargetWidth / contentWidth;
         const scaleY = maxTargetHeight / contentHeight;
         const scale = Math.min(scaleX, scaleY);
-
-        // Se a assinatura já for grande o suficiente, podemos não querer aumentar muito (evitar pixelização extrema)
-        // No entanto, o pedido foi para maximizar, por isso aplicamos a escala calculada.
         
         const finalWidth = contentWidth * scale;
         const finalHeight = contentHeight * scale;
         
         // Calcular posição para centrar
-        const offsetX = (width - finalWidth) / 2;
-        const offsetY = (height - finalHeight) / 2;
+        const offsetX = (MAX_SIG_WIDTH - finalWidth) / 2;
+        const offsetY = (MAX_SIG_HEIGHT - finalHeight) / 2;
 
         // Desenhar a parte recortada no novo canvas com escala e centro
         resultCtx.drawImage(
@@ -176,10 +176,10 @@ export const processSignature = (canvas: HTMLCanvasElement): string => {
             offsetX, offsetY, finalWidth, finalHeight // Destino
         );
 
-        return resultCanvas.toDataURL('image/jpeg', 0.5);
+        return resultCanvas.toDataURL('image/jpeg', 0.6);
     } catch (error) {
         logger.error(error, "Erro ao processar assinatura:");
-        return canvas.toDataURL('image/jpeg', 0.5);
+        return canvas.toDataURL('image/jpeg', 0.6);
     }
 };
 
