@@ -78,7 +78,16 @@ const CalendarPage: React.FC = () => {
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportToEdit, setReportToEdit] = useState<Report | null>(null);
-  const [date, setDate] = useState(new Date());
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [date, setDate] = useState(() => {
+    const target = location.state?.targetDate || location.state?.date;
+    if (target) {
+      const parsed = new Date(target);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  });
   const [view, setView] = useState(Views.WORK_WEEK);
   const [dirtyEventIds, setDirtyEventIds] = useState<Set<string | number>>(new Set());
   const [showOnlyMyBacklog, setShowOnlyMyBacklog] = useState(false);
@@ -91,9 +100,6 @@ const CalendarPage: React.FC = () => {
   // Filter States
   const [filterType, setFilterType] = useState<'all' | 'schedules' | 'tasks'>('all');
   const [selectedTechIds, setSelectedTechIds] = useState<Set<string>>(new Set());
-
-  const location = useLocation();
-  const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -164,11 +170,10 @@ const CalendarPage: React.FC = () => {
       } as ScheduleEvent;
 
       const isUnscheduled = schedule.acknowledgementState === ScheduleStatus.PENDING_SCHEDULING || !schedule.startDate;
-      const hasTimeBlocks = schedule.timeBlocks && schedule.timeBlocks.length > 0;
 
       if (isUnscheduled && !isTask) {
         fetchedBacklog.push(baseEvent);
-      } else if (hasTimeBlocks) {
+      } else if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
         schedule.timeBlocks.forEach((tb, index: number) => {
           fetchedEvents.push({
             ...baseEvent,
@@ -351,7 +356,7 @@ const CalendarPage: React.FC = () => {
 
     if (scheduleToEditId) {
       const allPossibleItems = [...events, ...backlog];
-      const eventToEdit = allPossibleItems.find(e => e.id === scheduleToEditId || e.scheduleId === scheduleToEditId);
+      const eventToEdit = allPossibleItems.find(e => Number(e.id) === Number(scheduleToEditId) || Number(e.scheduleId) === Number(scheduleToEditId));
 
       if (eventToEdit) {
         setSelectedEvent(eventToEdit);
@@ -360,7 +365,7 @@ const CalendarPage: React.FC = () => {
         navigate(location.pathname, { replace: true, state: {} });
       }
     } else if (ticketToReport) {
-      const scheduleEvent = events.find(e => (e.scheduleId === (ticketToReport as Ticket).scheduleId) || (e.id === (ticketToReport as Ticket).scheduleId));
+      const scheduleEvent = events.find(e => (Number(e.scheduleId) === Number((ticketToReport as Ticket).scheduleId)) || (Number(e.id) === Number((ticketToReport as Ticket).scheduleId)));
       if (scheduleEvent) {
         handleManageReport(scheduleEvent);
         if (scheduleEvent.start) setDate(scheduleEvent.start);

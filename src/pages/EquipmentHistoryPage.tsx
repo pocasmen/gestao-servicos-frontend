@@ -237,7 +237,7 @@ const EquipmentHistoryPage: React.FC = () => {
                   <tbody>
                     {tickets.length === 0 ? <tr><td colSpan={4} className="text-center py-4 text-muted">Sem registos</td></tr> : tickets.map(ticket => (
                       <tr key={ticket.id}>
-                        <td><Link to="/tickets" state={{ ticketToHighlight: ticket.id }} className="fw-bold">#{ticket.id}</Link></td>
+                        <td><Link to={`/tickets/${ticket.id}`} className="fw-bold">#{ticket.id}</Link></td>
                         <td className="small">{new Date(ticket.createdAt).toLocaleDateString('pt-PT')}</td>
                         <td className="small text-truncate" style={{ maxWidth: '250px' }}>{ticket.faultDescription}</td>
                         <td><span className={`badge bg-${ticket.status === 'open' ? 'danger' : 'secondary'} rounded-pill`}>{ticket.status}</span></td>
@@ -255,7 +255,7 @@ const EquipmentHistoryPage: React.FC = () => {
                   <tbody>
                     {schedules.length === 0 ? <tr><td colSpan={5} className="text-center py-4 text-muted">Sem registos</td></tr> : schedules.map(schedule => (
                       <tr key={schedule.id}>
-                        <td><Link to="/calendar" state={{ scheduleToEditId: schedule.id }} className="fw-bold">#{schedule.id}</Link></td>
+                        <td><Link to="/calendar" state={{ scheduleToEditId: schedule.id, targetDate: schedule.startDate }} className="fw-bold">#{schedule.id}</Link></td>
                         <td className="small">{new Date(schedule.startDate).toLocaleString('pt-PT')}</td>
                         <td className="small">{schedule.title}</td>
                         <td className="small">{schedule.technicians.join(', ')}</td>
