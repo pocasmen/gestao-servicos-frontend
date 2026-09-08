@@ -1,29 +1,472 @@
-import { Event as BigCalendarEvent } from 'react-big-calendar';
+import { UserRole, TicketStatus, ScheduleStatus, StockType, ServiceClassification, SchedulePriority } from './constants/enums';
 
-// Interface para o evento do calendário, estendendo o tipo base
-export interface ScheduleEvent extends BigCalendarEvent {
-  id: number;
-  title: string; // Garantir que o título é uma string
-  clientId: number;
-  equipmentId: number;
-  technicianId: number;
-  // O `title` já vem do BigCalendarEvent como string opcional
-  // `start` e `end` também já vêm
+export interface DashboardStats {
+  tickets: {
+    open: number;
+    scheduled: number;
+    closed: number;
+  };
+  weekly: {
+    total: number;
+    completed: number;
+    withReport: number;
+  };
+  overdue: number;
+  pendingReports: {
+    total: number;
+    completed: number;
+    overdue: number;
+  };
+  tasks: {
+    total: number;
+    completed: number;
+    pending: number;
+  };
+  backlog?: {
+    total: number;
+    createdLast7Days: number;
+    createdPrevious7Days: number;
+    createdLast30Days?: number;
+    createdPrevious30Days?: number;
+    exitedLast7Days: number;
+    exitedPrevious7Days: number;
+    exitedLast30Days?: number;
+    exitedPrevious30Days?: number;
+    avgHoursInBacklog7Days?: number | null;
+    avgHoursInBacklog30Days?: number | null;
+    avgHoursInBacklog: number | null;
+    trendPercent: number | null;
+    trendDirection: 'up' | 'down' | 'stable';
+    oldestCreatedAt: string | null;
+    oldestAgeDays: number | null;
+  };
 }
 
-// Outras interfaces partilhadas
-export interface Client {
+export enum BillingStatus {
+  PENDING_COMPLETION = 'pending_completion',
+  REPORT_ISSUED = 'report_issued',
+  READY_FOR_BILLING = 'ready_for_billing',
+  BILLED = 'billed',
+  NEEDS_REVIEW = 'needs_review'
+}
+
+export interface BillingTask {
   id: number;
+  report_id: number;
+  status: BillingStatus;
+  assigned_role: UserRole;
+  notes?: string;
+  billing_notes?: string;
+  invoice_number?: string;
+  billed_at?: string;
+  created_at: string;
+  updated_at: string;
+  reports?: Report;
+}
+
+export interface ScheduleEvent {
+  id: number | string;
+  scheduleId?: number; // Real DB ID if 'id' is virtual
+  title: string;
+  start?: Date;
+  end?: Date;
+  startDate?: string;
+  endDate?: string;
+  clientId: number;
+  equipmentId: number;
+  status?: ScheduleStatus;
+  technicians: Technician[]; // Changed from technicianId
+  isCompleted: boolean;
+  hasReport: boolean;
+  ticketId?: number;
+  internalNotes?: string;
+  internal_notes?: string;
+  serviceType?: string | string[];
+  acknowledgementState?: ScheduleStatus;
+  parts?: PartItem[]; // Adicionado
+  clientName?: string;
+  equipmentInfo?: string;
+  timeBlocks?: TimeBlock[];
+  includes_travel?: boolean; // Indica se o serviço inclui deslocação
+  classification?: ServiceClassification;
+  priority?: SchedulePriority;
+  isTask?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  creator_name?: string;
+  updater_name?: string;
+}
+
+export interface TimeBlock {
+  id?: number;
+  start: Date;
+  end: Date;
+}
+
+
+
+export interface Client {
+
+
+
+  id: number;
+
+
+
   name: string;
+
+  nickname?: string;
+
+  address: string;
+
+
+
+  nif: string;
+
+
+
+  contactName?: string;
+
+
+
+  contactEmail?: string;
+
+
+
+  contactPhone?: string;
+  city?: string;
+  postCode?: string;
+  is_blacklisted?: boolean;
+  blacklist_reason?: string;
+}
+
+
+
+
+
+
+
+export interface Attachment {
+  id: string;
+  ticket_id: number;
+  file_name: string;
+  mime_type: string;
+  storage_path: string;
+  uploaded_by_user_id: string;
+  created_at: string;
+  url: string;
+}
+
+export interface TicketResponse {
+  id: number;
+  ticket_id: number;
+  user_id?: string;
+  technician_id?: string;
+  authorName?: string;
+  message: string;
+  created_at: string;
+  role?: string;
+  authorId?: string;
+  isNew?: boolean;
+}
+
+export interface DetailedTicket extends Ticket {
+  clientName: string;
+  equipmentInfo: string;
+  userFirstName: string;
+  userLastName: string;
+  attachments: Attachment[];
+  responses?: TicketResponse[];
+  assigned_to_user_id?: string;
+  assigned_to_user_name?: string;
 }
 
 export interface Equipment {
   id: number;
   brand: string;
   model: string;
+  serialNumber: string;
+  nickname?: string;
+  clientId: number;
+  clientName?: string;
+  additionalInfo?: string;
+  status?: string;
+  category?: string;
 }
 
+
+
+
+
+
+
 export interface Technician {
-  id: number;
+
+  id: string;
   name: string;
+  role?: UserRole;
+  isActive?: boolean;
+  color?: string;
+  signature?: string;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export interface User {
+
+
+
+
+
+
+
+  id: number;
+
+
+
+
+
+
+  client_id: number;
+
+
+
+
+
+
+  email: string;
+
+
+
+
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export interface Ticket {
+  id: number;
+  client_id: number;
+  equipmentId: number;
+  title: string;
+  faultDescription: string;
+  status: TicketStatus;
+  scheduleId?: number;
+  createdAt: string;
+  updatedAt: string;
+  created_by_user_id?: string;
+  // Campos preenchidos por JOINs
+  clientName?: string;
+  equipmentInfo?: string;
+  userFirstName?: string;
+  userLastName?: string;
+  // Campos do agendamento associado
+  startDate?: string;
+  endDate?: string;
+  internalNotes?: string;
+  internal_notes?: string;
+  hasReport?: boolean;
+  isSigned?: boolean;
+  is_blacklisted?: boolean;
+  blacklist_reason?: string;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export interface Part {
+  id?: number;
+  reference: string;
+  designation: string;
+  is_composed?: boolean;
+  stock_quantity?: number;
+  reserved_quantity?: number;
+  ordered_quantity?: number;
+  stock_quantity_foss?: number;
+  reserved_quantity_foss?: number;
+  ordered_quantity_foss?: number;
+  raw_stock_quantity?: number;
+  raw_stock_foss?: number;
+  available_quantity?: number;
+  available_quantity_foss?: number;
+  min_stock?: number;
+  min_stock_foss?: number;
+  image_path?: string;
+  price?: number;
+  notes?: string;
+  track_stock?: boolean;
+}
+
+
+
+
+
+
+
+export interface PartItem {
+  id?: number;
+  quantity: number;
+  reference: string;
+  designation: string;
+  isDesignationLocked?: boolean;
+  stockType?: StockType;
+  isApplied?: boolean;
+  stock_quantity?: number;
+  reserved_quantity?: number;
+  stock_quantity_foss?: number;
+  reserved_quantity_foss?: number;
+  raw_stock_quantity?: number;
+  raw_stock_foss?: number;
+  available_quantity?: number;
+  available_quantity_foss?: number;
+  min_stock?: number;
+  min_stock_foss?: number;
+  image_path?: string;
+  price?: number;
+  notes?: string;
+  track_stock?: boolean;
+}
+
+
+
+
+
+
+
+export interface Report {
+  id?: number;
+  report_number?: number | string;
+  clientId: number;
+  equipmentId: number;
+  scheduleId?: number;
+  technicians: Technician[];
+  serviceDate: string;
+  hours: number;
+  parts: PartItem[];
+  description: string;
+  serviceType: string[];
+  damage?: string;
+  internalNotes?: string;
+  internal_notes?: string;
+  signature?: string; // Campo para armazenar a assinatura em Base64 ou URL
+  technician_signature?: string; // Assinatura do técnico no momento do relatório
+  includes_travel?: boolean; // Indica se o serviço incluiu deslocação
+  classification?: ServiceClassification;
+  // Campos preenchidos por JOINs ou Snapshots persistidos para a visualização do relatório
+  clientName?: string;
+  clientAddress?: string;
+  clientNif?: string;
+  clientCity?: string;
+  clientPostcode?: string;
+  equipmentBrand?: string;
+  equipmentModel?: string;
+  equipmentSerialNumber?: string;
+  equipmentNickname?: string;
+  client_name?: string;
+  client_address?: string;
+  client_nif?: string;
+  client_city?: string;
+  client_postcode?: string;
+  equipment_brand?: string;
+  equipment_model?: string;
+  equipment_serial_number?: string;
+  equipment_nickname?: string;
+  timeBlocks?: TimeBlock[];
+  time_blocks?: any[];
+  clients?: { name: string };
+  billing_status?: BillingStatus;
+  client_signer_name?: string;
+  created_at?: string;
+  updated_at?: string;
+  creator_name?: string;
+  updater_name?: string;
+}
+
+export interface InternalTask {
+  id: number;
+  user_id: string; // Assignee
+  created_by: string; // Creator
+  title: string;
+  description: string;
+  type: string;
+  priority: 'high' | 'medium' | 'low';
+  client_id?: number | null;
+  equipment_id?: number | null;
+  is_private: boolean;
+  show_on_calendar: boolean;
+  estimated_hours?: number | null;
+  created_at: string;
+  updated_at: string;
+  completed?: boolean;
+  completed_at?: string | null;
+  updated_by?: string;
+  creator_name?: string;
+  updater_name?: string;
+  updater?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
+  assignee?: {
+    first_name: string | null;
+    last_name: string | null;
+    color: string | null;
+  };
+  creator?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
+  clients?: {
+    name: string;
+  };
+  equipments?: {
+    brand: string | null;
+    model: string | null;
+    serialNumber: string | null;
+  };
+  internal_task_time_blocks?: InternalTaskTimeBlock[];
+}
+
+export interface InternalTaskTimeBlock {
+  id: number;
+  task_id: number;
+  start_time: string;
+  end_time: string;
+}
+

@@ -1,0 +1,85 @@
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Semi-transparent backdrop */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1060;
+    /* Higher than Bootstrap modal default (1050) */
+    backdrop-filter: blur(4px);
+    /* Glassmorphism effect on background */
+}
+
+.modal {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 450px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.header {
+    padding: 1.5rem 1.5rem 0.5rem;
+}
+
+.title {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.35rem;
+    color: #111827;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.body {
+    padding: 0.5rem 1.5rem 1.5rem;
+    color: #374151;
+    font-size: 1.05rem;
+    line-height: 1.6;
+    font-family: 'Inter', sans-serif;
+}
+
+.footer {
+    padding: 1.25rem 1.5rem;
+    background-color: rgba(255, 255, 255, 0.4);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.button {
+    min-width: 90px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+}
+
+.button:active {
+    transform: translateY(1px);
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}

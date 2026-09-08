@@ -1,0 +1,189 @@
+.rbc-event.event-completed {
+  background-color: #198754;
+  /* Verde escuro */
+  color: white !important;
+  border: none;
+}
+
+.rbc-event.event-completed .rbc-event-content {
+  text-decoration: none;
+  /* Sem rasurado */
+}
+
+.rbc-event.event-with-report {
+  background-color: #6c757d !important;
+  /* Cinzento (Bootstrap secondary) */
+  opacity: 0.7;
+  color: white !important;
+  border: none !important;
+}
+
+
+/* Container para posicionamento da barra flutuante */
+.calendar-container {
+  position: relative;
+  min-height: 1300px; /* Aumentado para acomodar 5-6 semanas de 240px */
+}
+
+/* Barra de ferramentas flutuante para guardar/cancelar */
+.floating-toolbar {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 8px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Ajuste do tamanho da fonte dos agendamentos */
+.rbc-event-label,
+.rbc-event-content,
+.rbc-agenda-view table tbody tr td {
+  font-size: 14px !important;
+}
+
+.rbc-time-gutter .rbc-label,
+.rbc-time-header .rbc-label,
+.rbc-header {
+  font-size: 14px !important;
+  font-weight: bold;
+}
+
+/* --- Vista de Mês (Sem Fins de Semana) --- */
+
+.rbc-month-view {
+  border-radius: 12px;
+  overflow: visible !important;
+  border: 1px solid rgba(0,0,0,0.08) !important;
+  background-color: white;
+  min-height: 1200px; /* Aumentado para evitar cortes */
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.rbc-month-row {
+  min-height: 240px; /* Aumentado para garantir que o +X não seja cortado */
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: visible !important;
+}
+
+.rbc-show-more {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  color: var(--primary-color) !important;
+  font-weight: 800 !important;
+  font-size: 13px !important;
+  padding: 2px 8px !important;
+  border-radius: 6px !important;
+  text-decoration: none !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  margin: 2px 4px !important;
+  display: inline-block !important;
+  transition: all 0.2s ease;
+}
+
+.rbc-show-more:hover {
+  background-color: var(--primary-color) !important;
+  color: white !important;
+}
+
+.rbc-off-range-bg {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid rgba(0,0,0,0.05);
+}
+
+.rbc-month-row + .rbc-month-row {
+  border-top: 1px solid rgba(0,0,0,0.05);
+}
+
+/* Ocultar colunas de Sábado e Domingo em todos os contextos da vista de mês */
+.rbc-month-view .rbc-header:nth-child(6),
+.rbc-month-view .rbc-header:nth-child(7),
+.rbc-month-view .rbc-day-bg:nth-child(6),
+.rbc-month-view .rbc-day-bg:nth-child(7),
+.rbc-month-view .rbc-date-cell:nth-child(6),
+.rbc-month-view .rbc-date-cell:nth-child(7),
+.rbc-month-view .rbc-row-segment:nth-child(6),
+.rbc-month-view .rbc-row-segment:nth-child(7) {
+  display: none !important;
+}
+
+/* Forçar largura de 20% para os dias visíveis e garantir que são flexíveis */
+.rbc-month-view .rbc-header,
+.rbc-month-view .rbc-day-bg,
+.rbc-month-view .rbc-date-cell {
+  flex: 1 0 20% !important;
+  max-width: 20% !important;
+}
+
+/* Escalonar os segmentos de eventos de 7 dias para 5 dias (multiplier 1.4) */
+/* 1 dia: 14.2857% -> 20% */
+.rbc-month-view .rbc-row-segment[style*="basis: 14.28"],
+.rbc-month-view .rbc-row-segment[style*="basis:14.28"],
+.rbc-month-view .rbc-row-segment[style*="14.2857%"] { flex-basis: 20% !important; max-width: 20% !important; }
+
+/* 2 dias: 28.5714% -> 40% */
+.rbc-month-view .rbc-row-segment[style*="basis: 28.57"],
+.rbc-month-view .rbc-row-segment[style*="basis:28.57"],
+.rbc-month-view .rbc-row-segment[style*="28.5714%"] { flex-basis: 40% !important; max-width: 40% !important; }
+
+/* 3 dias: 42.8571% -> 60% */
+.rbc-month-view .rbc-row-segment[style*="basis: 42.85"],
+.rbc-month-view .rbc-row-segment[style*="basis:42.85"],
+.rbc-month-view .rbc-row-segment[style*="42.8571%"] { flex-basis: 60% !important; max-width: 60% !important; }
+
+/* 4 dias: 57.1428% -> 80% */
+.rbc-month-view .rbc-row-segment[style*="basis: 57.14"],
+.rbc-month-view .rbc-row-segment[style*="basis:57.14"],
+.rbc-month-view .rbc-row-segment[style*="57.1428%"] { flex-basis: 80% !important; max-width: 80% !important; }
+
+/* 5 dias: 71.4285% -> 100% */
+.rbc-month-view .rbc-row-segment[style*="basis: 71.42"],
+.rbc-month-view .rbc-row-segment[style*="basis:71.42"],
+.rbc-month-view .rbc-row-segment[style*="71.4285%"] { flex-basis: 100% !important; max-width: 100% !important; }
+
+
+/* Backlog Sidebar Styles */
+.backlog-sidebar .card {
+  border: none;
+  background-color: #f8f9fa;
+}
+
+.backlog-sidebar .card-header {
+  font-size: 0.9rem;
+  padding: 0.75rem;
+}
+
+.backlog-item {
+  transition: all 0.2s ease-in-out;
+}
+
+.backlog-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+  background-color: #f0f7ff;
+}
+
+.backlog-item .card-body {
+  line-height: 1.2;
+}
+
+.backlog-item .badge {
+  font-weight: 500;
+}
+.priority-strip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+}

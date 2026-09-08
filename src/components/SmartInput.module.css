@@ -1,0 +1,183 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1.25rem;
+    font-family: var(--font-family-body);
+}
+
+.label {
+    font-family: var(--font-family-title);
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+    color: #6b7280;
+    margin-left: 2px;
+}
+
+.inputWrapper {
+    position: relative;
+    border-radius: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.input {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background-color: #ffffff;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.95rem;
+    color: #1f2937;
+    font-weight: 500;
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
+    background-color: #ffffff;
+}
+
+.input:disabled {
+    background-color: #f9fafb;
+    color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.input.error {
+    border-color: #ef4444;
+    background-color: #fffafb;
+}
+
+.input.error:focus {
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.08);
+}
+
+.input.suspicious {
+    border-color: #f59e0b;
+    background-color: #fffdfa;
+}
+
+.input.suspicious:focus {
+    box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.08);
+}
+
+.input.verified {
+    border-color: #10b981;
+    background-color: #fafffc;
+}
+
+.input.verified:focus {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.08);
+}
+
+.feedbackCard {
+    margin-top: 0.75rem;
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    backdrop-filter: blur(8px);
+    border-width: 1px;
+    border-style: solid;
+}
+
+.errorCard {
+    background-color: rgba(254, 242, 242, 0.9);
+    border-color: #fecaca;
+    color: #991b1b;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.05);
+}
+
+.suspiciousCard {
+    background-color: rgba(255, 251, 235, 0.9);
+    border-color: #fde68a;
+    color: #92400e;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.05);
+}
+
+.cardTitle {
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cardMessage {
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
+
+.suggestionBox {
+    background-color: rgba(255, 255, 255, 0.5);
+    padding: 0.5rem;
+    border-radius: 0.25rem;
+    margin: 0.5rem 0;
+    font-family: monospace;
+}
+
+.actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.btn {
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+.btnPrimary {
+    background-color: var(--primary-color);
+    color: white;
+    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+}
+
+.btnPrimary:hover {
+    background-color: #4338ca;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(79, 70, 229, 0.25);
+}
+
+.btnWarning {
+    background-color: #f59e0b;
+    color: white;
+    box-shadow: 0 2px 4px rgba(245, 158, 11, 0.2);
+}
+
+.btnWarning:hover {
+    background-color: #d97706;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(245, 158, 11, 0.25);
+}
+
+.btnSecondary {
+    background-color: white;
+    border: 1px solid #d1d5db;
+    color: #374151;
+}
+
+.btnSecondary:hover {
+    background-color: #f3f4f6;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

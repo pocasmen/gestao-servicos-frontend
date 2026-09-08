@@ -1,85 +1,961 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useConfirm } from '../contexts/ConfirmContext';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Calendar, dateFnsLocalizer, Views } from 'react-big-calendar';
+import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
+import { format, parse, startOfWeek, getDay, addHours, startOfMonth, endOfMonth, subMonths, addMonths, getISOWeek, addDays } from 'date-fns';
+import { pt } from 'date-fns/locale';
 import apiClient from '../apiClient';
-import { Calendar, dateFnsLocalizer } from 'react-big-calendar';
-import format from 'date-fns/format';
-import parse from 'date-fns/parse';
-import startOfWeek from 'date-fns/startOfWeek';
-import getDay from 'date-fns/getDay';
-import ptBR from 'date-fns/locale/pt-BR';
+import { supabase } from '../supabase';
+import logger from '../utils/logger';
+import { Calendar as CalendarLucide } from 'lucide-react';
+
 import 'react-big-calendar/lib/css/react-big-calendar.css';
+import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
+import './CalendarPage.css';
 
-import { ScheduleEvent } from '../types'; // Importar o tipo centralizado
+import { ScheduleEvent, Report, Ticket, Technician, InternalTask } from '../types';
+import { ScheduleEventSchema } from '../schemas';
 import ScheduleDetailModal from '../components/ScheduleDetailModal';
+import ReportModal from '../components/ReportModal';
+import TaskModal from '../components/TaskModal';
+import { SERVICE_TYPE_LABELS, SCHEDULE_PRIORITY_LABELS } from '../constants';
+import { ScheduleStatus, SchedulePriority, UserRole } from '../constants/enums';
 
-const locales = { 'pt-BR': ptBR };
-const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
+const locales = { 'pt-PT': pt };
+
+const customFormats = {
+  dateFormat: 'dd/MM/yyyy',
+  dayFormat: 'dd/MM/yyyy',
+  weekdayFormat: 'EEE',
+  monthHeaderFormat: 'MMMM yyyy',
+  dayHeaderFormat: 'EEE dd/MM',
+  weekHeaderFormat: 'MMM dd',
+  dayRangeHeaderFormat: ({ start, end }: { start: Date, end: Date }) =>
+    format(start, 'MMMM d', { locale: pt }) + ' – ' + format(end, 'd', { locale: pt }) + ' (S' + getISOWeek(addDays(start, 2)) + ')',
+  agendaDateFormat: 'dd/MM/yyyy',
+  agendaDayFormat: 'dd/MM/yyyy',
+  agendaHeaderFormat: ({ start, end }: { start: Date, end: Date }) =>
+    format(start, 'dd/MM/yyyy', { locale: pt }) + ' - ' + format(end, 'dd/MM/yyyy', { locale: pt }),
+  agendaTimeFormat: 'HH:mm',
+  agendaTimeRangeFormat: ({ start, end }: { start: Date, end: Date }) =>
+    format(start, 'HH:mm', { locale: pt }) + ' - ' + format(end, 'HH:mm', { locale: pt }),
+  eventTimeRangeFormat: ({ start, end }: { start: Date, end: Date }) =>
+    format(start, 'HH:mm', { locale: pt }) + ' - ' + format(end, 'HH:mm', { locale: pt }),
+  eventTimeRangeStartFormat: ({ start }: { start: Date }) =>
+    format(start, 'HH:mm', { locale: pt }) + ' - ',
+  eventTimeRangeEndFormat: ({ end }: { end: Date }) =>
+    ' - ' + format(end, 'HH:mm', { locale: pt }),
+  timeGutterFormat: 'HH:mm',
+};
+
+const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales, formats: customFormats });
+const DragAndDropCalendar = withDragAndDrop<ScheduleEvent>(Calendar);
+
+const messages = {
+  allDay: 'Dia Inteiro',
+  previous: 'Anterior',
+  next: 'Próximo',
+  today: 'Hoje',
+  month: 'Mês',
+  week: 'Semana',
+  work_week: 'Semana',
+  day: 'Dia',
+  agenda: 'Agenda',
+  date: 'Data',
+  time: 'Hora',
+  event: 'Evento',
+  showMore: (total: number) => `+${total}`,
+};
+
+const calendarViews = [Views.MONTH, Views.WORK_WEEK, Views.DAY, Views.AGENDA];
 
 const CalendarPage: React.FC = () => {
-  const [events, setEvents] = useState<ScheduleEvent[]>([]);
-  const [view, setView] = useState<any>('month');
-  const [date, setDate] = useState(new Date());
-  
+  const queryClient = useQueryClient();
+  const { confirm: contextConfirm, alert: contextAlert } = useConfirm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<ScheduleEvent | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportToEdit, setReportToEdit] = useState<Report | null>(null);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [date, setDate] = useState(() => {
+    const target = location.state?.targetDate || location.state?.date;
+    if (target) {
+      const parsed = new Date(target);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  });
+  const [view, setView] = useState(Views.WORK_WEEK);
+  const [dirtyEventIds, setDirtyEventIds] = useState<Set<string | number>>(new Set());
+  const [showOnlyMyBacklog, setShowOnlyMyBacklog] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [draggedItemMetadata, setDraggedItemMetadata] = useState<ScheduleEvent | null>(null);
+  const [backlogSortMode, setBacklogSortMode] = useState<'date' | 'priority'>('priority');
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<InternalTask | null>(null);
 
-  const fetchSchedules = () => {
-    apiClient.get('/schedules').then(response => {
-      const schedules = response.data.map((schedule: any) => ({
+  // Filter States
+  const [filterType, setFilterType] = useState<'all' | 'schedules' | 'tasks'>('all');
+  const [selectedTechIds, setSelectedTechIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data?.user) setCurrentUserId(data.user.id);
+    });
+  }, []);
+
+  const fetchRange = useMemo(() => {
+    return {
+      start: format(startOfMonth(subMonths(date, 1)), 'yyyy-MM-dd'),
+      end: format(endOfMonth(addMonths(date, 1)), 'yyyy-MM-dd'),
+    };
+  }, [date]);
+
+  // Queries
+  const { data: rawSchedules = [], isFetching, refetch: fetchSchedules } = useQuery({
+    queryKey: ['schedules', fetchRange.start, fetchRange.end],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/schedules', { 
+        params: { 
+          includeCompleted: true, 
+          limit: 1000,
+          startDate: fetchRange.start,
+          endDate: fetchRange.end
+        } 
+      });
+      return response.data.data || [];
+    },
+    staleTime: 0,
+  });
+
+  const { data: technicians = [] } = useQuery<Technician[]>({
+    queryKey: ['technicians'],
+    queryFn: async () => {
+      const response = await apiClient.get('/api/technicians');
+      return response.data;
+    }
+  });
+
+  const processedSchedules = useMemo(() => {
+    const fetchedEvents: ScheduleEvent[] = [];
+    const fetchedBacklog: ScheduleEvent[] = [];
+
+    rawSchedules.forEach((item: unknown) => {
+      const result = ScheduleEventSchema.safeParse(item);
+      if (!result.success) {
+        logger.error(result.error.format(), '[SCHEMA_ERROR] Invalid schedule data received:');
+        return;
+      }
+
+      const schedule = result.data;
+      const stArray = Array.isArray(schedule.serviceType) ? schedule.serviceType : (schedule.serviceType ? [schedule.serviceType] : []);
+      const serviceLabel = stArray.map(t => SERVICE_TYPE_LABELS[t] || t).join(', ') || 'Serviço';
+      const equipLabel = schedule.equipmentInfo || 'Mod. Desconhecido';
+      const clientLabel = schedule.clientName || 'Cliente Desconhecido';
+      const isTask = String(schedule.id).startsWith('task_') || schedule.isTask;
+      const title = isTask ? (schedule.title || 'Tarefa') : `${serviceLabel} - ${equipLabel} - ${clientLabel}`;
+
+      const baseEvent: ScheduleEvent = {
         ...schedule,
-        start: new Date(schedule.startDate),
-        end: new Date(schedule.endDate),
-      }));
-      setEvents(schedules);
+        isTask: isTask,
+        id: schedule.id,
+        scheduleId: schedule.scheduleId || (typeof schedule.id === 'number' ? schedule.id : undefined),
+        title,
+        start: schedule.startDate ? new Date(schedule.startDate) : undefined,
+        end: schedule.endDate ? new Date(schedule.endDate) : undefined,
+        technicians: schedule.technicians || [],
+      } as ScheduleEvent;
+
+      const isUnscheduled = schedule.acknowledgementState === ScheduleStatus.PENDING_SCHEDULING || !schedule.startDate;
+
+      if (isUnscheduled && !isTask) {
+        fetchedBacklog.push(baseEvent);
+      } else if (schedule.timeBlocks && schedule.timeBlocks.length > 0) {
+        schedule.timeBlocks.forEach((tb, index: number) => {
+          fetchedEvents.push({
+            ...baseEvent,
+            id: tb.id ? `blk_${tb.id}` : `s${schedule.id}_idx${index}`,
+            start: new Date(tb.start),
+            end: new Date(tb.end),
+          });
+        });
+      } else if (!isTask) {
+        fetchedEvents.push({
+          ...baseEvent,
+          id: schedule.id,
+          start: schedule.startDate ? new Date(schedule.startDate) : undefined,
+          end: schedule.endDate ? new Date(schedule.endDate) : undefined,
+        } as ScheduleEvent);
+      }
+    });
+
+    return { events: fetchedEvents, backlog: fetchedBacklog };
+  }, [rawSchedules]);
+
+  const [eventsState, setEvents] = useState<ScheduleEvent[]>([]);
+
+  // We sync eventsState with processedSchedules only when rawSchedules changes
+  // to allow local updates (drag/resize) to persist until save.
+  useEffect(() => {
+    setEvents(processedSchedules.events);
+  }, [processedSchedules.events]);
+
+  const events = eventsState;
+  const backlog = processedSchedules.backlog;
+
+  // Apply filters to events
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      // 1. Type Filter
+      if (filterType === 'schedules' && event.isTask) return false;
+      if (filterType === 'tasks' && !event.isTask) return false;
+
+      // 2. Technician Filter
+      if (selectedTechIds.size > 0) {
+        if (!event.technicians || event.technicians.length === 0) return false;
+        // Se o evento tem múltiplos técnicos, ele aparece se QUALQUER um dos selecionados estiver no evento
+        return event.technicians.some(t => selectedTechIds.has(t.id));
+      }
+
+      return true;
+    });
+  }, [events, filterType, selectedTechIds]);
+
+  const toggleTechFilter = (techId: string) => {
+    setSelectedTechIds(prev => {
+      const next = new Set(prev);
+      if (next.has(techId)) {
+        next.delete(techId);
+      } else {
+        next.add(techId);
+      }
+      return next;
     });
   };
 
-  useEffect(() => {
-    fetchSchedules();
-  }, []);
+  const filteredBacklog = useMemo(() => {
+    return backlog
+      .filter(item => {
+        // 1. My Backlog Toggle
+        if (showOnlyMyBacklog && !(item.technicians && item.technicians.some(t => t.id === currentUserId))) return false;
 
-  const handleSelectEvent = (event: ScheduleEvent) => {
-    setSelectedEvent(event);
-    setIsModalOpen(true);
-  };
+        // 2. Type Filter
+        if (filterType === 'schedules' && item.isTask) return false;
+        if (filterType === 'tasks' && !item.isTask) return false;
 
-  const handleCloseModal = () => {
+        // 3. Technician Filter
+        if (selectedTechIds.size > 0) {
+          if (!item.technicians || item.technicians.length === 0) return false;
+          return item.technicians.some(t => selectedTechIds.has(t.id));
+        }
+
+        return true;
+      })
+      .sort((a, b) => {
+        if (backlogSortMode === 'date') {
+          const aDate = new Date(a.id as number).getTime();
+          const bDate = new Date(b.id as number).getTime();
+          return aDate - bDate;
+        } else {
+          const priorityOrder = { [SchedulePriority.HIGH]: 0, [SchedulePriority.MEDIUM]: 1, [SchedulePriority.LOW]: 2 };
+          const aPriority = a.priority || SchedulePriority.MEDIUM;
+          const bPriority = b.priority || SchedulePriority.MEDIUM;
+
+          if (priorityOrder[aPriority] !== priorityOrder[bPriority]) {
+            return priorityOrder[aPriority] - priorityOrder[bPriority];
+          }
+
+          const aDate = new Date(a.id as number).getTime();
+          const bDate = new Date(b.id as number).getTime();
+          return aDate - bDate;
+        }
+      });
+  }, [backlog, showOnlyMyBacklog, currentUserId, backlogSortMode, filterType, selectedTechIds]);
+
+  const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
     setSelectedEvent(null);
+  }, []);
+
+  const handleManageReport = useCallback(async (event: ScheduleEvent) => {
+    handleCloseModal();
+    setSelectedEvent(event);
+    const numericId = event.scheduleId || (typeof event.id === 'number' ? event.id : undefined);
+    if (!numericId) {
+      await contextAlert("Não foi possível identificar o agendamento associado.");
+      return;
+    }
+    try {
+      const response = await apiClient.get<Report>(`/api/reports/by-schedule/${numericId}`);
+      setReportToEdit(response.data);
+    } catch (error: unknown) {
+      if (error && typeof error === 'object' && 'response' in error) {
+        const axiosError = error as { response: { status: number } };
+        if (axiosError.response.status === 404) {
+          setReportToEdit(null);
+          // 404 means no report exists, so we proceed to open modal in "Create" mode
+          // Do not return here.
+        } else {
+          // For other errors, we might want to stop or alert
+          logger.error(error, "Erro ao verificar relatório existente:");
+          await contextAlert("Não foi possível verificar o relatório do serviço.");
+          return; // Stop if it's a non-404 error?
+        }
+      } else {
+        logger.error(error, "Erro desconhecido ao verificar relatório:");
+        await contextAlert("Não foi possível verificar o relatório do serviço.");
+        return;
+      }
+    }
+    setIsReportModalOpen(true);
+  }, [handleCloseModal, contextAlert]);
+
+  // Efeito para lidar com o agendamento de um NOVO ticket vindo de outra página
+  useEffect(() => {
+    const { ticketToSchedule } = location.state || {};
+
+    if (ticketToSchedule) {
+      const now = new Date();
+      const t = ticketToSchedule as Ticket;
+      const extractTitle = (fd: string) => {
+        const line = (fd || '').split('\n').find(l => l.trim().startsWith('[Título]'));
+        return line ? line.replace(/^\[Título\]\s*/, '').trim() : (fd || '').trim();
+      };
+      const newEvent: ScheduleEvent = {
+        id: 0,
+        title: '', // Será gerado dinamicamente no map se recarregado, mas para o modal usamos vazio
+        start: now,
+        end: addHours(now, 1),
+        clientId: t.client_id,
+        equipmentId: t.equipmentId,
+        technicians: [],
+        isCompleted: false,
+        hasReport: false,
+        ticketId: t.id,
+        serviceType: 'remota',
+        clientName: t.clientName,
+        equipmentInfo: t.equipmentInfo,
+      };
+      setSelectedEvent(newEvent);
+      setIsModalOpen(true);
+      // Limpar o estado para não reabrir o modal em re-renderizações
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
+
+  // Efeito para lidar com EDIÇÃO ou RELATÓRIO de um agendamento existente
+  useEffect(() => {
+    const { scheduleToEditId, ticketToReport } = location.state || {};
+    if (!scheduleToEditId && !ticketToReport) return;
+
+    // Aguardar carregamento (verificar se rawSchedules traz dados)
+    if (rawSchedules.length === 0) return;
+
+    if (scheduleToEditId) {
+      const allPossibleItems = [...events, ...backlog];
+      const eventToEdit = allPossibleItems.find(e => Number(e.id) === Number(scheduleToEditId) || Number(e.scheduleId) === Number(scheduleToEditId));
+
+      if (eventToEdit) {
+        setSelectedEvent(eventToEdit);
+        setIsModalOpen(true);
+        if (eventToEdit.start) setDate(eventToEdit.start);
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    } else if (ticketToReport) {
+      const scheduleEvent = events.find(e => (Number(e.scheduleId) === Number((ticketToReport as Ticket).scheduleId)) || (Number(e.id) === Number((ticketToReport as Ticket).scheduleId)));
+      if (scheduleEvent) {
+        handleManageReport(scheduleEvent);
+        if (scheduleEvent.start) setDate(scheduleEvent.start);
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [location, navigate, events, backlog, rawSchedules, handleManageReport]);
+
+  const handleEventDrop = useCallback(({ event, start, end }: { event: ScheduleEvent, start: string | Date, end: string | Date }) => {
+    const s = typeof start === 'string' ? new Date(start) : start;
+    const e = typeof end === 'string' ? new Date(end) : end;
+    setEvents(prev => prev.map(ev => ev.id === event.id ? { ...ev, start: s, end: e } : ev));
+    setDirtyEventIds(prev => new Set(prev).add(event.id));
+  }, []);
+
+  const handleEventResize = useCallback(({ event, start, end }: { event: ScheduleEvent, start: string | Date, end: string | Date }) => {
+    const s = typeof start === 'string' ? new Date(start) : start;
+    const e = typeof end === 'string' ? new Date(end) : end;
+    setEvents(prev => prev.map(ev => ev.id === event.id ? { ...ev, start: s, end: e } : ev));
+    setDirtyEventIds(prev => new Set(prev).add(event.id));
+  }, []);
+
+  const handleSelectEvent = useCallback(async (event: ScheduleEvent) => {
+    // Check if it's a task
+    if (event.isTask) {
+      const taskId = event.scheduleId || (typeof event.id === 'number' ? event.id : parseInt(String(event.id).replace('blk_', '').replace('task_', '').split('_')[0]));
+      if (!taskId) return;
+
+      try {
+        const response = await apiClient.get<InternalTask>(`/api/tasks/${taskId}`);
+        setSelectedTask(response.data);
+        setIsTaskModalOpen(true);
+      } catch (error) {
+        logger.error(error, "Error fetching task details:");
+        contextAlert("Não foi possível carregar os detalhes da tarefa.");
+      }
+      return;
+    }
+
+    setSelectedEvent(event);
+    setIsModalOpen(true);
+  }, [contextAlert]);
+
+  const handleSelectSlot = useCallback(({ start, end }: { start: Date, end: Date }) => {
+    setSelectedEvent({ id: 0, title: '', start, end, clientId: 0, equipmentId: 0, technicians: [], isCompleted: false, hasReport: false, clientName: '', equipmentInfo: '' });
+    setIsModalOpen(true);
+  }, []);
+
+  const onDropFromOutside = useCallback(({ start, end, allDay }: any) => {
+    if (draggedItemMetadata) {
+      setSelectedEvent({
+        ...draggedItemMetadata,
+        start,
+        end: addHours(start, 1),
+      });
+      setIsModalOpen(true);
+      setDraggedItemMetadata(null);
+    }
+  }, [draggedItemMetadata]);
+
+  const handleDragStart = useCallback((item: ScheduleEvent) => {
+    setDraggedItemMetadata(item);
+  }, []);
+
+  const dragFromOutsideItem = useCallback(() => {
+    return draggedItemMetadata || {} as ScheduleEvent;
+  }, [draggedItemMetadata]);
+
+  const handleBacklogClick = (item: ScheduleEvent) => {
+    handleSelectEvent(item);
   };
 
-  const handleScheduleChange = () => {
-    fetchSchedules(); // Recarregar eventos após uma alteração
-  };
+  const handleScheduleUpdated = useCallback((savedSchedule?: ScheduleEvent) => {
+    queryClient.invalidateQueries({ queryKey: ['schedules'] });
+    queryClient.invalidateQueries({ queryKey: ['inventory'] });
+    queryClient.invalidateQueries({ queryKey: ['tickets'] });
+    handleCloseModal();
+  }, [queryClient, handleCloseModal]);
+
+  // Real-time synchronization using Broadcast (fast) and Postgres Changes (backup)
+  useEffect(() => {
+    logger.debug('[DEBUG:REALTIME] Iniciando monitorização em tempo real...');
+
+    const channel = supabase
+      .channel('calendar_updates')
+      // 1. Ouvir via Broadcast (Enviado manualmente pelo servidor para rapidez total)
+      .on('broadcast', { event: 'schedule_changed' }, (payload) => {
+        logger.debug(payload, '[DEBUG:REALTIME] Mensagem Broadcast recebida:');
+        queryClient.invalidateQueries({ queryKey: ['schedules'] });
+        queryClient.invalidateQueries({ queryKey: ['inventory'] });
+      })
+      // 2. Ouvir via Postgres Changes (Caso a tabela tenha Realtime ativo no dashboard)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'schedules' },
+        (payload) => {
+          logger.debug(payload, '[DEBUG:REALTIME] Postgres Change detetada (schedules):');
+          queryClient.invalidateQueries({ queryKey: ['schedules'] });
+          queryClient.invalidateQueries({ queryKey: ['inventory'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'schedule_technicians' },
+        (payload) => {
+          logger.debug(payload, '[DEBUG:REALTIME] Postgres Change detetada (technicians):');
+          queryClient.invalidateQueries({ queryKey: ['schedules'] });
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'internal_tasks' },
+        (payload) => {
+          logger.debug(payload, '[DEBUG:REALTIME] Postgres Change detetada (tasks):');
+          queryClient.invalidateQueries({ queryKey: ['schedules'] });
+        }
+      )
+      .subscribe((status, err) => {
+        logger.debug({ err }, `[DEBUG:REALTIME] Status da subscrição: ${status}`);
+      });
+
+    return () => {
+      logger.debug('[DEBUG:REALTIME] A limpar subscrição...');
+      supabase.removeChannel(channel);
+    };
+  }, [fetchSchedules]);
+
+  const handleCloseReportModal = useCallback(() => {
+    setIsReportModalOpen(false);
+    setSelectedEvent(null);
+    setReportToEdit(null);
+  }, []);
+
+  const handleReportSaved = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['schedules'] });
+    queryClient.invalidateQueries({ queryKey: ['inventory'] });
+    handleCloseReportModal();
+  }, [queryClient, handleCloseReportModal]);
+
+  const handleSaveAll = useCallback(async () => {
+    if (dirtyEventIds.size === 0) return;
+
+    if (!await contextConfirm({
+      message: `Tem a certeza que quer guardar alterações em ${dirtyEventIds.size} bloco(s)?`,
+      title: 'Guardar Alterações',
+      confirmText: 'Guardar'
+    })) {
+      return;
+    }
+
+    // 1. Identify distinct items that need update
+    const dirtyScheduleIds = new Set<string>();
+    dirtyEventIds.forEach(id => {
+      const ev = events.find(e => e.id === id);
+      if (ev) {
+        const identifier = ev.isTask ? `task_${ev.scheduleId !== undefined ? ev.scheduleId : ev.id}` : String(ev.scheduleId !== undefined ? ev.scheduleId : ev.id);
+        dirtyScheduleIds.add(identifier);
+      }
+    });
+
+    const updatePromises = Array.from(dirtyScheduleIds).map(async schIdStr => {
+      const isTask = schIdStr.startsWith('task_');
+      const extractedId = isTask ? schIdStr.replace('task_', '') : schIdStr;
+      const schId = parseInt(extractedId);
+      const taskId = isTask ? schId : null;
+
+      // 2. Gather all blocks for this item
+      const itemEvents = events.filter(e => {
+        const matchId = e.scheduleId !== undefined ? e.scheduleId : e.id;
+        if (isTask) return e.isTask && String(matchId) === String(taskId);
+        return !e.isTask && String(matchId) === String(schId);
+      });
+
+      if (itemEvents.length === 0) return Promise.resolve();
+
+      // 3. Calculate Min/Max and blocks
+      const times = itemEvents.flatMap(e => [e.start?.getTime() || 0, e.end?.getTime() || 0]);
+      const minTime = new Date(Math.min(...times.filter(t => t > 0)));
+      const maxTime = new Date(Math.max(...times.filter(t => t > 0)));
+
+      const timeBlocks = itemEvents.map(e => ({
+        [isTask ? 'start_time' : 'start']: e.start?.toISOString() || '',
+        [isTask ? 'end_time' : 'end']: e.end?.toISOString() || ''
+      }));
+
+      const baseEvent = itemEvents[0];
+      if (!baseEvent) return Promise.resolve();
+
+      if (isTask) {
+        try {
+          const { data: fullTask } = await apiClient.get<InternalTask>(`/api/tasks/${taskId}`);
+          return apiClient.patch(`/api/tasks/${taskId}`, {
+            ...fullTask,
+            timeBlocks
+          });
+        } catch (err) {
+          logger.error(err, "Error fetching task for update:");
+          throw err;
+        }
+      } else {
+        const { technicians, scheduleId: _sId, id: _id, ...baseEventRest } = baseEvent;
+        return apiClient.put(`/api/schedules/${schId}`, {
+          ...baseEventRest,
+          startDate: minTime.toISOString(),
+          endDate: maxTime.toISOString(),
+          technicianIds: technicians ? technicians.map(t => t.id) : [],
+          timeBlocks
+        });
+      }
+    });
+
+    try {
+      await Promise.all(updatePromises);
+      await contextAlert('Alterações guardadas com sucesso!', 'Sucesso');
+    } catch (error) {
+      logger.error(error, "Erro ao guardar alterações:");
+      await contextAlert('Ocorreu um erro ao guardar as alterações.');
+    } finally {
+      setDirtyEventIds(new Set());
+      fetchSchedules();
+    }
+  }, [events, dirtyEventIds, fetchSchedules, contextConfirm, contextAlert]);
+
+  const handleCancelAll = useCallback(async () => {
+    if (await contextConfirm({
+      message: 'Tem a certeza que quer descartar todas as alterações?',
+      title: 'Cancelar Alterações',
+      variant: 'warning',
+      confirmText: 'Descartar'
+    })) {
+      setDirtyEventIds(new Set());
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+    }
+  }, [fetchSchedules, contextConfirm, queryClient]);
+
+  const handleNavigate = useCallback((newDate: Date) => setDate(newDate), []);
+  const handleView = useCallback((newView: any) => setView(newView), []);
+
+  // Forçar a exibição do número da semana
+  useEffect(() => {
+    const updateWeekHeader = () => {
+      const header = document.querySelector('.rbc-toolbar-label');
+      if (header && !header.textContent?.includes('(S')) {
+        const weekNumber = getISOWeek(addDays(date, 2));
+        header.textContent = `${header.textContent} (S${weekNumber})`;
+      }
+    };
+    
+    // Pequeno delay para garantir que o componente renderizou
+    const timeout = setTimeout(updateWeekHeader, 100);
+    return () => clearTimeout(timeout);
+  }, [date, view]);
+
+  // Helper memoizado para gerar gradientes, evitando recálculos no render
+  const getTechnicianGradient = useCallback((technicians: Technician[]) => {
+    const stripeWidth = 20;
+    const stops = technicians.map((t, idx) => {
+      const c = t.color || '#3174ad';
+      return `${c} ${idx * stripeWidth}px, ${c} ${(idx + 1) * stripeWidth}px`;
+    }).join(', ');
+    return `repeating-linear-gradient(45deg, ${stops})`;
+  }, []);
+
+  const eventStyleGetter = useCallback((event: ScheduleEvent) => {
+    let style: React.CSSProperties = {
+      borderRadius: '5px',
+      opacity: 0.9,
+      color: 'white',
+      border: '0px',
+      display: 'block',
+      boxShadow: 'none',
+      transition: 'all 0.2s ease-in-out',
+      textShadow: '0 1px 2px rgba(0, 0, 0, 0.8)',
+    };
+
+    if (event.technicians && event.technicians.length > 0) {
+      if (event.technicians.length === 1) {
+        style.backgroundColor = event.technicians[0].color || '#3174ad';
+      } else {
+        style.backgroundImage = getTechnicianGradient(event.technicians);
+      }
+    } else {
+      style.backgroundColor = '#3174ad';
+    }
+
+    if (event.isCompleted) {
+      if (event.hasReport || event.isTask) {
+        return { className: 'event-with-report' };
+      }
+      return { className: 'event-completed' };
+    }
+
+    // Adiciona um feedback visual para o estado de confirmação
+    const rawState = (event.acknowledgementState || 'pending').toLowerCase();
+
+    switch (rawState) {
+      case 'accepted':
+        style.border = '4px solid #28a745'; // Verde para aceite
+        style.boxShadow = '0 0 5px rgba(40, 167, 69, 0.5)';
+        style.opacity = 1;
+        break;
+      case 'rejected':
+        style.border = '4px solid #dc3545'; // Vermelho para rejeitado
+        style.backgroundColor = '#6c757d'; // Cinzento
+        style.boxShadow = '0 0 5px rgba(220, 53, 69, 0.5)';
+        break;
+      case 'pending':
+        style.border = '4px solid #ffc107'; // Amarelo para pendente
+        style.boxShadow = '0 0 8px rgba(255, 193, 7, 0.6)';
+        break;
+      default:
+        // Se não tiver estado, colocar uma borda subtil para consistência
+        style.border = '1px solid rgba(255,255,255,0.3)';
+        break;
+    }
+
+    // Adiciona um feedback visual para alterações não guardadas
+    if (dirtyEventIds.has(event.id)) {
+      style.boxShadow = '0 0 10px 3px rgba(255, 100, 0, 0.7)'; // Brilho laranja
+    }
+
+    return { style };
+  }, [dirtyEventIds]);
 
   return (
-    <div className="container mt-4">
-      <ScheduleDetailModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        event={selectedEvent}
-        onScheduleUpdated={handleScheduleChange}
-        onScheduleDeleted={handleScheduleChange}
-      />
+    <div className="container-fluid py-4 min-vh-100 bg-light animate__animated animate__fadeIn">
+      {/* Premium Header */}
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-4 mb-4 px-2">
+        <div>
+          <div className="d-flex align-items-center gap-3">
+            <CalendarLucide size={40} strokeWidth={2.5} className="text-primary" />
+            <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)' }}>Agenda Técnica</h1>
+          </div>
+          <p className="text-muted small m-0 fst-italic">Gestão inteligente de intervenções e backlog de serviços.</p>
+        </div>
 
-      <Calendar
-        localizer={localizer}
-        events={events}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: 600 }}
-        view={view}
-        onView={setView}
-        date={date}
-        onNavigate={setDate}
-        onSelectEvent={handleSelectEvent as (event: object) => void} // Cast para evitar conflito de tipo
-        messages={{
-          next: "Próximo",
-          previous: "Anterior",
-          today: "Hoje",
-          month: "Mês",
-          week: "Semana",
-          day: "Dia",
-          agenda: "Agenda"
+        {/* Desktop Filters (Header) */}
+        <div className="d-flex flex-wrap align-items-center gap-3">
+          {isFetching && (
+            <div className="animate__animated animate__fadeIn">
+              <span className="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 py-2 px-3 d-flex align-items-center gap-2 shadow-sm" style={{ fontSize: '13px' }}>
+                <div className="spinner-border spinner-border-sm" role="status" style={{ width: '14px', height: '14px', borderWidth: '2.5px' }}></div>
+                <span className="fw-bold">Sincronizando...</span>
+              </span>
+            </div>
+          )}
+          
+          {/* Type Filter */}
+          <div className="btn-group btn-group-sm p-1 bg-white rounded-pill shadow-sm border border-light" role="group">
+            <button
+              type="button"
+              className={`btn rounded-pill border-0 fw-bold px-3 transition-all ${filterType === 'all' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+              onClick={() => setFilterType('all')}
+            >
+              Todos
+            </button>
+            <button
+              type="button"
+              className={`btn rounded-pill border-0 fw-bold px-3 transition-all ${filterType === 'schedules' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+              onClick={() => setFilterType('schedules')}
+            >
+              Agendamentos
+            </button>
+            <button
+              type="button"
+              className={`btn rounded-pill border-0 fw-bold px-3 transition-all ${filterType === 'tasks' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+              onClick={() => setFilterType('tasks')}
+            >
+              Tarefas
+            </button>
+          </div>
+
+          <div className="vr d-none d-lg-block mx-2 opacity-10"></div>
+
+          {/* Technician Filter (Circles) */}
+          <div className="d-flex align-items-center gap-2 bg-white bg-opacity-75 p-1 rounded-pill shadow-sm border border-light overflow-hidden">
+            <button
+              className={`btn btn-sm rounded-pill fw-bold px-3 border-0 transition-all ${selectedTechIds.size === 0 ? 'btn-dark text-white shadow-sm' : 'btn-light text-muted'}`}
+              onClick={() => setSelectedTechIds(new Set())}
+              style={{ fontSize: '0.75rem' }}
+            >
+              Equipa
+            </button>
+            <div className="d-flex gap-1 pe-2">
+              {technicians
+                .filter(t => t.isActive !== false && t.role !== UserRole.OFFICE_STAFF && t.role !== UserRole.CLIENT)
+                .map(tech => (
+                  <button
+                    key={tech.id}
+                    className={`rounded-circle border-0 p-0 transition-all shadow-sm position-relative ${selectedTechIds.has(tech.id) ? 'scale-110' : 'opacity-40 grayscale'}`}
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: tech.color || '#3174ad',
+                      transform: selectedTechIds.has(tech.id) ? 'scale(1.15)' : 'scale(1)',
+                      zIndex: selectedTechIds.has(tech.id) ? 2 : 1,
+                      border: selectedTechIds.has(tech.id) ? '2px solid #fff' : 'none'
+                    }}
+                    title={tech.name}
+                    onClick={() => toggleTechFilter(tech.id)}
+                  >
+                    {selectedTechIds.has(tech.id) && (
+                      <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+                        <i className="bi bi-check-lg text-white" style={{ fontSize: '12px' }}></i>
+                      </div>
+                    )}
+                  </button>
+                ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {dirtyEventIds.size > 0 && (
+        <div className="floating-toolbar glass-card border border-primary border-opacity-25 shadow-lg py-3 px-4 animate__animated animate__fadeInUp d-flex align-items-center gap-4"
+          style={{ position: 'fixed', bottom: '30px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, borderRadius: '50px' }}>
+          <span className="fw-bold text-primary small d-flex align-items-center">
+            <i className="bi bi-info-circle-fill me-2 rotate-pulse"></i>
+            {dirtyEventIds.size} alteração(ões) pendente(s)
+          </span>
+          <div className="d-flex gap-3">
+            <button className="btn btn-primary rounded-pill px-4 py-1 fw-bold shadow-sm d-flex align-items-center gap-2" onClick={handleSaveAll}>
+              <i className="bi bi-check-lg"></i> Guardar
+            </button>
+            <button className="btn btn-white rounded-pill px-4 py-1 fw-bold border shadow-sm text-muted d-flex align-items-center gap-2" onClick={handleCancelAll}>
+              <i className="bi bi-x-lg"></i> Descartar
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="row g-4 mt-2">
+        <div className="col-md-3">
+          <div className="glass-card border-0 mb-4 overflow-hidden h-100 shadow-sm d-flex flex-column animate__animated animate__fadeInLeft" style={{ borderRadius: '24px' }}>
+            <div className="bg-black px-4 py-3 d-flex justify-content-between align-items-center">
+              <h6 className="text-white fw-bold m-0 text-uppercase small" style={{ fontFamily: 'var(--font-family-title)', letterSpacing: '0.05em' }}>
+                <i className="bi bi-list-task me-2"></i> Backlog
+              </h6>
+              <span className="badge rounded-pill bg-white text-primary px-3 fw-bold shadow-sm">{backlog.length}</span>
+            </div>
+            <div className="p-4 flex-grow-1 overflow-auto" style={{ maxHeight: 'calc(100vh - 280px)' }}>
+              <div className="bg-light p-3 rounded-4 mb-4 border border-light">
+                <div className="form-check form-switch mb-2">
+                  <input
+                    className="form-check-input shadow-none"
+                    type="checkbox"
+                    id="filterMyBacklog"
+                    checked={showOnlyMyBacklog}
+                    onChange={(e) => setShowOnlyMyBacklog(e.target.checked)}
+                  />
+                  <label className="form-check-label small fw-bold text-dark" htmlFor="filterMyBacklog">
+                    Minhas tarefas
+                  </label>
+                </div>
+                <hr className="my-2 opacity-10" />
+                <div className="btn-group btn-group-sm w-100 mt-2 p-1 bg-white rounded-pill shadow-sm" role="group">
+                  <button
+                    type="button"
+                    className={`btn rounded-pill border-0 fw-bold px-3 ${backlogSortMode === 'priority' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+                    onClick={() => setBacklogSortMode('priority')}
+                  >
+                    Prioridade
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn rounded-pill border-0 fw-bold px-3 ${backlogSortMode === 'date' ? 'btn-primary text-white shadow-sm' : 'btn-light text-muted'}`}
+                    onClick={() => setBacklogSortMode('date')}
+                  >
+                    Recentes
+                  </button>
+                </div>
+              </div>
+
+              {filteredBacklog
+                .map(item => (
+                  <div
+                    key={item.id}
+                    className="card mb-3 bg-white border-0 shadow-sm backlog-item position-relative overflow-hidden"
+                    onClick={() => handleBacklogClick(item)}
+                    draggable
+                    onDragStart={() => handleDragStart(item)}
+                    style={{
+                      cursor: 'grab',
+                      borderRadius: '16px',
+                      transition: 'transform 0.2s, box-shadow 0.2s'
+                    }}
+                  >
+                    <div
+                      className={`position-absolute top-0 start-0 h-100`}
+                      style={{
+                        width: '4px',
+                        backgroundColor: (item.priority || SchedulePriority.MEDIUM) === SchedulePriority.HIGH ? 'var(--bs-danger)' :
+                          (item.priority || SchedulePriority.MEDIUM) === SchedulePriority.LOW ? 'var(--bs-secondary)' :
+                            'var(--bs-warning)'
+                      }}
+                    ></div>
+                    <div className="card-body p-3">
+                      <div className="small fw-bold text-dark text-truncate mb-1" title={item.clientName}>{item.clientName}</div>
+                      <div className="small text-muted text-truncate mb-2" style={{ fontSize: '0.75rem' }} title={item.equipmentInfo}>
+                        <i className="bi bi-cpu-fill me-1"></i> {item.equipmentInfo}
+                      </div>
+
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="badge rounded-pill bg-light text-dark fw-medium border-0 px-2 py-1" style={{ fontSize: '0.65rem' }}>
+                          {Array.isArray(item.serviceType)
+                            ? (item.serviceType.length > 1
+                              ? `${SERVICE_TYPE_LABELS[item.serviceType[0]]?.substring(0, 3)}...`
+                              : SERVICE_TYPE_LABELS[item.serviceType[0]] || item.serviceType[0])
+                            : (SERVICE_TYPE_LABELS[item.serviceType || ''] || item.serviceType)}
+                        </span>
+
+                        <div className="d-flex ms-auto">
+                          {item.technicians?.map((t, i) => (
+                            <div
+                              key={t.id}
+                              className="rounded-circle shadow-sm"
+                              style={{
+                                width: '18px',
+                                height: '18px',
+                                backgroundColor: t.color,
+                                border: '2px solid #fff',
+                                marginLeft: i > 0 ? '-6px' : '0'
+                              }}
+                              title={t.name}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+        <div className="col-md-9 mt-0">
+          <div className="glass-card border-0 shadow-sm p-4 overflow-visible calendar-container" style={{ borderRadius: '24px' }}>
+
+            <DragAndDropCalendar
+              localizer={localizer}
+              events={filteredEvents}
+              onEventDrop={handleEventDrop}
+              onEventResize={handleEventResize}
+              resizable
+              selectable
+              onSelectEvent={handleSelectEvent}
+              onSelectSlot={handleSelectSlot}
+              onDropFromOutside={onDropFromOutside}
+              dragFromOutsideItem={dragFromOutsideItem}
+              defaultView={Views.WORK_WEEK}
+              views={calendarViews}
+              culture="pt-PT"
+              messages={messages}
+              eventPropGetter={eventStyleGetter}
+              date={date}
+              view={view}
+              onNavigate={handleNavigate}
+              onView={handleView}
+              min={new Date(new Date().setHours(8, 0, 0, 0))}
+              max={new Date(new Date().setHours(20, 0, 0, 0))}
+            />
+          </div>
+        </div>
+      </div>
+      {isModalOpen && (
+        <ScheduleDetailModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          event={selectedEvent}
+          onScheduleUpdated={handleScheduleUpdated}
+          onManageReport={handleManageReport}
+        />
+      )}
+      {isReportModalOpen && (
+        <ReportModal
+          isOpen={isReportModalOpen}
+          onClose={handleCloseReportModal}
+          schedule={selectedEvent}
+          reportToEdit={reportToEdit}
+          onReportSaved={handleReportSaved}
+        />
+      )}
+      <TaskModal
+        isOpen={isTaskModalOpen}
+        onClose={() => {
+          setIsTaskModalOpen(false);
+          setSelectedTask(null);
+        }}
+        task={selectedTask}
+        onTaskSaved={() => {
+          fetchSchedules();
         }}
       />
     </div>

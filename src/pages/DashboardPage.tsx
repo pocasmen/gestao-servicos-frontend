@@ -1,0 +1,1107 @@
+import React, { useState, useEffect } from 'react';
+import apiClient from '../apiClient';
+import StatCard from '../components/StatCard';
+import { Link } from 'react-router-dom';
+import LoadingState from '../components/LoadingState';
+import { useConfirm } from '../contexts/ConfirmContext';
+import { TicketStatus } from '../constants/enums';
+import { getBillingStats, getBillingTasks } from '../services/billingService';
+import { BillingStatus, BillingTask, ScheduleEvent, Ticket, DashboardStats, Technician } from '../types';
+import { DashboardStatsSchema, TicketSchema, ScheduleEventSchema } from '../schemas';
+import logger from '../utils/logger';
+
+// DashboardStats now imported from types.ts
+
+const SERVICE_TYPE_LABELS: Record<string, string> = {
+  'preventive': 'Preventiva',
+  'corrective': 'Corretiva',
+  'maintenance': 'Manutenção',
+  'installation': 'Instalação',
+  'other': 'Outro',
+  'manutencao': 'Manutenção',
+  'assistencia': 'Assistência',
+  'remota': 'Remota'
+};
+
+const formatServiceType = (type: any) => {
+  if (!type) return '';
+  let cleanType = type;
+  if (typeof type === 'string') {
+    // Remove chavetas, parênteses retos e aspas da base de dados
+    cleanType = type.replace(/[{}[\]"]/g, '').split(',')[0].trim();
+  } else if (Array.isArray(type)) {
+    cleanType = type[0];
+  }
+  
+  if (!cleanType) return '';
+  
+  const label = SERVICE_TYPE_LABELS[cleanType.toLowerCase()];
+  if (label) return label;
+  
+  // Fallback: Primeira letra maiúscula se não estiver no dicionário
+  return cleanType.charAt(0).toUpperCase() + cleanType.slice(1);
+};
+
+interface TicketDetail {
+  id: number;
+  subject: string;
+  clientName: string;
+  status: string;
+  date: string;
+}
+
+interface ScheduleDetail {
+  id: number;
+  title: string;
+  startDate?: string;
+  endDate?: string;
+  isCompleted?: boolean;
+  hasReport?: boolean;
+  clientName: string;
+  technicians: string[];
+  serviceType?: string;
+  equipmentModel?: string;
+}
+
+const DistributionBar: React.FC<{
+  fechados: number;
+  concluidos: number;
+  overdue: number;
+  pendente: number;
+  total: number;
+}> = ({ fechados, concluidos, overdue, pendente, total }) => {
+  const getW = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+
+  return (
+    <div className="visualizer-container">
+      <div className="visual-title">Distribuição de Agendamentos</div>
+      <div className="dist-bar-container">
+        <div className="dist-bar-segment bg-emerald" style={{ width: `${getW(fechados)}%` }} data-label={`Fechados: ${fechados}`} />
+        <div className="dist-bar-segment bg-azure" style={{ width: `${getW(concluidos)}%` }} data-label={`Concluídos: ${concluidos}`} />
+        <div className="dist-bar-segment bg-ruby" style={{ width: `${getW(overdue)}%` }} data-label={`Por fechar: ${overdue}`} />
+        <div className="dist-bar-segment bg-white opacity-25" style={{ width: `${getW(pendente)}%` }} data-label={`Pendente: ${pendente}`} />
+      </div>
+    </div>
+  );
+};
+
+const ReportDistributionBar: React.FC<{
+  fechados: number;
+  overdue: number;
+  total: number;
+}> = ({ fechados, overdue, total }) => {
+  const getW = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+
+  return (
+    <div className="visualizer-container">
+      <div className="dist-bar-container">
+        <div className="dist-bar-segment bg-azure" style={{ width: `${getW(fechados)}%` }} data-label={`Concluídos: ${fechados}`} />
+        <div className="dist-bar-segment bg-ruby" style={{ width: `${getW(overdue)}%` }} data-label={`Por fechar: ${overdue}`} />
+      </div>
+      <div className="dist-legend">
+        <div className="legend-item"><span className="dot bg-azure"></span> Concluídos</div>
+        <div className="legend-item"><span className="dot bg-ruby"></span> Por fechar</div>
+      </div>
+    </div>
+  );
+};
+
+const BillingDistributionBar: React.FC<{
+  pendingCompletion: number;
+  reportIssued: number;
+  readyForBilling: number;
+  billed: number;
+  needsReview: number;
+  total: number;
+}> = ({ pendingCompletion, reportIssued, readyForBilling, billed, needsReview, total }) => {
+  const getW = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+
+  return (
+    <div className="visualizer-container">
+      <div className="visual-title">Distribuição de Faturação</div>
+      <div className="dist-bar-container">
+        <div className="dist-bar-segment" style={{ width: `${getW(pendingCompletion)}%`, backgroundColor: '#0dcaf0' }} data-label={`Pendentes: ${pendingCompletion}`} />
+        <div className="dist-bar-segment" style={{ width: `${getW(reportIssued)}%`, backgroundColor: '#6c757d' }} data-label={`Por Validar: ${reportIssued}`} />
+        <div className="dist-bar-segment" style={{ width: `${getW(readyForBilling)}%`, backgroundColor: '#ffc107' }} data-label={`Prontos: ${readyForBilling}`} />
+        <div className="dist-bar-segment" style={{ width: `${getW(billed)}%`, backgroundColor: '#198754' }} data-label={`Faturados: ${billed}`} />
+        <div className="dist-bar-segment" style={{ width: `${getW(needsReview)}%`, backgroundColor: '#dc3545' }} data-label={`Para Revisão: ${needsReview}`} />
+      </div>
+    </div>
+  );
+};
+
+const TaskDistributionBar: React.FC<{
+  completed: number;
+  pending: number;
+  total: number;
+}> = ({ completed, pending, total }) => {
+  const getW = (v: number) => (total > 0 ? (v / total) * 100 : 0);
+
+  return (
+    <div className="visualizer-container">
+      <div className="visual-title">Estado das Tarefas</div>
+      <div className="dist-bar-container">
+        <div className="dist-bar-segment bg-azure" style={{ width: `${getW(completed)}%` }} data-label={`Concluídas: ${completed}`} />
+        <div className="dist-bar-segment bg-ruby" style={{ width: `${getW(pending)}%` }} data-label={`Por concluir: ${pending}`} />
+      </div>
+      <div className="dist-legend">
+        <div className="legend-item"><span className="dot bg-azure"></span> Concluídas</div>
+        <div className="legend-item"><span className="dot bg-ruby"></span> Por concluir</div>
+      </div>
+    </div>
+  );
+};
+
+const PerformanceGauge: React.FC<{ percentage: number; label: string }> = ({ percentage, label }) => {
+  // Converte porcentagem (0-100) para rotação (-90 a 90 graus)
+  // 0% = -90deg (Esquerda), 50% = 0deg (Topo), 100% = 90deg (Direita)
+  const targetRotation = (percentage / 100) * 180 - 90;
+  const [rotation, setRotation] = React.useState(-90); // começa em 0% (esquerda)
+
+  React.useEffect(() => {
+    // Pequeno delay para garantir que o CSS transition é acionado após o mount
+    const timer = setTimeout(() => setRotation(targetRotation), 100);
+    return () => clearTimeout(timer);
+  }, [targetRotation]);
+
+  return (
+    <div className="visualizer-container mb-3 text-center">
+      <div className="visual-title mb-2">Índice de Performance</div>
+      <div className="gauge-wrapper mx-auto" style={{ width: '220px', height: 'auto' }}>
+        <svg viewBox="0 0 100 65" className="gauge-svg" style={{ width: '100%', height: 'auto' }}>
+          {/* Fundo Desfocado / Glassmorphism de base */}
+          <path d="M10,50 A40,40 0 0,1 90,50" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="12" strokeLinecap="round" />
+
+          {/* Zonas de Cores */}
+          <path d="M10,50 A40,40 0 0,1 50,10" fill="none" stroke="#ef4444" strokeWidth="10" />
+          <path d="M50,10 A40,40 0 0,1 78.3,21.7" fill="none" stroke="#fde047" strokeWidth="10" />
+          <path d="M78.3,21.7 A40,40 0 0,1 90,50" fill="none" stroke="#10b981" strokeWidth="10" />
+
+          {/* Ponteiro animado */}
+          <g
+            className="gauge-needle-group"
+            style={{
+              transform: `rotate(${rotation}deg)`,
+              transformOrigin: '50px 50px',
+              transition: 'transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)',
+            }}
+          >
+            <line x1="50" y1="50" x2="50" y2="15" stroke="#fff" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="50" cy="50" r="4" fill="#fff" />
+          </g>
+        </svg>
+        {/* Legenda FORA da zona do arco */}
+        <div className="gauge-legend mt-1">
+          <div className="fw-bold h3 mb-0 text-white">{Math.round(percentage)}%</div>
+          <div className="small opacity-75 fw-bold text-uppercase">{label}</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+import { LayoutDashboard } from 'lucide-react';
+
+const BacklogExtra: React.FC<{
+  entradas7d: number;
+  entradasAnterior7d: number;
+  saidas7d: number;
+  entradas30d?: number;
+  entradasAnterior30d?: number;
+  saidas30d?: number;
+  avgHours7d: number | null;
+  avgHours30d: number | null;
+  oldestAgeDays: number | null;
+}> = ({
+  entradas7d,
+  entradasAnterior7d,
+  saidas7d,
+  entradas30d = 0,
+  entradasAnterior30d = 0,
+  saidas30d = 0,
+  avgHours7d,
+  avgHours30d,
+  oldestAgeDays
+}) => {
+  const net7d = entradas7d - saidas7d;
+  const net7dColor = net7d > 0 ? '#fca5a5' : net7d < 0 ? '#86efac' : 'rgba(255,255,255,0.55)';
+  const net7dIcon  = net7d > 0 ? 'bi-arrow-up-right' : net7d < 0 ? 'bi-arrow-down-right' : 'bi-dash-lg';
+  const net7dLabel = net7d > 0 ? `+${net7d} a crescer` : net7d < 0 ? `${net7d} a diminuir` : 'estável';
+
+  const total7d = entradas7d + saidas7d;
+  const entrPct7d = total7d > 0 ? (entradas7d / total7d) * 100 : 50;
+  const saidPct7d = total7d > 0 ? (saidas7d / total7d) * 100 : 50;
+
+  const net30d = entradas30d - saidas30d;
+  const net30dColor = net30d > 0 ? '#fca5a5' : net30d < 0 ? '#86efac' : 'rgba(255,255,255,0.55)';
+  const net30dIcon  = net30d > 0 ? 'bi-arrow-up-right' : net30d < 0 ? 'bi-arrow-down-right' : 'bi-dash-lg';
+  const net30dLabel = net30d > 0 ? `+${net30d} a crescer` : net30d < 0 ? `${net30d} a diminuir` : 'estável';
+
+  const total30d = entradas30d + saidas30d;
+  const entrPct30d = total30d > 0 ? (entradas30d / total30d) * 100 : 50;
+  const saidPct30d = total30d > 0 ? (saidas30d / total30d) * 100 : 50;
+
+  const avgLabel7d = avgHours7d !== null
+    ? avgHours7d >= 24 ? `${(avgHours7d / 24).toFixed(1)}d média` : `${avgHours7d.toFixed(0)}h média`
+    : null;
+
+  const avgLabel30d = avgHours30d !== null
+    ? avgHours30d >= 24 ? `${(avgHours30d / 24).toFixed(1)}d média` : `${avgHours30d.toFixed(0)}h média`
+    : null;
+
+  return (
+    <div className="visualizer-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* 30 Dias Flow Block */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <span>Fluxo 30 Dias</span>
+          {entradasAnterior30d > 0 && <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>mês ant.: {entradasAnterior30d}</span>}
+        </div>
+        {total30d > 0 ? (
+          <>
+            <div style={{ display: 'flex', height: '5px', borderRadius: '4px', overflow: 'hidden', gap: '1px' }}>
+              <div title={`Entradas (30d): ${entradas30d}`}
+                style={{ width: `${entrPct30d}%`, background: 'rgba(252,165,165,0.85)', borderRadius: '4px 0 0 4px', transition: 'width 0.4s ease' }} />
+              <div title={`Saídas (30d): ${saidas30d}`}
+                style={{ width: `${saidPct30d}%`, background: 'rgba(134,239,172,0.85)', borderRadius: '0 4px 4px 0', transition: 'width 0.4s ease' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.63rem', fontWeight: 600 }}>
+              <span style={{ color: 'rgba(252,165,165,0.9)' }}>↑ {entradas30d} entradas</span>
+              <span style={{ color: 'rgba(134,239,172,0.9)' }}>{saidas30d} saídas ↓</span>
+            </div>
+          </>
+        ) : (
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}>Sem movimento nos últimos 30 dias</span>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginTop: '1px' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 700, color: net30dColor }}>
+            <i className={`bi ${net30dIcon}`} />
+            30d: {net30dLabel}
+          </span>
+          {avgLabel30d && (
+            <span style={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
+              <i className="bi bi-hourglass-split me-1" style={{ fontSize: '0.58rem' }} />
+              {avgLabel30d}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* 7 Dias Flow Block */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <span>Fluxo 7 Dias</span>
+          {entradasAnterior7d > 0 && <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>sem. ant.: {entradasAnterior7d}</span>}
+        </div>
+        {total7d > 0 ? (
+          <>
+            <div style={{ display: 'flex', height: '5px', borderRadius: '4px', overflow: 'hidden', gap: '1px' }}>
+              <div title={`Entradas (7d): ${entradas7d}`}
+                style={{ width: `${entrPct7d}%`, background: 'rgba(252,165,165,0.85)', borderRadius: '4px 0 0 4px', transition: 'width 0.4s ease' }} />
+              <div title={`Saídas (7d): ${saidas7d}`}
+                style={{ width: `${saidPct7d}%`, background: 'rgba(134,239,172,0.85)', borderRadius: '0 4px 4px 0', transition: 'width 0.4s ease' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.63rem', fontWeight: 600 }}>
+              <span style={{ color: 'rgba(252,165,165,0.9)' }}>↑ {entradas7d} entradas</span>
+              <span style={{ color: 'rgba(134,239,172,0.9)' }}>{saidas7d} saídas ↓</span>
+            </div>
+          </>
+        ) : (
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}>Sem movimento esta semana</span>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginTop: '1px' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 700, color: net7dColor }}>
+            <i className={`bi ${net7dIcon}`} />
+            7d: {net7dLabel}
+          </span>
+          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            {avgLabel7d && (
+              <span style={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
+                <i className="bi bi-hourglass-split me-1" style={{ fontSize: '0.58rem' }} />
+                {avgLabel7d}
+              </span>
+            )}
+            {oldestAgeDays !== null && oldestAgeDays > 14 && (
+              <span className="badge rounded-pill shadow-sm"
+                style={{ background: 'rgba(239,68,68,0.85)', fontSize: '0.65rem', padding: '0.2rem 0.45rem', color: '#fff' }}>
+                <i className="bi bi-exclamation-circle me-1"></i>
+                +antigo: {oldestAgeDays}d
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DashboardPage: React.FC = () => {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [weeklySchedules, setWeeklySchedules] = useState<ScheduleDetail[]>([]);
+  const [pendingReports, setPendingReports] = useState<ScheduleDetail[]>([]);
+  const [recentTickets, setRecentTickets] = useState<TicketDetail[]>([]);
+  const [billingStats, setBillingStats] = useState<{ total: number; pending_completion: number; report_issued: number; ready_for_billing: number; billed: number; needs_review: number } | null>(null);
+  const [billingTasks, setBillingTasks] = useState<BillingTask[]>([]);
+  const [dashboardTasks, setDashboardTasks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { alert } = useConfirm();
+  const [activeSection, setActiveSection] = useState<'tickets' | 'schedules' | 'reports' | 'billing' | 'tasks' | null>(null);
+
+  // Navegação
+  const [viewMode, setViewMode] = useState<'week' | 'month'>('week');
+  const [baseDate, setBaseDate] = useState(new Date());
+
+  const dateRange = React.useMemo(() => {
+    const start = new Date(baseDate);
+    const end = new Date(baseDate);
+
+    if (viewMode === 'week') {
+      const day = start.getDay() || 7;
+      start.setDate(start.getDate() - (day - 1));
+      start.setHours(0, 0, 0, 0);
+
+      // Ajuste para Domingo (Segunda + 6 dias)
+      end.setTime(start.getTime());
+      end.setDate(start.getDate() + 6);
+      end.setHours(23, 59, 59, 999);
+    } else {
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      end.setMonth(start.getMonth() + 1);
+      end.setDate(0);
+      end.setHours(23, 59, 59, 999);
+    }
+    return { start, end };
+  }, [baseDate, viewMode]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      try {
+        const params = {
+          startDate: dateRange.start.toISOString(),
+          endDate: dateRange.end.toISOString()
+        };
+
+        const [statsRes, schedulesRes, reportsRes, ticketsRes, billingRes, billingTasksRes, tasksRes] = await Promise.all([
+          apiClient.get('/api/dashboard/stats', { params }),
+          apiClient.get('/api/dashboard/weekly-schedules', { params }),
+          apiClient.get('/api/dashboard/pending-reports', { params }),
+          apiClient.get('/api/tickets?status=all'), // Fetching all/recent tickets.
+          getBillingStats(params),
+          getBillingTasks(params),
+          apiClient.get('/api/tasks')
+        ]);
+        const statsValidated = DashboardStatsSchema.safeParse(statsRes.data);
+        if (statsValidated.success) {
+          setStats(statsValidated.data);
+        } else {
+          logger.error(statsValidated.error.format(), '[SCHEMA_ERROR] Dashboard stats validation failed:');
+          // Providencie estrutura mínima para evitar crashes
+          setStats({
+            tickets: { open: 0, scheduled: 0, closed: 0 },
+            weekly: { total: 0, completed: 0, withReport: 0, overdue: 0 },
+            pendingReports: { total: 0, completed: 0, overdue: 0 },
+            tasks: { total: 0, completed: 0, pending: 0 },
+            ...statsRes.data
+          });
+        }
+
+        setBillingStats(billingRes);
+        setBillingTasks(billingTasksRes);
+
+        // Filter and sort dashboard tasks
+        const allTasks = Array.isArray(tasksRes.data) ? tasksRes.data : [];
+        const filteredTasks = allTasks.filter((t: any) => {
+          const blocks = t.time_blocks || t.internal_task_time_blocks || [];
+          let effectiveDate: Date;
+          
+          if (blocks.length > 0) {
+            const firstBlock = blocks[0];
+            effectiveDate = new Date(firstBlock.start_time || firstBlock.start);
+          } else {
+            effectiveDate = new Date(t.created_at);
+            const day = effectiveDate.getDay();
+            if (day === 0 || day === 6) {
+              const daysToAdd = day === 6 ? 2 : 1;
+              effectiveDate.setDate(effectiveDate.getDate() + daysToAdd);
+              effectiveDate.setHours(0, 0, 0, 0);
+            }
+          }
+          
+          return effectiveDate >= dateRange.start && effectiveDate <= dateRange.end;
+        });
+        setDashboardTasks(filteredTasks);
+
+        // Map and sort tickets (Recent 10)
+        const ticketsDataArray = ticketsRes.data.data ? ticketsRes.data.data : ticketsRes.data;
+        const ticketsRaw = Array.isArray(ticketsDataArray) ? ticketsDataArray : [];
+        const validatedTickets = ticketsRaw.map((t: unknown) => {
+          const res = TicketSchema.safeParse(t);
+          if (!res.success) {
+            logger.error(res.error.format(), '[SCHEMA_ERROR] Dashboard ticket validation failed:');
+            return t as Ticket;
+          }
+          return res.data;
+        });
+
+        const sortedTickets = validatedTickets
+          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 10)
+          .map(t => ({
+            id: t.id,
+            subject: t.title || 'Sem Assunto',
+            clientName: t.clientName || 'Cliente Desconhecido',
+            status: t.status,
+            date: t.createdAt
+          }));
+        setRecentTickets(sortedTickets);
+
+        // Ordenar agendamentos: mais antigo para o mais recente (ascendente)
+        const rawSchedules = Array.isArray(schedulesRes.data) ? schedulesRes.data : [];
+        const validatedSchedulesRaw = rawSchedules.map((s: unknown) => {
+          const res = ScheduleEventSchema.safeParse(s);
+          if (!res.success) {
+            logger.error(res.error.format(), '[SCHEMA_ERROR] Dashboard schedule validation failed:');
+            return s as any;
+          }
+          return res.data;
+        });
+
+        const sortedSchedules = validatedSchedulesRaw.sort((a, b) => {
+          const dateA = a.startDate ? new Date(a.startDate).getTime() : 0;
+          const dateB = b.startDate ? new Date(b.startDate).getTime() : 0;
+          return dateA - dateB;
+        }).map(s => ({
+          id: Number(s.id),
+          title: s.title || 'Sem Título',
+          startDate: s.startDate,
+          endDate: s.endDate,
+          isCompleted: s.isCompleted,
+          hasReport: s.hasReport,
+          clientName: s.clientName || 'Desconhecido',
+          technicians: (s.technicians || []).map((t: any) => typeof t === 'string' ? t : (t?.name || 'Tecnico')),
+          serviceType: s.serviceType,
+          equipmentModel: s.equipmentModel
+        }));
+        setWeeklySchedules(sortedSchedules);
+
+        // Ordenar relatórios: mais antigo para o mais recente (ascendente)
+        const rawReports = Array.isArray(reportsRes.data) ? reportsRes.data : [];
+        const validatedReportsRaw = rawReports.map((s: unknown) => {
+          const res = ScheduleEventSchema.safeParse(s);
+          if (!res.success) {
+            logger.error(res.error.format(), '[SCHEMA_ERROR] Dashboard report-schedule validation failed:');
+            return s as any;
+          }
+          return res.data;
+        });
+
+        const sortedReports = validatedReportsRaw.sort((a, b) => {
+          const dateA = a.endDate ? new Date(a.endDate).getTime() : 0;
+          const dateB = b.endDate ? new Date(b.endDate).getTime() : 0;
+          return dateA - dateB;
+        }).map(s => ({
+          id: Number(s.id),
+          title: s.title || 'Sem Título',
+          startDate: s.startDate,
+          endDate: s.endDate,
+          isCompleted: s.isCompleted,
+          hasReport: s.hasReport,
+          clientName: s.clientName || 'Desconhecido',
+          technicians: (s.technicians || []).map((t: any) => typeof t === 'string' ? t : (t?.name || 'Tecnico')),
+          serviceType: s.serviceType,
+          equipmentModel: s.equipmentModel
+        }));
+        setPendingReports(sortedReports);
+      } catch (err: unknown) {
+        logger.error(err, "Erro ao carregar dados do dashboard:");
+        alert("Não foi possível carregar os dados do dashboard.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [dateRange]);
+
+  const navigate = (direction: number) => {
+    const newDate = new Date(baseDate);
+    if (viewMode === 'week') {
+      newDate.setDate(newDate.getDate() + direction * 7);
+    } else {
+      newDate.setMonth(newDate.getMonth() + direction);
+    }
+    setBaseDate(newDate);
+  };
+
+  const rangeLabel = React.useMemo(() => {
+    if (viewMode === 'week') {
+      const startStr = dateRange.start.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+      const endStr = dateRange.end.toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' });
+      return `Semana de ${startStr} a ${endStr}`;
+    } else {
+      return dateRange.start.toLocaleDateString('pt-PT', { month: 'long', year: 'numeric' });
+    }
+  }, [dateRange, viewMode]);
+
+  const weeklyStats = React.useMemo(() => {
+    const statsObj = { total: weeklySchedules.length, completed: 0, withReport: 0, overdue: 0, pending: 0 };
+    const now = new Date();
+
+    weeklySchedules.forEach(s => {
+      // Mesma lógica exata das badges da tabela
+      if (s.hasReport) {
+        statsObj.withReport++; // Badge Verde: "Com relatório" -> "Fechados"
+      } else if (s.isCompleted) {
+        statsObj.completed++;  // Badge Azul: "Concluído" -> "Concluídos"
+      } else if (s.endDate && new Date(s.endDate) < now) {
+        statsObj.overdue++;    // Badge Vermelha: "Por fechar"
+      } else {
+        statsObj.pending++;    // "Pendente"
+      }
+    });
+    return statsObj;
+  }, [weeklySchedules]);
+
+  if (loading) {
+    return <LoadingState message="A carregar painel de controlo..." />;
+  }
+
+  return (
+    <div className="container-fluid mt-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-5 mt-2">
+        <div>
+        <div className="d-flex align-items-center gap-3 animate__animated animate__fadeInLeft">
+          <LayoutDashboard size={48} strokeWidth={2.5} className="text-primary" />
+          <h1 className="fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)', color: 'var(--primary-color)', fontSize: '2.5rem' }}>Dashboard</h1>
+        </div>
+          <p className="text-muted m-0 animate__animated animate__fadeInLeft animate__delay-1s">Bem-vindo à sua central de controlo operacional</p>
+        </div>
+
+        <div className="d-flex align-items-center gap-2 glass-card p-2 shadow-sm border animate__animated animate__fadeInRight">
+          <div className="btn-group me-3 bg-light rounded-pill p-1">
+            <button
+              className={`btn btn-sm rounded-pill px-3 fw-bold transition-all ${viewMode === 'week' ? 'btn-primary shadow-sm' : 'btn-light text-muted border-0'}`}
+              onClick={() => setViewMode('week')}
+            >
+              Semana
+            </button>
+            <button
+              className={`btn btn-sm rounded-pill px-3 fw-bold transition-all ${viewMode === 'month' ? 'btn-primary shadow-sm' : 'btn-light text-muted border-0'}`}
+              onClick={() => setViewMode('month')}
+            >
+              Mês
+            </button>
+          </div>
+
+          <div className="d-flex align-items-center gap-2 px-3 border-start">
+            <button className="btn btn-outline-primary btn-sm rounded-circle shadow-sm" onClick={() => navigate(-1)} style={{ width: '32px', height: '32px', padding: 0 }}>
+              <i className="bi bi-chevron-left"></i>
+            </button>
+            <span className="fw-bold text-dark mx-2" style={{ minWidth: '160px', textAlign: 'center', fontSize: '0.9rem' }}>
+              {rangeLabel}
+            </span>
+            <button className="btn btn-outline-primary btn-sm rounded-circle shadow-sm" onClick={() => navigate(1)} style={{ width: '32px', height: '32px', padding: 0 }}>
+              <i className="bi bi-chevron-right"></i>
+            </button>
+            <button className="btn btn-light btn-sm ms-2 rounded-pill px-3 fw-bold border shadow-sm" onClick={() => setBaseDate(new Date())}>
+              Hoje
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-4 mb-5">
+        {stats && (
+          <>
+            <div className="col-12 col-md-6 col-xl-4">
+              <StatCard
+                title="Total de Tickets"
+                value={stats.tickets.open + stats.tickets.scheduled + stats.tickets.closed}
+                linkTo="#"
+                onClick={() => setActiveSection('tickets')}
+                icon="bi bi-ticket-perforated"
+                color="primary"
+                details={[
+                  { label: 'Abertos', value: stats.tickets.open },
+                  { label: 'Agendados', value: stats.tickets.scheduled },
+                  { label: 'Fechados', value: stats.tickets.closed }
+                ]}
+              />
+            </div>
+            <div className="col-12 col-md-6 col-xl-4">
+              <StatCard
+                title={`Agendamentos ${viewMode === 'week' ? 'Semana' : 'Mês'}`}
+                value={weeklyStats.total}
+                linkTo="#"
+                onClick={() => setActiveSection('schedules')}
+                icon="bi bi-calendar-week"
+                color="warning"
+                details={[
+                  { label: 'Fechados', value: weeklyStats.withReport, colorClass: 'bg-emerald' },
+                  { label: 'Concluídos', value: weeklyStats.completed, colorClass: 'bg-azure' },
+                  { label: 'Por fechar', value: weeklyStats.overdue, colorClass: 'bg-ruby' },
+                  { label: 'Pendentes', value: weeklyStats.pending, colorClass: 'bg-cloud' }
+                ]}
+                extra={
+                  <>
+                    <DistributionBar
+                      fechados={weeklyStats.withReport}
+                      concluidos={weeklyStats.completed}
+                      overdue={weeklyStats.overdue}
+                      pendente={weeklyStats.pending}
+                      total={weeklyStats.total}
+                    />
+                    <div className="mb-4"></div>
+                    <PerformanceGauge
+                      percentage={(weeklyStats.withReport + weeklyStats.completed + weeklyStats.overdue) > 0
+                        ? (weeklyStats.withReport / (weeklyStats.withReport + weeklyStats.completed + weeklyStats.overdue)) * 100
+                        : 0}
+                      label="EFICIÊNCIA DE FECHO"
+                    />
+                  </>
+                }
+              />
+            </div>
+            <div className="col-12 col-md-6 col-xl-4">
+              <StatCard
+                title="Relatórios Pendentes"
+                value={stats.pendingReports.total}
+                linkTo="#"
+                onClick={() => setActiveSection('reports')}
+                icon="bi bi-file-earmark-text"
+                color="danger"
+                details={[
+                  { label: 'Concluídos', value: stats.pendingReports.completed, colorClass: 'bg-azure' },
+                  { label: 'Por fechar', value: stats.pendingReports.overdue, colorClass: 'bg-ruby' }
+                ]}
+                extra={
+                  <ReportDistributionBar
+                    fechados={stats.pendingReports.completed}
+                    overdue={stats.pendingReports.overdue}
+                    total={stats.pendingReports.total}
+                  />
+                }
+              />
+            </div>
+            <div className="col-12 col-md-6 col-xl-4">
+              <StatCard
+                title="Faturação"
+                value={billingStats ? billingStats.total : 0}
+                linkTo="#"
+                onClick={() => setActiveSection('billing')}
+                icon="bi bi-currency-euro"
+                color="info"
+                details={[
+                  { label: 'Pendentes Finalização', value: billingStats?.pending_completion || 0, colorClass: 'bg-info' },
+                  { label: 'Por Validar', value: billingStats?.report_issued || 0, colorClass: 'bg-secondary' },
+                  { label: 'Prontos', value: billingStats?.ready_for_billing || 0, colorClass: 'bg-warning' },
+                  { label: 'Faturados', value: billingStats?.billed || 0, colorClass: 'bg-success' },
+                  { label: 'Para Revisão', value: billingStats?.needs_review || 0, colorClass: 'bg-danger' }
+                ]}
+                extra={
+                  <>
+                    <BillingDistributionBar
+                      pendingCompletion={billingStats?.pending_completion || 0}
+                      reportIssued={billingStats?.report_issued || 0}
+                      readyForBilling={billingStats?.ready_for_billing || 0}
+                      billed={billingStats?.billed || 0}
+                      needsReview={billingStats?.needs_review || 0}
+                      total={(billingStats?.pending_completion || 0) + (billingStats?.report_issued || 0) + (billingStats?.ready_for_billing || 0) + (billingStats?.billed || 0) + (billingStats?.needs_review || 0)}
+                    />
+                    <div className="mb-4"></div>
+                    <PerformanceGauge
+                      percentage={
+                        billingStats && (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed + billingStats.needs_review) > 0
+                          ? (billingStats.billed / (billingStats.pending_completion + billingStats.report_issued + billingStats.ready_for_billing + billingStats.billed + billingStats.needs_review)) * 100
+                          : 0
+                      }
+                      label="EFICIÊNCIA DE FATURAÇÃO"
+                    />
+                  </>
+                }
+              />
+            </div>
+            <div className="col-12 col-md-6 col-xl-4">
+              <StatCard
+                title="Tarefas"
+                value={stats.tasks.total}
+                linkTo="/tasks"
+                onClick={() => setActiveSection('tasks')}
+                icon="bi bi-list-check"
+                color="secondary"
+                details={[
+                  { label: 'Concluídas', value: stats.tasks.completed, colorClass: 'bg-azure' },
+                  { label: 'Por concluir', value: stats.tasks.pending, colorClass: 'bg-ruby' }
+                ]}
+                extra={
+                  <>
+                    <TaskDistributionBar
+                      completed={stats.tasks.completed}
+                      pending={stats.tasks.pending}
+                      total={stats.tasks.total}
+                    />
+                    <div className="mb-4"></div>
+                    <PerformanceGauge
+                      percentage={stats.tasks.total > 0 ? (stats.tasks.completed / stats.tasks.total) * 100 : 0}
+                      label="ÍNDICE DE PERFORMANCE"
+                    />
+                  </>
+                }
+              />
+            </div>
+            <div className="col-12 col-md-6 col-xl-4">
+              <StatCard
+                title="Backlog"
+                value={stats.backlog?.total || 0}
+                linkTo="/calendar"
+                icon="bi bi-inbox"
+                color="dark"
+                details={[
+                  { label: 'Entradas (últ. 30 dias)', value: stats.backlog?.createdLast30Days || 0 },
+                  { label: 'Saídas (últ. 30 dias)', value: stats.backlog?.exitedLast30Days || 0 },
+                  { label: 'Entradas (últ. 7 dias)', value: stats.backlog?.createdLast7Days || 0 },
+                  { label: 'Saídas (últ. 7 dias)', value: stats.backlog?.exitedLast7Days || 0 }
+                ]}
+                extra={
+                  <BacklogExtra
+                    entradas7d={stats.backlog?.createdLast7Days || 0}
+                    entradasAnterior7d={stats.backlog?.createdPrevious7Days || 0}
+                    saidas7d={stats.backlog?.exitedLast7Days || 0}
+                    entradas30d={stats.backlog?.createdLast30Days || 0}
+                    entradasAnterior30d={stats.backlog?.createdPrevious30Days || 0}
+                    saidas30d={stats.backlog?.exitedLast30Days || 0}
+                    avgHours7d={stats.backlog?.avgHoursInBacklog7Days ?? stats.backlog?.avgHoursInBacklog ?? null}
+                    avgHours30d={stats.backlog?.avgHoursInBacklog30Days ?? stats.backlog?.avgHoursInBacklog ?? null}
+                    oldestAgeDays={stats.backlog?.oldestAgeDays ?? null}
+                  />
+                }
+              />
+            </div>
+          </>
+        )}
+      </div>
+
+      <div className="row g-4 transition-fade">
+        {activeSection === 'tickets' && (
+          <div className="col-12 animate__animated animate__fadeInUp">
+            <div className="glass-card border-0 mb-4 overflow-hidden">
+              <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Tickets Recentes</h5>
+                <Link to="/tickets" className="btn btn-sm btn-outline-light rounded-pill px-3">Ver Todos</Link>
+              </div>
+              <div className="p-0">
+                <div className="table-responsive">
+                  <table className="table align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="text-uppercase small fw-bold text-muted">
+                        <th className="ps-4" style={{ width: '60px' }}>ID</th>
+                        <th>Estado</th>
+                        <th>Assunto / Cliente</th>
+                        <th>Data Criação</th>
+                        <th className="text-end pe-4">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                      {recentTickets.map(t => (
+                        <tr key={t.id} className="shadow-sm">
+                          <td className="ps-4">
+                            <span className="fw-bold text-muted">#{t.id}</span>
+                          </td>
+                          <td>
+                            {(() => {
+                              let badgeClass = 'bg-info bg-opacity-15 text-info-emphasis';
+                              let label = 'Desconhecido';
+                              if (t.status === TicketStatus.CLOSED) { badgeClass = 'bg-success bg-opacity-15 text-success-emphasis'; label = 'Fechado'; }
+                              else if (t.status === TicketStatus.OPEN) { badgeClass = 'bg-danger bg-opacity-15 text-danger-emphasis'; label = 'Aberto'; }
+                              else if (t.status === TicketStatus.ACKNOWLEDGED) { badgeClass = 'bg-warning bg-opacity-15 text-warning-emphasis'; label = 'Em Análise'; }
+                              else if (t.status === TicketStatus.SCHEDULED) { badgeClass = 'bg-primary bg-opacity-15 text-primary-emphasis'; label = 'Agendado'; }
+                              return <span className={`badge border-0 rounded-pill px-3 ${badgeClass}`}>{label}</span>;
+                            })()}
+                          </td>
+                          <td>
+                            <div className="fw-bold text-dark">{t.subject}</div>
+                            <div className="small text-muted">{t.clientName}</div>
+                          </td>
+                          <td className="text-muted fw-medium">{new Date(t.date).toLocaleDateString('pt-PT')}</td>
+                          <td className="text-end pe-4">
+                            <Link to={`/tickets/${t.id}`} className="btn btn-sm btn-outline-primary border-0 rounded-pill p-0" style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <i className="bi bi-arrow-right-short fs-4"></i>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'schedules' && (
+          <div className="col-12 animate__animated animate__fadeInUp">
+            <div className="glass-card border-0 mb-4 overflow-hidden">
+              <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Lista de Agendamentos ({weeklySchedules.length})</h5>
+                <Link to="/calendar" className="btn btn-sm btn-outline-light rounded-pill px-3">Ir para Calendário</Link>
+              </div>
+              <div className="p-0">
+                <div className="table-responsive">
+                  <table className="table align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="text-uppercase small fw-bold text-muted">
+                        <th className="ps-4">Estado</th>
+                        <th>Data / Hora</th>
+                        <th>Cliente / Serviço / Equipamento</th>
+                        <th>Técnico(s)</th>
+                        <th className="text-end pe-4">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                      {weeklySchedules.map(s => (
+                        <tr key={s.id} className="shadow-sm">
+                          <td className="ps-4">
+                            {(() => {
+                              if (s.hasReport) return <span className="badge border-0 rounded-pill px-3 bg-success bg-opacity-15 text-success-emphasis">Fechado</span>;
+                              if (s.isCompleted) return <span className="badge border-0 rounded-pill px-3 bg-primary bg-opacity-15 text-primary-emphasis">Concluído</span>;
+                              if (s.endDate && new Date(s.endDate) < new Date()) return <span className="badge border-0 rounded-pill px-3 bg-danger bg-opacity-15 text-danger-emphasis">Por fechar</span>;
+                              return <span className="badge border-0 rounded-pill px-3 bg-secondary bg-opacity-15 text-secondary-emphasis">Pendente</span>;
+                            })()}
+                          </td>
+                          <td>
+                            <div className="fw-bold text-dark">
+                              {s.startDate ? new Date(s.startDate).toLocaleDateString('pt-PT') : 'N/A'}
+                            </div>
+                            <div className="small text-muted">
+                              {s.startDate ? new Date(s.startDate).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : ''}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="fw-bold text-dark">{s.clientName}</div>
+                            <div className="small text-muted">
+                              {formatServiceType(s.serviceType)}
+                              {formatServiceType(s.serviceType) && s.equipmentModel ? ' - ' : ''}
+                              {s.equipmentModel || ''}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="d-flex flex-wrap gap-1">
+                              {s.technicians.map((name, idx) => (
+                                <span key={idx} className="badge bg-light text-dark border-0 shadow-none px-2 py-1" style={{ fontSize: '0.7rem' }}>
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="text-end pe-4">
+                            <Link to="/calendar" state={{ scheduleToEditId: s.id }} className="btn btn-sm btn-outline-primary border-0 rounded-pill p-0" style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <i className="bi bi-arrow-right-short fs-4"></i>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'reports' && (
+          <div className="col-12 animate__animated animate__fadeInUp">
+            <div className="glass-card border-0 mb-4 overflow-hidden">
+              <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Relatórios Pendentes ({pendingReports.length})</h5>
+              </div>
+              <div className="p-0">
+                <div className="table-responsive">
+                  <table className="table align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="text-uppercase small fw-bold text-muted">
+                        <th className="ps-4">Estado</th>
+                        <th>Data</th>
+                        <th>Cliente / Serviço / Equipamento</th>
+                        <th>Técnico(s)</th>
+                        <th className="text-end pe-4">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                      {pendingReports.map(s => (
+                        <tr key={s.id} className="shadow-sm">
+                          <td className="ps-4">
+                            {s.hasReport ? (
+                              <span className="badge border-0 rounded-pill px-3 bg-success bg-opacity-15 text-success-emphasis">Com relatório</span>
+                            ) : s.isCompleted ? (
+                              <span className="badge border-0 rounded-pill px-3 bg-primary bg-opacity-15 text-primary-emphasis">Concluído</span>
+                            ) : s.endDate && new Date(s.endDate) < new Date() ? (
+                              <span className="badge border-0 rounded-pill px-3 bg-danger bg-opacity-15 text-danger-emphasis">Por fechar</span>
+                            ) : (
+                              <span className="badge border-0 rounded-pill px-3 bg-secondary bg-opacity-15 text-secondary-emphasis">Pendente</span>
+                            )}
+                          </td>
+                          <td>
+                            <div className="fw-bold text-dark">{s.endDate ? new Date(s.endDate).toLocaleDateString('pt-PT') : 'N/A'}</div>
+                          </td>
+                          <td>
+                            <div className="fw-bold text-dark">{s.clientName}</div>
+                            <div className="small text-muted">
+                              {formatServiceType(s.serviceType)}
+                              {formatServiceType(s.serviceType) && s.equipmentModel ? ' - ' : ''}
+                              {s.equipmentModel || ''}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="d-flex flex-wrap gap-1">
+                              {s.technicians.map((name, idx) => (
+                                <span key={idx} className="badge bg-light text-dark border-0 px-2 py-1" style={{ fontSize: '0.7rem' }}>
+                                  {name}
+                                </span>
+                              ))}
+                            </div>
+                          </td>
+                          <td className="text-end pe-4">
+                            <Link to="/calendar" state={{ scheduleToEditId: s.id }} className="btn btn-sm btn-outline-primary border-0 rounded-pill p-0" style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                              <i className="bi bi-arrow-right-short fs-4"></i>
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'billing' && (
+          <div className="col-12 animate__animated animate__fadeInUp">
+            <div className="glass-card border-0 mb-4 overflow-hidden">
+              <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Tarefas de Faturação ({billingTasks.length})</h5>
+              </div>
+              <div className="p-0">
+                <div className="table-responsive">
+                  <table className="table align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="text-uppercase small fw-bold text-muted">
+                        <th className="ps-4">Nº Rel.</th>
+                        <th>Estado</th>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Notas</th>
+                      </tr>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                      {billingTasks.length === 0 ? (
+                        <tr><td colSpan={5} className="text-center py-4 text-muted">Nenhuma tarefa encontrada.</td></tr>
+                      ) : (
+                        billingTasks.map(task => (
+                          <tr key={task.id} className="shadow-sm">
+                            <td className="ps-4">
+                              <Link to={`/report/print/${task.report_id}`} target="_blank" className="text-decoration-none fw-bold text-primary">
+                                {(task as any).reports?.report_number || `#${task.report_id}`}
+                              </Link>
+                            </td>
+                            <td>
+                              {task.status === BillingStatus.PENDING_COMPLETION && <span className="badge border-0 rounded-pill px-3 bg-info bg-opacity-15 text-info-emphasis">Pendente Finalização</span>}
+                              {task.status === BillingStatus.REPORT_ISSUED && <span className="badge border-0 rounded-pill px-3 bg-secondary bg-opacity-15 text-secondary-emphasis">Relatório Emitido</span>}
+                              {task.status === BillingStatus.READY_FOR_BILLING && <span className="badge border-0 rounded-pill px-3 bg-warning bg-opacity-15 text-warning-emphasis">Pronto para Faturação</span>}
+                              {task.status === BillingStatus.BILLED && <span className="badge border-0 rounded-pill px-3 bg-success bg-opacity-15 text-success-emphasis">Faturado</span>}
+                              {task.status === BillingStatus.NEEDS_REVIEW && <span className="badge border-0 rounded-pill px-3 bg-danger bg-opacity-15 text-danger-emphasis">Para Revisão</span>}
+                            </td>
+                            <td className="text-muted fw-medium">
+                              {new Date((task as any).reports?.serviceDate || task.created_at).toLocaleDateString('pt-PT')}
+                            </td>
+                            <td className="fw-bold text-dark">
+                              {(() => {
+                                const report = Array.isArray((task as any).reports) ? (task as any).reports[0] : (task as any).reports;
+                                const reportClient = report?.clients?.name || report?.clientName;
+                                return reportClient || (task as any).clientName || (task as any).client_name || 'Cliente';
+                              })()}
+                            </td>
+                            <td>
+                              <div className="text-truncate small text-muted" style={{ maxWidth: '250px' }} title={task.billing_notes}>
+                                {task.billing_notes || '-'}
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {activeSection === 'tasks' && (
+          <div className="col-12 animate__animated animate__fadeInUp">
+            <div className="glass-card border-0 mb-4 overflow-hidden">
+              <div className="bg-dark px-4 py-3 d-flex justify-content-between align-items-center">
+                <h5 className="text-white fw-bold m-0" style={{ fontFamily: 'var(--font-family-title)' }}>Lista de Tarefas ({dashboardTasks.length})</h5>
+                <Link to="/tasks" className="btn btn-sm btn-outline-light rounded-pill px-3">Gestão de Tarefas</Link>
+              </div>
+              <div className="p-0">
+                <div className="table-responsive">
+                  <table className="table align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="text-uppercase small fw-bold text-muted">
+                        <th className="ps-4">Estado</th>
+                        <th>Tarefa / Prioridade</th>
+                        <th>Cliente / Equipamento</th>
+                        <th>Data</th>
+                        <th className="text-end pe-4">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody style={{ borderTop: 'none' }}>
+                      {dashboardTasks.length === 0 ? (
+                        <tr><td colSpan={5} className="text-center py-4 text-muted">Nenhuma tarefa encontrada neste período.</td></tr>
+                      ) : (
+                        dashboardTasks.map((task: any) => (
+                          <tr key={task.id} className="shadow-sm">
+                            <td className="ps-4">
+                              <span className={`badge border-0 rounded-pill px-3 ${task.completed ? 'bg-success bg-opacity-15 text-success-emphasis' : 'bg-warning bg-opacity-15 text-warning-emphasis'}`}>
+                                {task.completed ? 'Concluída' : 'Pendente'}
+                              </span>
+                            </td>
+                            <td>
+                              <div className="fw-bold text-dark">{task.title}</div>
+                              <div className="small text-muted">{task.priority || 'Normal'}</div>
+                            </td>
+                            <td>
+                              <div className="fw-bold text-dark">
+                                {task.clients?.name || task.clientName || '-'}
+                              </div>
+                              <div className="small text-muted">
+                                {task.equipments?.model || (task.equipmentInfo || '-')}
+                              </div>
+                            </td>
+                            <td className="text-muted fw-medium">
+                              {task.created_at ? new Date(task.created_at).toLocaleDateString('pt-PT') : '-'}
+                            </td>
+                            <td className="text-end pe-4">
+                              <Link to="/tasks" state={{ taskToEditId: task.id }} className="btn btn-sm btn-outline-primary border-0 rounded-pill p-0" style={{ width: '32px', height: '32px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <i className="bi bi-arrow-right-short fs-4"></i>
+                              </Link>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default DashboardPage;

@@ -1,0 +1,48 @@
+.inventory-photo-container {
+    position: relative;
+    cursor: zoom-in;
+}
+
+.inventory-photo-thumbnail {
+    width: 30px;
+    height: 30px;
+    object-fit: cover;
+    transition: transform 0.2s ease-in-out;
+}
+
+.inventory-photo-thumbnail:hover {
+    transform: scale(1.05);
+}
+
+.inventory-photo-large {
+    position: absolute;
+    left: 40px;
+    top: -50px;
+    width: 300px;
+    height: 300px;
+    object-fit: contain;
+    background-color: white;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    z-index: 1000;
+    display: none;
+    pointer-events: none; /* Avoid flickering when moving mouse */
+    padding: 5px;
+}
+
+.inventory-photo-container:hover .inventory-photo-large {
+    display: block;
+    animation: inventoryFadeIn 0.15s ease-out;
+}
+
+@keyframes inventoryFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

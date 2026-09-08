@@ -1,0 +1,80 @@
+RELATÓRIO DE AUDITORIA DE FRONTEND - PROJECT1
+
+Em conformidade com a solicitação, apresento a auditoria completa do código fonte do frontend (client/src). A análise focou-se na qualidade do código, performance, segurança e experiência do utilizador.
+
+📊 Visão Geral
+Total de Ficheiros Analisados: ~35 ficheiros principais (.tsx, .ts, .css)
+Problemas GRAVES: 3
+Problemas de CUIDADO: 5
+Oportunidades de MELHORIA: 4
+🔴 GRAVE (Ação Imediata Recomendada)
+GRAVE-1
+
+Localização: src/components/ScheduleDetailModal.tsx (linhas 105-120 e 81-92)
+Descrição do Problema: Existe uma lógica de efeitos (useEffect) em cadeia crítica sem Debounce. Ao digitar no campo de pesquisa de cliente (clientSearch), o efeito dispara a cada tecla, atualizando o clientId, que por sua vez dispara imediatamente um pedido à API (/api/clients/${clientId}/equipments).
+Impacto Potencial: Race Conditions (a resposta de um pedido anterior pode chegar depois do último) e sobrecarga desnecessária do servidor/rede. O formulário pode piscar ou mostrar dados de equipamentos incorretos enquanto o utilizador ainda está a escrever.
+Sugestão de Correção: Implementar um useDebounce hook para o clientSearch ou usar um setTimeout dentro do efeito para atrasar a atualização do estado e da chamada à API em 300-500ms.
+GRAVE-2
+
+Localização: src/apiClient.ts, src/pages/CalendarPage.tsx, src/components/ScheduleDetailModal.tsx
+Descrição do Problema: Exposição excessiva de logs de depuração (console.log) em código que vai para produção. Ex: [DEBUG] Searching for part..., [DEBUG:REALTIME]....
+Impacto Potencial: Exposição de lógica de negócio e dados potencialmente sensíveis (IDs, nomes de clientes, referências) na consola do browser de qualquer utilizador (mesmo clientes finais no portal).
+Sugestão de Correção: Remover todos os logs ou criar um serviço de Logger que verifique se process.env.NODE_ENV === 'development' antes de imprimir.
+GRAVE-3
+
+Localização: src/components/ScheduleDetailModal.tsx (linhas 359-363, 421-422) e src/pages/CalendarPage.tsx (linhas 322-329)
+Descrição do Problema: Uso explícito e perigoso de @ts-ignore para manipular objetos de dados antes do envio (operadores delete).
+Impacto Potencial: O TypeScript está a ser silenciado propositadamente. Se a API backend mudar ou se o tipo ScheduleEvent for refatorado, estas linhas não acusarão erro na compilação, mas poderão causar falhas silenciosas de envio de dados ou "crashes" em tempo de execução.
+Sugestão de Correção: Utilizar a utilidade Omit<Type, Keys> do TypeScript ou desestruturação de objetos (const { technicians, ...payload } = scheduleData) para criar novos objetos limpos de forma "type-safe", sem recorrer a delete e @ts-ignore.
+🟡 CUIDADO (Correção Recomendada a Médio Prazo)
+CUIDADO-1
+
+Localização: Várias pastas (src/pages, src/components)
+Descrição do Problema: Presença de Código Morto/Legado. Ficheiros como ClientViewReportModal_UNUSED.tsx, ReportPrintPage_OLD.tsx, ReportPrintPage_OLD2.tsx e seus CSS.
+Impacto Potencial: Aumenta o tamanho do bundle final (se importados acidentalmente), confunde novos developers e dificulta a manutenção (procurar "Report" retorna múltiplos ficheiros duplicados).
+Sugestão de Correção: Apagar imediatamente os ficheiros que não estão a ser utilizados e remover quaisquer importações órfãs.
+CUIDADO-2
+
+Localização: src/components/ScheduleDetailModal.tsx e src/pages/CalendarPage.tsx
+Descrição do Problema: Uso frequente de any para "fugir" à tipagem (ex: error: any ou casts (event as any)).
+Impacto Potencial: Perda total dos benefícios do TypeScript nestes blocos. Aumenta a probabilidade de erros de runtime do tipo "Cannot read property of undefined".
+Sugestão de Correção: Definir interfaces adequadas para os erros da API e para os objetos de evento (estender a interface ScheduleEvent se necessário, em vez de fazer casting para any).
+CUIDADO-3
+
+Localização: src/components/ScheduleDetailModal.tsx (múltiplas linhas)
+Descrição do Problema: Experiência de Utilizador (UX) intrusiva. O código utiliza alert() e window.confirm() nativos do browser para validações e confirmações.
+Impacto Potencial: Estas janelas bloqueiam a execução da thread principal do browser, têm um design inconsistente com a aplicação e oferecem uma má experiência ao utilizador.
+Sugestão de Correção: Substituir por componentes de Toast (notificações não obstrutivas) para erros/sucessos e Modais customizados para confirmações (ex: "Tem a certeza que quer eliminar?").
+CUIDADO-4
+
+Localização: src/pages/ReportPrintPage.tsx
+Descrição do Problema: Importação direta de biblioteca pesada (html2pdf.js) no topo do ficheiro.
+Impacto Potencial: A biblioteca é carregada assim que a página é aberta, mesmo que o utilizador não clique em "Guardar como PDF". Afeta o tempo de carregamento inicial (LCP).
+Sugestão de Correção: Implementar Lazy Loading (importação dinâmica). Importar a biblioteca apenas dentro da função handleDownloadPDF: const html2pdf = (await import('html2pdf.js')).default;.
+CUIDADO-5
+
+Localização: src/components/ReportModal.tsx (linhas 109-110)
+Descrição do Problema: Mutação de estado baseada em props num useEffect complexo. A inicialização do estado parts tenta misturar dados existentes com uma nova linha vazia, o que pode causar duplicações ou resets indesejados se o componente re-renderizar.
+Impacto Potencial: Comportamento instável do formulário ao alternar entre agendamentos rapidamente.
+Sugestão de Correção: Simplificar a lógica de inicialização ou mover a preparação dos dados para fora do useEffect de montagem.
+🟢 MELHORIA (Refatoração e Boas Práticas)
+MELHORIA-1
+
+Localização: src/pages/CalendarPage.tsx
+Descrição: O componente tem quase 500 linhas e mistura lógica de visualização, lógica de API, lógica de Realtime e lógica de estilo (eventStyleGetter enorme).
+Sugestão: Extrair a lógica de estilo para um ficheiro utilitário separado (calendarUtils.ts) e mover os hooks de API e Realtime para um Custom Hook useCalendarEvents.
+MELHORIA-2
+
+Localização: src/ui/ (Inexistente)
+Descrição: Repetição de código UI. Os formulários em ReportModal e ScheduleDetailModal partilham estruturas visuais semelhantes mas duplicam o HTML/Classes Bootstrap.
+Sugestão: Criar componentes reutilizáveis básicos como FormInput, FormSelect e FormTextArea para padronizar o visual e reduzir código repetido.
+MELHORIA-3
+
+Localização: src/apiClient.ts
+Descrição: URL de Fallback http://localhost:5001.
+Sugestão: Garantir que este porto (5001) está alinhado com a documentação do projeto (que indicava 3001) para evitar confusão em novos ambientes de desenvolvimento. Centralizar todas as configurações em constantes.
+MELHORIA-4
+
+Localização: Geral
+Descrição: Hardcoded Strings. Labels como "Reparação", "Instalação" estão espalhados em arrays locais em múltiplos ficheiros.
+Sugestão: Criar um ficheiro constants.ts para centralizar os tipos de serviço e outras listas estáticas, garantindo consistência em toda a app.

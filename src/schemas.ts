@@ -1,0 +1,297 @@
+import { z } from 'zod';
+import { UserRole, ScheduleStatus, SchedulePriority, StockType, ServiceClassification, TicketStatus } from './constants/enums';
+import { BillingStatus } from './types';
+
+// Enums (Validating strings against our defined enums)
+export const UserRoleSchema = z.nativeEnum(UserRole);
+export const ScheduleStatusSchema = z.nativeEnum(ScheduleStatus);
+export const SchedulePrioritySchema = z.nativeEnum(SchedulePriority);
+export const StockTypeSchema = z.nativeEnum(StockType);
+
+export const TechnicianSchema = z.object({
+    id: z.string().default(''),
+    name: z.string(),
+    role: UserRoleSchema.optional(),
+    color: z.string().optional().nullable().transform(v => v ?? undefined),
+    signature: z.string().optional().nullable().transform(v => v ?? undefined),
+});
+
+export const TimeBlockSchema = z.object({
+    id: z.number().optional(),
+    start: z.string().or(z.date()).transform(val => new Date(val)),
+    end: z.string().or(z.date()).transform(val => new Date(val)),
+});
+
+export const PartItemSchema = z.object({
+    id: z.number().optional(),
+    quantity: z.number(),
+    reference: z.string(),
+    designation: z.string(),
+    isDesignationLocked: z.boolean().optional(),
+    stockType: StockTypeSchema.optional(),
+    isApplied: z.boolean().optional(),
+    stock_quantity: z.number().optional(),
+    reserved_quantity: z.number().optional(),
+    stock_quantity_foss: z.number().optional(),
+    reserved_quantity_foss: z.number().optional(),
+    raw_stock_quantity: z.number().optional(),
+    raw_stock_foss: z.number().optional(),
+    available_quantity: z.number().optional(),
+    available_quantity_foss: z.number().optional(),
+    min_stock: z.number().optional(),
+    min_stock_foss: z.number().optional(),
+    image_path: z.string().optional().nullable(),
+    price: z.union([z.number(), z.string().transform(v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; })]).optional().nullable().transform(v => v ?? 0),
+    notes: z.string().optional().nullable().transform(v => v ?? ''),
+    track_stock: z.boolean().optional(),
+});
+
+export const ScheduleEventSchema = z.object({
+    id: z.union([z.number(), z.string()]),
+    scheduleId: z.number().optional(),
+    title: z.string().optional().nullable().transform(v => v ?? undefined),
+    startDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : undefined),
+    endDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : undefined),
+    clientId: z.number().optional().nullable().transform(v => v ?? undefined),
+    equipmentId: z.number().optional().nullable().transform(v => v ?? undefined),
+    status: ScheduleStatusSchema.optional(),
+    technicians: z.array(z.union([z.string(), TechnicianSchema])).default([]).transform(val =>
+        val.map(t => typeof t === 'string' ? { id: '', name: t } : t)
+    ),
+    isCompleted: z.boolean().optional().nullable().transform(v => v ?? false),
+    hasReport: z.boolean().optional().nullable().transform(v => v ?? false),
+    ticketId: z.number().optional().nullable().transform(v => v ?? undefined),
+    internalNotes: z.string().optional().nullable().transform(v => v ?? undefined),
+    serviceType: z.union([z.string(), z.array(z.string())]).optional().nullable().transform(v => v ?? undefined),
+    acknowledgementState: ScheduleStatusSchema.optional().nullable().transform(v => v ?? undefined),
+    parts: z.array(PartItemSchema).optional().nullable().transform(v => v ?? undefined),
+    clientName: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipmentInfo: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipmentModel: z.string().optional().nullable().transform(v => v ?? undefined),
+    timeBlocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
+    time_blocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
+    includes_travel: z.boolean().optional().nullable().transform(v => v ?? undefined),
+    classification: z.nativeEnum(ServiceClassification).optional().nullable().transform(v => v ?? undefined),
+    priority: SchedulePrioritySchema.optional().nullable().transform(v => v ?? undefined),
+    isTask: z.boolean().optional(),
+    creator_name: z.string().optional().nullable().transform(v => v ?? undefined),
+    updater_name: z.string().optional().nullable().transform(v => v ?? undefined),
+    created_at: z.string().optional().nullable().transform(v => v ?? undefined),
+    updated_at: z.string().optional().nullable().transform(v => v ?? undefined),
+    created_by: z.string().optional().nullable().transform(v => v ?? undefined),
+    updated_by: z.string().optional().nullable().transform(v => v ?? undefined),
+});
+
+export const PartSchema = z.object({
+    id: z.number().optional(),
+    reference: z.string(),
+    designation: z.string(),
+    is_composed: z.boolean().optional(),
+    stock_quantity: z.number().optional(),
+    reserved_quantity: z.number().optional(),
+    ordered_quantity: z.number().optional(),
+    stock_quantity_foss: z.number().optional(),
+    reserved_quantity_foss: z.number().optional(),
+    ordered_quantity_foss: z.number().optional(),
+    raw_stock_quantity: z.number().optional(),
+    raw_stock_foss: z.number().optional(),
+    available_quantity: z.number().optional(),
+    available_quantity_foss: z.number().optional(),
+    min_stock: z.number().optional(),
+    min_stock_foss: z.number().optional(),
+    image_path: z.string().optional().nullable(),
+    price: z.union([z.number(), z.string().transform(v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; })]).optional().nullable().transform(v => v ?? 0),
+    notes: z.string().optional().nullable().transform(v => v ?? ''),
+    track_stock: z.boolean().optional(),
+});
+
+export const ClientSchema = z.object({
+    id: z.number(),
+    name: z.string(),
+    nickname: z.string().optional().nullable().transform(v => v ?? ''),
+    address: z.string().optional().nullable().transform(v => v ?? ''),
+    city: z.string().optional().nullable().transform(v => v ?? ''),
+    postCode: z.string().optional().nullable().transform(v => v ?? ''),
+    nif: z.string().optional().nullable().transform(v => v ?? ''),
+    contactName: z.string().optional().nullable().transform(v => v ?? undefined),
+    contactEmail: z.string().optional().nullable().transform(v => v ?? undefined),
+    contactPhone: z.string().optional().nullable().transform(v => v ?? undefined),
+    is_blacklisted: z.boolean().optional().nullable().transform(v => v ?? false),
+    blacklist_reason: z.string().optional().nullable().transform(v => v ?? ''),
+});
+
+export const EquipmentSchema = z.object({
+    id: z.number(),
+    brand: z.string(),
+    model: z.string(),
+    serialNumber: z.string(),
+    nickname: z.string().optional().nullable().transform(v => v ?? undefined),
+    clientName: z.string().optional(),
+    clientId: z.number().optional().nullable().transform(v => v ?? undefined),
+    additionalInfo: z.string().optional().nullable().transform(v => v ?? undefined),
+    category: z.string().optional().nullable().transform(v => v ?? undefined),
+});
+
+export const TicketSchema = z.object({
+    id: z.number(),
+    client_id: z.number().optional().nullable().transform(v => v ?? undefined),
+    equipmentId: z.number().optional().nullable().transform(v => v ?? undefined),
+    title: z.string().optional().nullable().transform(v => v ?? ''),
+    faultDescription: z.string().optional().nullable().transform(v => v ?? ''),
+    status: z.nativeEnum(TicketStatus),
+    scheduleId: z.number().optional().nullable().transform(v => v ?? undefined),
+    createdAt: z.union([z.string(), z.date()]).transform(v => new Date(v).toISOString()),
+    updatedAt: z.union([z.string(), z.date()]).transform(v => new Date(v).toISOString()),
+    created_by_user_id: z.string().optional().nullable().transform(v => v ?? undefined),
+    clientName: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipmentInfo: z.string().optional().nullable().transform(v => v ?? undefined),
+    userFirstName: z.string().optional().nullable().transform(v => v ?? undefined),
+    userLastName: z.string().optional().nullable().transform(v => v ?? undefined),
+    startDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : undefined),
+    endDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : undefined),
+    internalNotes: z.string().optional().nullable().transform(v => v ?? undefined),
+    internal_notes: z.string().optional().nullable().transform(v => v ?? undefined),
+    hasReport: z.boolean().optional().nullable().transform(v => v ?? undefined),
+    is_blacklisted: z.boolean().optional().nullable().transform(v => v ?? false),
+    blacklist_reason: z.string().optional().nullable().transform(v => v ?? ''),
+});
+
+export const ReportSchema = z.object({
+    id: z.number().optional(),
+    report_number: z.union([z.number(), z.string()]).optional(),
+    clientId: z.number().optional().nullable().transform(v => v ?? undefined),
+    equipmentId: z.number().optional().nullable().transform(v => v ?? undefined),
+    scheduleId: z.number().optional().nullable().transform(v => v ?? undefined),
+    technicians: z.array(z.union([z.string(), TechnicianSchema])).default([]).transform(val =>
+        val.map(t => typeof t === 'string' ? { id: '', name: t } : t)
+    ),
+    serviceDate: z.union([z.string(), z.date()]).optional().nullable().transform(v => v ? new Date(v).toISOString() : ''),
+    hours: z.union([z.number(), z.string().transform(v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; })]).optional().nullable().transform(v => v ?? 0),
+    parts: z.array(PartItemSchema).default([]),
+    description: z.string().optional().nullable().transform(v => v ?? ''),
+    serviceType: z.array(z.string()).default([]),
+    damage: z.string().optional().nullable().transform(v => v ?? undefined),
+    internalNotes: z.string().optional().nullable().transform(v => v ?? undefined),
+    internal_notes: z.string().optional().nullable().transform(v => v ?? undefined),
+    signature: z.string().optional().nullable().transform(v => v ?? undefined),
+    technician_signature: z.string().optional().nullable().transform(v => v ?? undefined),
+    includes_travel: z.boolean().optional().nullable().transform(v => v ?? undefined),
+    classification: z.nativeEnum(ServiceClassification).optional().nullable().transform(v => v ?? undefined),
+    clientName: z.string().optional().nullable().transform(v => v ?? undefined),
+    clientAddress: z.string().optional().nullable().transform(v => v ?? undefined),
+    clientNif: z.string().optional().nullable().transform(v => v ?? undefined),
+    clientCity: z.string().optional().nullable().transform(v => v ?? undefined),
+    clientPostcode: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipmentBrand: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipmentModel: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipmentSerialNumber: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipmentNickname: z.string().optional().nullable().transform(v => v ?? undefined),
+    client_name: z.string().optional().nullable().transform(v => v ?? undefined),
+    client_address: z.string().optional().nullable().transform(v => v ?? undefined),
+    client_nif: z.string().optional().nullable().transform(v => v ?? undefined),
+    client_city: z.string().optional().nullable().transform(v => v ?? undefined),
+    client_postcode: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipment_brand: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipment_model: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipment_serial_number: z.string().optional().nullable().transform(v => v ?? undefined),
+    equipment_nickname: z.string().optional().nullable().transform(v => v ?? undefined),
+    timeBlocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
+    time_blocks: z.array(TimeBlockSchema).optional().nullable().transform(v => v ?? undefined),
+    billing_status: z.nativeEnum(BillingStatus).optional().nullable().transform(v => v ?? undefined),
+    creator_name: z.string().optional().nullable().transform(v => v ?? undefined),
+    updater_name: z.string().optional().nullable().transform(v => v ?? undefined),
+    created_at: z.string().optional().nullable().transform(v => v ?? undefined),
+    updated_at: z.string().optional().nullable().transform(v => v ?? undefined),
+});
+
+export const BillingTaskSchema = z.object({
+    id: z.number(),
+    report_id: z.number(),
+    status: z.nativeEnum(BillingStatus),
+    assigned_role: z.string().optional().nullable().transform(v => v ?? ''),
+    notes: z.string().optional().nullable().transform(v => v ?? undefined),
+    billing_notes: z.string().optional().nullable().transform(v => v ?? undefined),
+    invoice_number: z.string().optional().nullable().transform(v => v ?? undefined),
+    billed_at: z.string().optional().nullable().transform(v => v ?? undefined),
+    created_at: z.union([z.string(), z.date()]).transform(v => new Date(v).toISOString()),
+    updated_at: z.union([z.string(), z.date()]).transform(v => new Date(v).toISOString()),
+    reports: ReportSchema.optional().nullable().transform(v => v ?? undefined),
+});
+
+export const DashboardStatsSchema = z.object({
+    tickets: z.object({
+        open: z.number(),
+        scheduled: z.number(),
+        closed: z.number(),
+    }),
+    weekly: z.object({
+        total: z.number(),
+        completed: z.number(),
+        withReport: z.number(),
+        overdue: z.number().optional(),
+    }),
+    overdue: z.number(),
+    pendingReports: z.object({
+        total: z.number(),
+        completed: z.number(),
+        overdue: z.number(),
+    }),
+    tasks: z.object({
+        total: z.number(),
+        completed: z.number(),
+        pending: z.number(),
+    }),
+    backlog: z.object({
+        total: z.number(),
+        createdLast7Days: z.number(),
+        createdPrevious7Days: z.number(),
+        createdLast30Days: z.number().default(0),
+        createdPrevious30Days: z.number().default(0),
+        exitedLast7Days: z.number().default(0),
+        exitedPrevious7Days: z.number().default(0),
+        exitedLast30Days: z.number().default(0),
+        exitedPrevious30Days: z.number().default(0),
+        avgHoursInBacklog7Days: z.number().nullable().default(null),
+        avgHoursInBacklog30Days: z.number().nullable().default(null),
+        avgHoursInBacklog: z.number().nullable().default(null),
+        trendPercent: z.number().nullable(),
+        trendDirection: z.enum(['up', 'down', 'stable']),
+        oldestCreatedAt: z.string().nullable(),
+        oldestAgeDays: z.number().nullable(),
+    }).optional(),
+});
+
+export const AttachmentSchema = z.object({
+    id: z.string(),
+    ticket_id: z.number(),
+    file_name: z.string(),
+    mime_type: z.string(),
+    storage_path: z.string(),
+    uploaded_by_user_id: z.string(),
+    created_at: z.union([z.string(), z.date()]).transform(v => new Date(v).toISOString()),
+    url: z.string(),
+});
+
+export const TicketResponseSchema = z.object({
+    id: z.number(),
+    ticket_id: z.number(),
+    user_id: z.string().optional().nullable().transform(v => v ?? undefined),
+    technician_id: z.string().optional().nullable().transform(v => v ?? undefined),
+    authorName: z.string().optional().nullable().transform(v => v ?? undefined),
+    message: z.string(),
+    created_at: z.string(),
+    role: z.string().optional().nullable().transform(v => v ?? undefined),
+    authorId: z.string().optional().nullable().transform(v => v ?? undefined),
+    isNew: z.boolean().optional(),
+});
+
+export const DetailedTicketSchema = TicketSchema.extend({
+    clientName: z.string().optional().nullable().transform(v => v ?? ''),
+    equipmentInfo: z.string().optional().nullable().transform(v => v ?? ''),
+    userFirstName: z.string().optional().nullable().transform(v => v ?? ''),
+    userLastName: z.string().optional().nullable().transform(v => v ?? ''),
+    attachments: z.array(AttachmentSchema).default([]),
+    responses: z.array(TicketResponseSchema).default([]),
+    assigned_to_user_id: z.string().optional().nullable().transform(v => v ?? undefined),
+    assigned_to_user_name: z.string().optional().nullable().transform(v => v ?? undefined),
+});

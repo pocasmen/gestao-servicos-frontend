@@ -1,0 +1,66 @@
+.inventory-photo-container {
+    position: relative;
+    cursor: zoom-in;
+}
+
+.inventory-photo-thumbnail {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    transition: transform 0.2s ease-in-out;
+}
+
+.inventory-photo-large {
+    position: absolute;
+    left: 50px;
+    top: -50px;
+    width: 300px;
+    height: 300px;
+    object-fit: contain;
+    background-color: white;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    z-index: 1000;
+    display: none;
+    pointer-events: none; /* Avoid flickering when moving mouse */
+    padding: 5px;
+}
+
+.inventory-photo-container:hover .inventory-photo-large {
+    display: block;
+    animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* History panel row */
+.history-panel-row td {
+    animation: historySlideIn 0.2s ease-out;
+    border-left: 3px solid #4f46e5 !important;
+}
+
+@keyframes historySlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* History table inner rows */
+.history-panel-row .table tbody tr:last-child {
+    border-bottom: none !important;
+}
