@@ -26,8 +26,14 @@ export interface DashboardStats {
     total: number;
     createdLast7Days: number;
     createdPrevious7Days: number;
+    createdLast30Days?: number;
+    createdPrevious30Days?: number;
     exitedLast7Days: number;
     exitedPrevious7Days: number;
+    exitedLast30Days?: number;
+    exitedPrevious30Days?: number;
+    avgHoursInBacklog7Days?: number | null;
+    avgHoursInBacklog30Days?: number | null;
     avgHoursInBacklog: number | null;
     trendPercent: number | null;
     trendDirection: 'up' | 'down' | 'stable';
@@ -383,14 +389,25 @@ export interface Report {
   technician_signature?: string; // Assinatura do técnico no momento do relatório
   includes_travel?: boolean; // Indica se o serviço incluiu deslocação
   classification?: ServiceClassification;
-  // Campos preenchidos por JOINs para a visualização do relatório
+  // Campos preenchidos por JOINs ou Snapshots persistidos para a visualização do relatório
   clientName?: string;
   clientAddress?: string;
   clientNif?: string;
+  clientCity?: string;
+  clientPostcode?: string;
   equipmentBrand?: string;
   equipmentModel?: string;
   equipmentSerialNumber?: string;
   equipmentNickname?: string;
+  client_name?: string;
+  client_address?: string;
+  client_nif?: string;
+  client_city?: string;
+  client_postcode?: string;
+  equipment_brand?: string;
+  equipment_model?: string;
+  equipment_serial_number?: string;
+  equipment_nickname?: string;
   timeBlocks?: TimeBlock[];
   time_blocks?: any[];
   clients?: { name: string };

@@ -62,6 +62,7 @@ const InventoryPage: React.FC = () => {
 
   // States for Modals
   const [stockChange, setStockChange] = useState<number>(0);
+  const [stockNotes, setStockNotes] = useState<string>('');
   const [orderChange, setOrderChange] = useState<number>(0);
   const [receiveQuantity, setReceiveQuantity] = useState<number>(0);
   const [targetStock, setTargetStock] = useState<StockType>(StockType.GENERAL);
@@ -167,6 +168,7 @@ const InventoryPage: React.FC = () => {
     setSelectedPart(part);
     setModalType(type);
     setStockChange(0);
+    setStockNotes('');
     setOrderChange(0);
     setReceiveQuantity(0);
 
@@ -181,6 +183,7 @@ const InventoryPage: React.FC = () => {
   const closeModal = () => {
     setSelectedPart(null);
     setModalType(null);
+    setStockNotes('');
     setNewItem({
       reference: '',
       designation: '',
@@ -436,12 +439,17 @@ const InventoryPage: React.FC = () => {
 
   const handleStockChange = async () => {
     if (!selectedPart || stockChange === 0 || isSubmittingManual) return;
+    if (!stockNotes.trim()) {
+      await alert('A justificação para o ajuste de stock é obrigatória.');
+      return;
+    }
     setIsSubmittingManual(true);
     try {
       const response = await apiClient.put<Part>(`/api/inventory/${selectedPart.id}/stock`, {
         quantity: stockChange,
         fromOrder: false,
-        targetStock: targetStock
+        targetStock: targetStock,
+        notes: stockNotes.trim()
       });
 
       const updatedItem = response.data;
@@ -654,6 +662,8 @@ const InventoryPage: React.FC = () => {
         setTargetStock={setTargetStock}
         stockChange={stockChange}
         setStockChange={setStockChange}
+        stockNotes={stockNotes}
+        setStockNotes={setStockNotes}
         orderChange={orderChange}
         setOrderChange={setOrderChange}
         receiveQuantity={receiveQuantity}

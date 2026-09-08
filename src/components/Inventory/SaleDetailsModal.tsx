@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileText, Calendar, User, CreditCard, Gift, Trash2, Image as ImageIcon, Trash, ShoppingCart, Plus, Save, X } from 'lucide-react';
+import { FileText, Calendar, User, CreditCard, Gift, Trash2, Image as ImageIcon, Trash, ShoppingCart, Plus, Save, X, RotateCcw, Handshake, CheckCircle2 } from 'lucide-react';
 import apiClient from '../../apiClient';
 import { format } from 'date-fns';
 import { useConfirm } from '../../contexts/ConfirmContext';
@@ -18,14 +18,17 @@ interface SaleDetailsModalProps {
 
 const SALE_TYPE_LABELS: Record<string, { label: string; cls: string }> = {
     SALE: { label: 'Venda', cls: 'bg-success bg-opacity-10 text-success' },
+    CONSIGNMENT: { label: 'Consignação', cls: 'bg-primary bg-opacity-10 text-primary' },
     GIVEAWAY: { label: 'Oferta', cls: 'bg-info bg-opacity-10 text-info' },
     DISCARD: { label: 'Descarte', cls: 'bg-danger bg-opacity-10 text-danger' },
+    RETURN: { label: 'Devolução', cls: 'bg-warning bg-opacity-10 text-warning' },
 };
 
 const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({ isOpen, saleId, onClose, onSuccess }) => {
     const { confirm, alert } = useConfirm();
     const queryClient = useQueryClient();
     const [isDeleting, setIsDeleting] = useState(false);
+    const [isConverting, setIsConverting] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
     // Add items state
@@ -43,6 +46,31 @@ const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({ isOpen, saleId, onC
     });
 
     if (!isOpen) return null;
+
+    const handleConvertToSale = async () => {
+        const confirmed = await confirm({
+            title: 'Converter Consignação em Venda',
+            message: `Deseja converter esta consignação (#${sale.document_number}) em Venda direta? O inventário não será alterado, mantendo a dedução já efetuada.`,
+            confirmText: 'Sim, Converter',
+            cancelText: 'Cancelar',
+            variant: 'primary'
+        });
+
+        if (confirmed) {
+            setIsConverting(true);
+            try {
+                await apiClient.post(`/api/inventory/sales/${saleId}/convert`);
+                queryClient.invalidateQueries({ queryKey: ['inventory_sale_detail', saleId] });
+                queryClient.invalidateQueries({ queryKey: ['inventory_sales'] });
+                onSuccess?.();
+            } catch (err: any) {
+                alert(`Erro ao converter em venda: ${err.response?.data?.details || err.message}`);
+                logger.error(err, 'Convert Consignment error:');
+            } finally {
+                setIsConverting(false);
+            }
+        }
+    };
 
     const handleDeleteSale = async () => {
         const confirmed = await confirm({
@@ -348,16 +376,30 @@ const SaleDetailsModal: React.FC<SaleDetailsModalProps> = ({ isOpen, saleId, onC
                             )}
 
                             <div className="modal-footer px-4 py-3 bg-light bg-opacity-50 border-top mt-auto d-flex justify-content-between">
-                                <button 
-                                    type="button" 
-                                    className="btn btn-outline-danger border rounded-pill px-4 fw-medium shadow-sm d-flex align-items-center gap-2" 
-                                    onClick={handleDeleteSale} 
-                                    disabled={isDeleting || isSubmitting || isLoading}
-                                >
-                                    {isDeleting ? <span className="spinner-border spinner-border-sm" /> : <Trash2 size={16} />} 
-                                    Eliminar Venda
-                                </button>
-                                <button type="button" className="btn btn-light border rounded-pill px-4 fw-medium shadow-sm" onClick={onClose} disabled={isDeleting || isSubmitting}>
+                                <div className="d-flex align-items-center gap-2">
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-outline-danger border rounded-pill px-4 fw-medium shadow-sm d-flex align-items-center gap-2" 
+                                        onClick={handleDeleteSale} 
+                                        disabled={isDeleting || isSubmitting || isConverting || isLoading}
+                                    >
+                                        {isDeleting ? <span className="spinner-border spinner-border-sm" /> : <Trash2 size={16} />} 
+                                        Eliminar Saída
+                                    </button>
+
+                                    {sale?.sale_type === 'CONSIGNMENT' && (
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary rounded-pill px-4 fw-medium shadow-sm d-flex align-items-center gap-2"
+                                            onClick={handleConvertToSale}
+                                            disabled={isDeleting || isSubmitting || isConverting || isLoading}
+                                        >
+                                            {isConverting ? <span className="spinner-border spinner-border-sm" /> : <CheckCircle2 size={16} />}
+                                            Converter em Venda
+                                        </button>
+                                    )}
+                                </div>
+                                <button type="button" className="btn btn-light border rounded-pill px-4 fw-medium shadow-sm" onClick={onClose} disabled={isDeleting || isSubmitting || isConverting}>
                                     Sair
                                 </button>
                             </div>

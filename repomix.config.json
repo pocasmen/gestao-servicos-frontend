@@ -1,0 +1,26 @@
+{
+  "output": {
+    "filePath": "Repomix-output-frontend.xml",
+    "style": "xml",
+    "removeEmptyLines": true
+  },
+  "ignore": {
+    "customPatterns": [
+	  "**/.git/**",
+	  "**/e2e/**",
+	  "**/playwright-report/**",
+	  "**/test-results/**",
+      "**/node_modules/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/.next/**",
+	  "**/*.txt",
+      "**/*.png",
+      "**/*.jpg",
+      "**/*.svg",
+      "**/*.ico",
+      "package-lock.json",
+      "pnpm-lock.yaml"
+    ]
+  }
+}

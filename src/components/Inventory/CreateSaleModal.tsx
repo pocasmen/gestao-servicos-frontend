@@ -160,8 +160,10 @@ const CreateSaleModal: React.FC<CreateSaleModalProps> = ({ isOpen, onClose, onSu
                                         <label className="form-label fw-bold text-dark text-uppercase mb-1" style={{ fontSize: '0.85rem' }}>Tipo de Saída</label>
                                         <select className="form-select border-0 bg-white shadow-sm rounded-3 py-2 fw-medium px-3" value={saleType} onChange={e => setSaleType(e.target.value)}>
                                             <option value="SALE">Venda</option>
+                                            <option value="CONSIGNMENT">Consignação</option>
                                             <option value="GIVEAWAY">Oferta</option>
                                             <option value="DISCARD">Descarte / Abate</option>
+                                            <option value="RETURN">Devolução</option>
                                         </select>
                                     </div>
                                     <div className="col-md-3">

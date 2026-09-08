@@ -94,7 +94,7 @@ const ReportModal: React.FC<ReportModalProps> = ({
   useEffect(() => {
     apiClient.get('/api/clients').then(res => setAllClients(res.data))
       .catch(() => alert("Erro ao carregar lista de clientes."));
-    apiClient.get('/api/technicians').then(res => setAllTechnicians((res.data || []).filter((t: any) => t.role !== UserRole.OFFICE_STAFF)))
+    apiClient.get('/api/technicians?includeInactive=true').then(res => setAllTechnicians((res.data || []).filter((t: any) => t.role !== UserRole.OFFICE_STAFF)))
       .catch(() => alert("Erro ao carregar lista de técnicos."));
   }, []);
 

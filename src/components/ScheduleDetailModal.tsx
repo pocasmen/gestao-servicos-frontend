@@ -103,7 +103,7 @@ const ScheduleDetailModal: React.FC<ScheduleDetailModalProps> = ({ isOpen, onClo
 
   useEffect(() => {
     apiClient.get('/api/clients').then(res => setClients(res.data));
-    apiClient.get('/api/technicians').then(res => setTechnicians((res.data || []).filter((t: any) => t.role === UserRole.TECHNICIAN || t.role === UserRole.ADMIN || t.role === UserRole.SUPER_ADMIN)));
+    apiClient.get('/api/technicians?includeInactive=true').then(res => setTechnicians((res.data || []).filter((t: any) => t.role !== UserRole.OFFICE_STAFF)));
   }, []);
 
   useEffect(() => {

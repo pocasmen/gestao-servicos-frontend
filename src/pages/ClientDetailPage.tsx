@@ -49,11 +49,12 @@ export default function ClientDetailPage() {
     });
 
     const updateMutation = useMutation({
-        mutationFn: (updatedClient: Client) => apiClient.put(`/api/clients/${updatedClient.id}`, updatedClient),
+        mutationFn: (updatedClient: Client & { propagateToReports?: boolean }) =>
+            apiClient.put(`/api/clients/${updatedClient.id}`, updatedClient).then(r => r.data),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['client', id] });
             queryClient.invalidateQueries({ queryKey: ['clients'] });
-            setIsEditModalOpen(false);
+            // O modal fecha-se após exibir o alert de contagem
         },
         onError: (error: any) => {
             alert('Erro ao atualizar cliente: ' + (error?.response?.data?.error || 'Erro desconhecido'));
@@ -276,7 +277,9 @@ export default function ClientDetailPage() {
                 onClose={() => setIsEditModalOpen(false)}
                 client={client || null}
                 onSave={async (updatedClient) => {
-                    await updateMutation.mutateAsync(updatedClient);
+                    const result = await updateMutation.mutateAsync(updatedClient);
+                    setIsEditModalOpen(false);
+                    return result;
                 }}
             />
 

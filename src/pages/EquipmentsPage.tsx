@@ -189,8 +189,9 @@ const EditEquipmentModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   equipment: Equipment | null;
-  onSave: (updatedEquipment: any) => Promise<void>;
+  onSave: (updatedEquipment: any) => Promise<any>;
 }> = ({ isOpen, onClose, equipment, onSave }) => {
+  const { confirm, confirmChoice, alert: confirmAlert } = useConfirm();
   const [brand, setBrand] = useState('');
   const [model, setModel] = useState('');
   const [serialNumber, setSerialNumber] = useState('');
@@ -229,9 +230,46 @@ const EditEquipmentModal: React.FC<{
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (equipment) {
+      const dataChanged =
+        brand !== equipment.brand ||
+        model !== equipment.model ||
+        serialNumber !== equipment.serialNumber ||
+        nickname !== (equipment.nickname || '');
+
+      let propagateToReports = false;
+      if (dataChanged) {
+        const choice = await confirmChoice({
+          title: 'Propagar Alterações ao Histórico',
+          message: 'Deseja propagar estas alterações (Marca/Modelo/Nº de Série) a todos os relatórios e agendamentos históricos deste equipamento?',
+          confirmText: 'Sim, propagar',
+          extraText: 'Não, manter históricos',
+          cancelText: 'Cancelar',
+          variant: 'primary'
+        });
+
+        if (choice === 'cancel') {
+          return; // Aborta a gravação
+        }
+        propagateToReports = (choice === 'confirm');
+      }
+
       setIsSaving(true);
       try {
-        await onSave({ ...equipment, brand, model, serialNumber, nickname, additionalInfo, category });
+        const result = await onSave({ ...equipment, brand, model, serialNumber, nickname, additionalInfo, category, propagateToReports });
+
+        if (propagateToReports && result) {
+          const rCount = result.updatedReportsCount || 0;
+          const sCount = result.updatedSchedulesCount || 0;
+          if (rCount > 0 || sCount > 0) {
+            const alertParts = [];
+            if (rCount > 0) alertParts.push(`${rCount} relatório(s)`);
+            if (sCount > 0) alertParts.push(`${sCount} agendamento(s)`);
+            await confirmAlert(
+              `${alertParts.join(' e ')} foram atualizados com os novos dados do equipamento.`,
+              'Histórico Atualizado'
+            );
+          }
+        }
       } finally {
         setIsSaving(false);
       }
@@ -490,10 +528,11 @@ const EquipmentsPage: React.FC = () => {
 
   // Mutations
   const updateMutation = useMutation({
-    mutationFn: (updatedEquipment: Equipment) => apiClient.put(`/api/equipments/${updatedEquipment.id}`, updatedEquipment),
+    mutationFn: (updatedEquipment: Equipment & { propagateToReports?: boolean }) =>
+      apiClient.put(`/api/equipments/${updatedEquipment.id}`, updatedEquipment).then(r => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['equipments'] });
-      handleCloseEditModal();
+      // O modal fecha-se após exibir o alert de contagem
     },
     onError: (error: any) => {
       logger.error(error, "Erro ao atualizar equipamento:");
@@ -529,8 +568,10 @@ const EquipmentsPage: React.FC = () => {
     setIsEditModalOpen(false);
   };
 
-  const handleSaveEdit = async (updatedEquipment: Equipment) => {
-    await updateMutation.mutateAsync(updatedEquipment);
+  const handleSaveEdit = async (updatedEquipment: Equipment & { propagateToReports?: boolean }) => {
+    const result = await updateMutation.mutateAsync(updatedEquipment);
+    handleCloseEditModal();
+    return result;
   };
 
   // --- Handlers Delete ---

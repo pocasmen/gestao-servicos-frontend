@@ -10,6 +10,8 @@ interface InventoryStockModalsProps {
     setTargetStock: (val: StockType) => void;
     stockChange: number;
     setStockChange: (val: number) => void;
+    stockNotes?: string;
+    setStockNotes?: (val: string) => void;
     orderChange: number;
     setOrderChange: (val: number) => void;
     receiveQuantity: number;
@@ -70,6 +72,8 @@ const InventoryStockModals: React.FC<InventoryStockModalsProps> = ({
     setTargetStock,
     stockChange,
     setStockChange,
+    stockNotes = '',
+    setStockNotes,
     orderChange,
     setOrderChange,
     receiveQuantity,
@@ -111,10 +115,31 @@ const InventoryStockModals: React.FC<InventoryStockModalsProps> = ({
                                 <label htmlFor="stockChange" className="form-label">Adicionar / Remover Quantidade</label>
                                 <input type="number" className="form-control" id="stockChange" value={stockChange} onChange={e => setStockChange(parseInt(e.target.value, 10) || 0)} />
                             </div>
+                            <div className="mb-3">
+                                <label htmlFor="stockNotes" className="form-label d-flex justify-content-between align-items-center">
+                                    <span>Justificação <span className="text-danger">*</span></span>
+                                    <small className="text-muted">Obrigatório</small>
+                                </label>
+                                <textarea
+                                    className={`form-control ${!stockNotes.trim() && stockChange !== 0 ? 'is-invalid' : ''}`}
+                                    id="stockNotes"
+                                    rows={3}
+                                    placeholder="Indique o motivo deste ajuste (ex: contagem de inventário, quebra, acerto de fornecedor...)"
+                                    value={stockNotes}
+                                    onChange={e => setStockNotes && setStockNotes(e.target.value)}
+                                    required
+                                />
+                                {!stockNotes.trim() && stockChange !== 0 && (
+                                    <div className="invalid-feedback">
+                                        A justificação é obrigatória para efetuar o ajuste.
+                                    </div>
+                                )}
+                            </div>
                         </div>
                         <ModalFooter
                             onClose={onClose}
                             isSubmitting={isSubmitting}
+                            disabled={stockChange === 0 || !stockNotes.trim()}
                             onConfirm={onStockChange}
                             confirmLabel="Confirmar Ajuste"
                             loadingLabel="A confirmar..."

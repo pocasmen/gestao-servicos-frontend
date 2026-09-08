@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Part } from '../../types';
-import { Pencil, Trash2, ArrowUpDown, Truck, Package, CalendarCheck, History, ChevronUp, TrendingUp, TrendingDown } from 'lucide-react';
+import { Pencil, Trash2, ArrowUpDown, Truck, Package, CalendarCheck, History, ChevronUp, TrendingUp, TrendingDown, Gift, RotateCcw, Handshake } from 'lucide-react';
 import apiClient from '../../apiClient';
 import './InventoryTable.css';
 import { format } from 'date-fns';
@@ -14,6 +14,21 @@ const TX_TYPE: Record<string, { label: string; colorCls: string; icon: React.Rea
     SERVICE_REPORT: { label: 'Relatório',    colorCls: 'bg-danger bg-opacity-10 text-danger',   icon: <TrendingDown size={13} /> },
     DIRECT_SALE:    { label: 'Venda Direta', colorCls: 'bg-warning bg-opacity-10 text-warning', icon: <TrendingDown size={13} /> },
     MANUAL_ADJUST:  { label: 'Ajuste',       colorCls: 'bg-secondary bg-opacity-10 text-secondary', icon: null },
+};
+
+const SALE_TYPE_TX_CONFIG: Record<string, { label: string; colorCls: string; icon: React.ReactNode }> = {
+    SALE:        { label: 'Venda',       colorCls: 'bg-success bg-opacity-10 text-success', icon: <TrendingDown size={13} /> },
+    CONSIGNMENT: { label: 'Consignação', colorCls: 'bg-primary bg-opacity-10 text-primary', icon: <Handshake size={13} /> },
+    GIVEAWAY:    { label: 'Oferta',      colorCls: 'bg-info bg-opacity-10 text-info',       icon: <Gift size={13} /> },
+    DISCARD:     { label: 'Descarte',    colorCls: 'bg-danger bg-opacity-10 text-danger',   icon: <TrendingDown size={13} /> },
+    RETURN:      { label: 'Devolução',   colorCls: 'bg-warning bg-opacity-10 text-warning', icon: <RotateCcw size={13} /> },
+};
+
+const getTxConfig = (tx: any) => {
+    if (tx.type === 'DIRECT_SALE' && tx.sale_type && SALE_TYPE_TX_CONFIG[tx.sale_type]) {
+        return SALE_TYPE_TX_CONFIG[tx.sale_type];
+    }
+    return TX_TYPE[tx.type] ?? { label: tx.type, colorCls: 'bg-secondary bg-opacity-10 text-secondary', icon: null };
 };
 
 // ─── Inline history panel ─────────────────────────────────────────────────────
@@ -48,7 +63,7 @@ const PartHistoryPanel: React.FC<{ partId: number; colSpan: number; onOpenDoc?: 
                             Nenhuma transação registada para esta peça.
                         </div>
                     ) : (
-                        <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                        <div style={{ maxHeight: '720px', overflowY: 'auto' }}>
                             <table className="table table-sm mb-0 align-middle" style={{ fontSize: '0.82rem' }}>
                                 <thead className="sticky-top" style={{ background: 'rgba(248,250,252,0.95)' }}>
                                     <tr className="text-uppercase text-muted" style={{ fontSize: '0.65rem', letterSpacing: '0.05em' }}>
@@ -64,7 +79,7 @@ const PartHistoryPanel: React.FC<{ partId: number; colSpan: number; onOpenDoc?: 
                                 </thead>
                                 <tbody>
                                     {data.map((tx: any, i: number) => {
-                                        const txConfig = TX_TYPE[tx.type] ?? { label: tx.type, colorCls: 'bg-secondary bg-opacity-10 text-secondary', icon: null };
+                                        const txConfig = getTxConfig(tx);
                                         const isPositive = tx.quantity > 0;
                                         return (
                                             <tr key={tx.id ?? i} className="border-bottom border-light">

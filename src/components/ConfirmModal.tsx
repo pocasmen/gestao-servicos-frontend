@@ -46,10 +46,11 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                 <div className="px-4 py-2" style={{ color: '#374151', fontSize: '1.05rem', lineHeight: '1.6' }}>
                     {typeof message === 'string' ? <p className="m-0">{message}</p> : message}
                 </div>
-                <div className="px-4 py-3 bg-light bg-opacity-75 border-top d-flex justify-content-end gap-2">
+                <div className="px-4 py-3 bg-light bg-opacity-75 border-top d-flex justify-content-end align-items-center gap-2">
                     {!isAlert && (
                         <button
-                            className="btn btn-link text-muted text-decoration-none rounded-pill px-4 fw-medium"
+                            type="button"
+                            className="btn btn-link text-muted text-decoration-none rounded-pill px-3 fw-medium"
                             onClick={onCancel}
                         >
                             {cancelText}
@@ -57,16 +58,17 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
                     )}
                     {extraText && (
                         <button
-                            className="btn btn-outline-info rounded-pill px-4 fw-medium me-auto"
+                            type="button"
+                            className="btn btn-outline-secondary rounded-pill px-3 fw-medium"
                             onClick={() => {
                                 onExtra?.();
-                                onCancel(); // Close the modal
                             }}
                         >
                             {extraText}
                         </button>
                     )}
                     <button
+                        type="button"
                         className={`btn btn-${variant} rounded-pill px-4 fw-bold shadow-sm`}
                         onClick={onConfirm}
                         autoFocus

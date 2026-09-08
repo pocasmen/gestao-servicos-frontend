@@ -56,6 +56,7 @@ const ClientEntityDashboardPage = React.lazy(() => import('./pages/ClientEntityD
 const ClientEquipmentsPage = React.lazy(() => import('./pages/ClientEquipmentsPage'));
 const DataPage = React.lazy(() => import('./pages/DataPage'));
 const AuthAuditPage = React.lazy(() => import('./pages/AuthAuditPage'));
+const AnalyticsPage = React.lazy(() => import('./pages/AnalyticsPage'));
 
 import { AuthContext } from './contexts/AuthContext';
 import { ActiveClientProvider } from './contexts/ActiveClientContext';
@@ -351,6 +352,7 @@ const AppRoutes: React.FC = () => {
             <Route path="/billing" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><BillingPage /></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute allowedRoles={[UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_STAFF]}><InvoiceDocsPage /></ProtectedRoute>} />
             <Route path="/tasks" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><TasksPage /></ProtectedRoute>} />
+            <Route path="/analytics" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><AnalyticsPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute allowedRoles={[UserRole.TECHNICIAN, UserRole.OFFICE_STAFF, UserRole.ADMIN, UserRole.SUPER_ADMIN]}><ProfilePage /></ProtectedRoute>} />
 
             {/* Rotas de Cliente (Flattened) */}

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { SmartInput } from './SmartInput';
 import { Check } from 'lucide-react';
 import { Client } from '../types';
+import { useConfirm } from '../contexts/ConfirmContext';
 
 export const EditClientModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
   client: Client | null;
-  onSave: (updatedClient: Client) => Promise<void>;
+  onSave: (updatedClient: Client & { propagateToReports?: boolean }) => Promise<any>;
 }> = ({ isOpen, onClose, client, onSave }) => {
+  const { confirm, confirmChoice, alert } = useConfirm();
   const [name, setName] = useState('');
   const [nickname, setNickname] = useState('');
   const [address, setAddress] = useState('');
@@ -35,9 +37,58 @@ export const EditClientModal: React.FC<{
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (client) {
+      const dataChanged = 
+        name !== client.name ||
+        address !== (client.address || '') ||
+        city !== (client.city || '') ||
+        postCode !== (client.postCode || '') ||
+        nif !== (client.nif || '');
+
+      let propagateToReports = false;
+      if (dataChanged) {
+        const choice = await confirmChoice({
+          title: 'Propagar Alterações ao Histórico',
+          message: 'Deseja propagar estas alterações (Nome/Morada/NIF) a todos os relatórios e agendamentos históricos deste cliente?',
+          confirmText: 'Sim, propagar',
+          extraText: 'Não, manter históricos',
+          cancelText: 'Cancelar',
+          variant: 'primary'
+        });
+
+        if (choice === 'cancel') {
+          return; // Aborta a gravação
+        }
+        propagateToReports = (choice === 'confirm');
+      }
+
       setIsSaving(true);
       try {
-        await onSave({ ...client, name, nickname, address, city, postCode, nif, is_blacklisted: isBlacklisted, blacklist_reason: blacklistReason });
+        const result = await onSave({
+          ...client,
+          name,
+          nickname,
+          address,
+          city,
+          postCode,
+          nif,
+          is_blacklisted: isBlacklisted,
+          blacklist_reason: blacklistReason,
+          propagateToReports
+        });
+
+        if (propagateToReports && result) {
+          const rCount = result.updatedReportsCount || 0;
+          const sCount = result.updatedSchedulesCount || 0;
+          if (rCount > 0 || sCount > 0) {
+            const parts = [];
+            if (rCount > 0) parts.push(`${rCount} relatório(s)`);
+            if (sCount > 0) parts.push(`${sCount} agendamento(s)`);
+            await alert(
+              `${parts.join(' e ')} foram atualizados com os novos dados do cliente.`,
+              'Histórico Atualizado'
+            );
+          }
+        }
       } finally {
         setIsSaving(false);
       }

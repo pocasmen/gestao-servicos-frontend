@@ -14,7 +14,10 @@ import {
     ChevronRight,
     Filter,
     X,
-    ArrowLeftRight
+    ArrowLeftRight,
+    Gift,
+    RotateCcw,
+    Handshake
 } from 'lucide-react';
 import apiClient from '../apiClient';
 import logger from '../utils/logger';
@@ -38,6 +41,21 @@ const TX_TYPE: Record<string, { label: string; colorCls: string; icon: React.Rea
     SERVICE_REPORT: { label: 'Relatório', colorCls: 'bg-danger bg-opacity-10 text-danger', icon: <TrendingDown size={14} /> },
     DIRECT_SALE: { label: 'Venda Direta', colorCls: 'bg-warning bg-opacity-10 text-warning', icon: <TrendingDown size={14} /> },
     MANUAL_ADJUST: { label: 'Ajuste', colorCls: 'bg-secondary bg-opacity-10 text-secondary', icon: null },
+};
+
+const SALE_TYPE_TX_CONFIG: Record<string, { label: string; colorCls: string; icon: React.ReactNode }> = {
+    SALE:        { label: 'Venda',       colorCls: 'bg-success bg-opacity-10 text-success', icon: <TrendingDown size={14} /> },
+    CONSIGNMENT: { label: 'Consignação', colorCls: 'bg-primary bg-opacity-10 text-primary', icon: <Handshake size={14} /> },
+    GIVEAWAY:    { label: 'Oferta',      colorCls: 'bg-info bg-opacity-10 text-info',       icon: <Gift size={14} /> },
+    DISCARD:     { label: 'Descarte',    colorCls: 'bg-danger bg-opacity-10 text-danger',   icon: <TrendingDown size={14} /> },
+    RETURN:      { label: 'Devolução',   colorCls: 'bg-warning bg-opacity-10 text-warning', icon: <RotateCcw size={14} /> },
+};
+
+const getTxConfig = (tx: any) => {
+    if (tx.type === 'DIRECT_SALE' && tx.sale_type && SALE_TYPE_TX_CONFIG[tx.sale_type]) {
+        return SALE_TYPE_TX_CONFIG[tx.sale_type];
+    }
+    return TX_TYPE[tx.type] ?? { label: tx.type, colorCls: 'bg-secondary bg-opacity-10 text-secondary', icon: null };
 };
 
 const MovementsPage: React.FC = () => {
@@ -267,7 +285,7 @@ const MovementsPage: React.FC = () => {
                                 </tr>
                             ) : (
                                 movements.map((tx: any) => {
-                                    const txConfig = TX_TYPE[tx.type] ?? { label: tx.type, colorCls: 'bg-secondary bg-opacity-10 text-secondary', icon: null };
+                                    const txConfig = getTxConfig(tx);
                                     const isPositive = tx.quantity > 0;
 
                                     return (

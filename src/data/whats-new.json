@@ -1,5 +1,43 @@
 [
   {
+    "version": "2.0.0",
+    "date": "2026-09-07",
+    "staff": {
+      "title": "Centro de Análise & Business Intelligence (Nova Página de Analytics)",
+      "notes": [
+        "Nova Página de Analytics dedicada com 18 relatórios estratégicos divididos por 4 grandes áreas: Peças & Inventário, Horas & Produtividade, Gestão de Equipamentos e Tendências & Evolução Temporal.",
+        "Visualização Gráfica Interativa (Recharts): introduzidos gráficos de barras horizontais inteligentes com ranking Top N para visualização rápida em todos os relatórios tabulares analíticos (Horas por Cliente, Horas por Técnico, Breakdown de Serviços, Consumo e Custos de Peças, Gaps e Avarias).",
+        "Modos de Visualização Flexíveis: seletor de visualização (Ambos / Gráfico / Tabela) permitindo alternar instantaneamente entre a vista combinada executiva e o detalhe tabular.",
+        "Destaque Semântico em Gráficos de Saúde: identificação visual com cores de alerta em equipamentos com falhas frequentes ou gaps prolongados sem manutenção preventiva.",
+        "Linhas de Totais Gerais: rodapé fixo (sticky footer) com somatório global em relatórios financeiros como 'Custo de Peças por Cliente'.",
+        "Métricas de Produtividade & Horas Imputadas: cálculo ponderado e justo de horas por técnico (divisão proporcional em equipas multidisciplinares), horas por cliente, tipos de serviço e classificações contratuais.",
+        "Drill-Down e Exploração Interativa de Relatórios: linhas expansíveis nas tabelas agrupadas com acesso detalhado aos relatórios individuais e abertura instantânea do modal de edição/visualização.",
+        "Painel Avançado de Filtros Globais: seleção por períodos flexíveis (com atalhos rápidos), multi-seleção de clientes, técnicos (incluindo histórico de técnicos inativos), tipos de serviço e filtragem por classificação (Contrato, Garantia, Geral, Oferta, FOSS, MSD) em múltiplos relatórios incluindo Custo de Peças.",
+        "Visualização de Tendências Temporais: gráficos interativos multi-série com suporte à paleta e cores personalizadas de cada técnico e agregação por semana, mês ou trimestre.",
+        "Módulo de Timing & Eficiência Operacional: análise estatística avançada de tempos de resposta e resolução (Média, Mediana, Percentil 90 (P90), Mínimo e Máximo) com gráficos de distribuição por escalões.",
+        "Saúde do Parque de Equipamentos: monitorização de gaps de manutenção preventiva, taxa de avarias por modelo/marca e frequência de intervenções técnicas.",
+        "Análise Financeira e Consumo de Peças: identificação dos clientes com maior custo de peças e controlo rigoroso de referências mais consumidas.",
+        "Métricas Expandidas de Backlog a 30 Dias no Dashboard com indicadores de crescimento líquido, fluxo proporcional e tempo médio de espera.",
+        "Persistência e Imutabilidade de Relatórios: os relatórios de assistência técnica guardam agora um snapshot permanente dos dados do cliente (Nome, NIF, Morada, Código Postal e Localidade), do equipamento (Marca, Modelo, Nº de Série e Alcunha) e referências de peças no momento da emissão, evitando adulterações retroativas acidentais causadas por alterações cadastrais futuras.",
+        "Persistência de Dados em Agendamentos: a tabela de agendamentos foi enriquecida com campos de snapshot semelhantes, mantendo a integridade cadastral de intervenções passadas e concluídas.",
+        "Leitura Resiliente com Fallback (COALESCE): todas as consultas de relatórios e agendamentos leem prioritariamente os dados congelados no documento, mantendo total retrocompatibilidade com registos antigos através de fallback para as fichas mestras.",
+        "Controlo Inteligente de Propagação Cadastral: ao editar dados estruturais de um Cliente ou Equipamento (como retificação de NIF, Morada ou Nº de Série), o técnico é inquirido se pretende refletir as correções nos relatórios e agendamentos históricos já emitidos.",
+        "Diálogo de Decisão a 3 Vias: introdução do seletor triplo de confirmação ('Sim, propagar' / 'Não, manter históricos' / 'Cancelar'), permitindo atualizar a ficha mantendo o histórico intacto ou cancelar totalmente a edição sem efetuar alterações acidentais.",
+        "Feedback Quantitativo Transparente: após a propagação confirmada, o sistema notifica detalhadamente a quantidade exata de relatórios e agendamentos que foram sincronizados na base de dados.",
+        "Nova Opção de 'Devolução' no Registo de Vendas e Saídas: adicionada a tipologia 'Devolução' no modal de nova venda/saída de material, assegurando o débito correspondente de inventário com rastreabilidade dedicada e badge identificador na listagem.",
+        "Suporte a 'Consignação' com Conversão Direta em Venda: nova tipologia de saída 'Consignação' que desconta o material do stock. No modal de detalhes, caso a saída seja de consignação, é disponibilizado o botão 'Converter em Venda' que atualiza o tipo para venda sem movimentar novamente o stock, mantendo a opção de eliminar e repor o inventário intacta.",
+        "Discriminação do Tipo de Saída no Histórico de Transações: no histórico inline da tabela de inventário e na página de movimentos de stock, as operações de saída direta deixam de ter a designação genérica de 'Venda Direta' e passam a exibir com precisão o tipo real ('Venda', 'Consignação', 'Oferta', 'Descarte' ou 'Devolução'), acompanhados pelas respetivas cores e ícones temáticos.",
+        "Justificação Obrigatória em Ajustes de Stock: o modal de 'Ajuste de Stock' passa a exigir obrigatoriamente uma justificação para qualquer alteração manual de quantidade (positiva ou negativa), garantindo total rastreabilidade, auditoria e histórico de motivos no movimento de inventário."
+      ]
+    },
+    "client": {
+      "title": "Maior Rigor e Fiabilidade nos Registos Históricos",
+      "notes": [
+        "Os relatórios técnicos e intervenções históricas preservam agora exatamente os dados cadastrais (morada, identificação fiscal e equipamento) existentes à data da intervenção, garantindo maior fidelidade documental e conformidade fiscal."
+      ]
+    }
+  },
+  {
     "version": "1.2.9",
     "date": "2026-08-24",
     "staff": {

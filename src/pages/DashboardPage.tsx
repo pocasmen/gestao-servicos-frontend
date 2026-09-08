@@ -203,66 +203,132 @@ const PerformanceGauge: React.FC<{ percentage: number; label: string }> = ({ per
 import { LayoutDashboard } from 'lucide-react';
 
 const BacklogExtra: React.FC<{
-  entradasActual: number;
-  entradasAnterior: number;
-  saidas: number;
-  avgHours: number | null;
+  entradas7d: number;
+  entradasAnterior7d: number;
+  saidas7d: number;
+  entradas30d?: number;
+  entradasAnterior30d?: number;
+  saidas30d?: number;
+  avgHours7d: number | null;
+  avgHours30d: number | null;
   oldestAgeDays: number | null;
-}> = ({ entradasActual, entradasAnterior, saidas, avgHours, oldestAgeDays }) => {
-  const net = entradasActual - saidas;
-  const netColor = net > 0 ? '#fca5a5' : net < 0 ? '#86efac' : 'rgba(255,255,255,0.55)';
-  const netIcon  = net > 0 ? 'bi-arrow-up-right' : net < 0 ? 'bi-arrow-down-right' : 'bi-dash-lg';
-  const netLabel = net > 0 ? `+${net} a crescer` : net < 0 ? `${net} a diminuir` : 'estável';
+}> = ({
+  entradas7d,
+  entradasAnterior7d,
+  saidas7d,
+  entradas30d = 0,
+  entradasAnterior30d = 0,
+  saidas30d = 0,
+  avgHours7d,
+  avgHours30d,
+  oldestAgeDays
+}) => {
+  const net7d = entradas7d - saidas7d;
+  const net7dColor = net7d > 0 ? '#fca5a5' : net7d < 0 ? '#86efac' : 'rgba(255,255,255,0.55)';
+  const net7dIcon  = net7d > 0 ? 'bi-arrow-up-right' : net7d < 0 ? 'bi-arrow-down-right' : 'bi-dash-lg';
+  const net7dLabel = net7d > 0 ? `+${net7d} a crescer` : net7d < 0 ? `${net7d} a diminuir` : 'estável';
 
-  const total = entradasActual + saidas;
-  const entrPct = total > 0 ? (entradasActual / total) * 100 : 50;
-  const saidPct = total > 0 ? (saidas / total) * 100 : 50;
+  const total7d = entradas7d + saidas7d;
+  const entrPct7d = total7d > 0 ? (entradas7d / total7d) * 100 : 50;
+  const saidPct7d = total7d > 0 ? (saidas7d / total7d) * 100 : 50;
 
-  const avgLabel = avgHours !== null
-    ? avgHours >= 24 ? `${(avgHours / 24).toFixed(1)}d média` : `${avgHours.toFixed(0)}h média`
+  const net30d = entradas30d - saidas30d;
+  const net30dColor = net30d > 0 ? '#fca5a5' : net30d < 0 ? '#86efac' : 'rgba(255,255,255,0.55)';
+  const net30dIcon  = net30d > 0 ? 'bi-arrow-up-right' : net30d < 0 ? 'bi-arrow-down-right' : 'bi-dash-lg';
+  const net30dLabel = net30d > 0 ? `+${net30d} a crescer` : net30d < 0 ? `${net30d} a diminuir` : 'estável';
+
+  const total30d = entradas30d + saidas30d;
+  const entrPct30d = total30d > 0 ? (entradas30d / total30d) * 100 : 50;
+  const saidPct30d = total30d > 0 ? (saidas30d / total30d) * 100 : 50;
+
+  const avgLabel7d = avgHours7d !== null
+    ? avgHours7d >= 24 ? `${(avgHours7d / 24).toFixed(1)}d média` : `${avgHours7d.toFixed(0)}h média`
+    : null;
+
+  const avgLabel30d = avgHours30d !== null
+    ? avgHours30d >= 24 ? `${(avgHours30d / 24).toFixed(1)}d média` : `${avgHours30d.toFixed(0)}h média`
     : null;
 
   return (
-    <div className="visualizer-container" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-      {/* Flow bar: entradas vs saidas */}
-      {total > 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-          <div style={{ display: 'flex', height: '6px', borderRadius: '4px', overflow: 'hidden', gap: '1px' }}>
-            <div title={`Entradas: ${entradasActual}`}
-              style={{ width: `${entrPct}%`, background: 'rgba(252,165,165,0.85)', borderRadius: '4px 0 0 4px', transition: 'width 0.4s ease' }} />
-            <div title={`Saídas: ${saidas}`}
-              style={{ width: `${saidPct}%`, background: 'rgba(134,239,172,0.85)', borderRadius: '0 4px 4px 0', transition: 'width 0.4s ease' }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', fontWeight: 600 }}>
-            <span style={{ color: 'rgba(252,165,165,0.9)' }}>↑ {entradasActual} entradas</span>
-            {entradasAnterior > 0 && <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.6rem' }}>sem. ant.: {entradasAnterior}</span>}
-            <span style={{ color: 'rgba(134,239,172,0.9)' }}>{saidas} saídas ↓</span>
-          </div>
+    <div className="visualizer-container" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      {/* 30 Dias Flow Block */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <span>Fluxo 30 Dias</span>
+          {entradasAnterior30d > 0 && <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>mês ant.: {entradasAnterior30d}</span>}
         </div>
-      ) : (
-        <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.7rem' }}>Sem movimento esta semana</span>
-      )}
+        {total30d > 0 ? (
+          <>
+            <div style={{ display: 'flex', height: '5px', borderRadius: '4px', overflow: 'hidden', gap: '1px' }}>
+              <div title={`Entradas (30d): ${entradas30d}`}
+                style={{ width: `${entrPct30d}%`, background: 'rgba(252,165,165,0.85)', borderRadius: '4px 0 0 4px', transition: 'width 0.4s ease' }} />
+              <div title={`Saídas (30d): ${saidas30d}`}
+                style={{ width: `${saidPct30d}%`, background: 'rgba(134,239,172,0.85)', borderRadius: '0 4px 4px 0', transition: 'width 0.4s ease' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.63rem', fontWeight: 600 }}>
+              <span style={{ color: 'rgba(252,165,165,0.9)' }}>↑ {entradas30d} entradas</span>
+              <span style={{ color: 'rgba(134,239,172,0.9)' }}>{saidas30d} saídas ↓</span>
+            </div>
+          </>
+        ) : (
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}>Sem movimento nos últimos 30 dias</span>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginTop: '1px' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 700, color: net30dColor }}>
+            <i className={`bi ${net30dIcon}`} />
+            30d: {net30dLabel}
+          </span>
+          {avgLabel30d && (
+            <span style={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
+              <i className="bi bi-hourglass-split me-1" style={{ fontSize: '0.58rem' }} />
+              {avgLabel30d}
+            </span>
+          )}
+        </div>
+      </div>
 
-      {/* Net flow + avg time + oldest alert */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.7rem', fontWeight: 700, color: netColor }}>
-          <i className={`bi ${netIcon}`} />
-          {netLabel}
-        </span>
-        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-          {avgLabel && (
-            <span style={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
-              <i className="bi bi-hourglass-split me-1" style={{ fontSize: '0.6rem' }} />
-              {avgLabel}
-            </span>
-          )}
-          {oldestAgeDays !== null && oldestAgeDays > 14 && (
-            <span className="badge rounded-pill shadow-sm"
-              style={{ background: 'rgba(239,68,68,0.85)', fontSize: '0.68rem', padding: '0.3rem 0.55rem', color: '#fff' }}>
-              <i className="bi bi-exclamation-circle me-1"></i>
-              +antigo: {oldestAgeDays}d
-            </span>
-          )}
+      {/* 7 Dias Flow Block */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.62rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+          <span>Fluxo 7 Dias</span>
+          {entradasAnterior7d > 0 && <span style={{ color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>sem. ant.: {entradasAnterior7d}</span>}
+        </div>
+        {total7d > 0 ? (
+          <>
+            <div style={{ display: 'flex', height: '5px', borderRadius: '4px', overflow: 'hidden', gap: '1px' }}>
+              <div title={`Entradas (7d): ${entradas7d}`}
+                style={{ width: `${entrPct7d}%`, background: 'rgba(252,165,165,0.85)', borderRadius: '4px 0 0 4px', transition: 'width 0.4s ease' }} />
+              <div title={`Saídas (7d): ${saidas7d}`}
+                style={{ width: `${saidPct7d}%`, background: 'rgba(134,239,172,0.85)', borderRadius: '0 4px 4px 0', transition: 'width 0.4s ease' }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.63rem', fontWeight: 600 }}>
+              <span style={{ color: 'rgba(252,165,165,0.9)' }}>↑ {entradas7d} entradas</span>
+              <span style={{ color: 'rgba(134,239,172,0.9)' }}>{saidas7d} saídas ↓</span>
+            </div>
+          </>
+        ) : (
+          <span style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.65rem' }}>Sem movimento esta semana</span>
+        )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px', marginTop: '1px' }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.68rem', fontWeight: 700, color: net7dColor }}>
+            <i className={`bi ${net7dIcon}`} />
+            7d: {net7dLabel}
+          </span>
+          <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            {avgLabel7d && (
+              <span style={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.45)', fontWeight: 600 }}>
+                <i className="bi bi-hourglass-split me-1" style={{ fontSize: '0.58rem' }} />
+                {avgLabel7d}
+              </span>
+            )}
+            {oldestAgeDays !== null && oldestAgeDays > 14 && (
+              <span className="badge rounded-pill shadow-sm"
+                style={{ background: 'rgba(239,68,68,0.85)', fontSize: '0.65rem', padding: '0.2rem 0.45rem', color: '#fff' }}>
+                <i className="bi bi-exclamation-circle me-1"></i>
+                +antigo: {oldestAgeDays}d
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -693,15 +759,21 @@ const DashboardPage: React.FC = () => {
                 icon="bi bi-inbox"
                 color="dark"
                 details={[
+                  { label: 'Entradas (últ. 30 dias)', value: stats.backlog?.createdLast30Days || 0 },
+                  { label: 'Saídas (últ. 30 dias)', value: stats.backlog?.exitedLast30Days || 0 },
                   { label: 'Entradas (últ. 7 dias)', value: stats.backlog?.createdLast7Days || 0 },
                   { label: 'Saídas (últ. 7 dias)', value: stats.backlog?.exitedLast7Days || 0 }
                 ]}
                 extra={
                   <BacklogExtra
-                    entradasActual={stats.backlog?.createdLast7Days || 0}
-                    entradasAnterior={stats.backlog?.createdPrevious7Days || 0}
-                    saidas={stats.backlog?.exitedLast7Days || 0}
-                    avgHours={stats.backlog?.avgHoursInBacklog ?? null}
+                    entradas7d={stats.backlog?.createdLast7Days || 0}
+                    entradasAnterior7d={stats.backlog?.createdPrevious7Days || 0}
+                    saidas7d={stats.backlog?.exitedLast7Days || 0}
+                    entradas30d={stats.backlog?.createdLast30Days || 0}
+                    entradasAnterior30d={stats.backlog?.createdPrevious30Days || 0}
+                    saidas30d={stats.backlog?.exitedLast30Days || 0}
+                    avgHours7d={stats.backlog?.avgHoursInBacklog7Days ?? stats.backlog?.avgHoursInBacklog ?? null}
+                    avgHours30d={stats.backlog?.avgHoursInBacklog30Days ?? stats.backlog?.avgHoursInBacklog ?? null}
                     oldestAgeDays={stats.backlog?.oldestAgeDays ?? null}
                   />
                 }

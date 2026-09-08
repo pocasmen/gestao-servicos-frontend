@@ -316,10 +316,11 @@ const ClientsPage: React.FC = () => {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (updatedClient: Client) => apiClient.put(`/api/clients/${updatedClient.id}`, updatedClient),
+    mutationFn: (updatedClient: Client & { propagateToReports?: boolean }) =>
+      apiClient.put(`/api/clients/${updatedClient.id}`, updatedClient).then(r => r.data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      handleCloseEditModal();
+      // O modal fecha-se após exibir o alert de contagem
     },
     onError: (error: any) => {
       logger.error(error, "Erro ao atualizar cliente:");
@@ -400,8 +401,10 @@ const ClientsPage: React.FC = () => {
     setIsEditModalOpen(false);
   };
 
-  const handleSaveEdit = async (updatedClient: Client) => {
-    await updateMutation.mutateAsync(updatedClient);
+  const handleSaveEdit = async (updatedClient: Client & { propagateToReports?: boolean }) => {
+    const result = await updateMutation.mutateAsync(updatedClient);
+    handleCloseEditModal();
+    return result;
   };
 
   // --- Handlers Delete ---

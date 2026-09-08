@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import apiClient from '../apiClient';
-import { Plus, ShoppingCart, Eye, Calendar, User, FileText, Search, CreditCard, Gift, Trash2 } from 'lucide-react';
+import { Plus, ShoppingCart, Eye, Calendar, User, FileText, Search, CreditCard, Gift, Trash2, RotateCcw, Handshake } from 'lucide-react';
 import { useConfirm } from '../contexts/ConfirmContext';
 import { format } from 'date-fns';
 import CreateSaleModal from '../components/Inventory/CreateSaleModal';
@@ -30,6 +30,10 @@ const SalesPage: React.FC = () => {
         return <span className="badge bg-info bg-opacity-10 text-info px-3 py-2 rounded-pill fw-bold border-0 shadow-none d-flex align-items-center gap-1"><Gift size={12}/> Oferta</span>;
       case 'DISCARD': 
         return <span className="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold border-0 shadow-none d-flex align-items-center gap-1"><Trash2 size={12}/> Descarte</span>;
+      case 'RETURN': 
+        return <span className="badge bg-warning bg-opacity-10 text-warning px-3 py-2 rounded-pill fw-bold border-0 shadow-none d-flex align-items-center gap-1"><RotateCcw size={12}/> Devolução</span>;
+      case 'CONSIGNMENT': 
+        return <span className="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold border-0 shadow-none d-flex align-items-center gap-1"><Handshake size={12}/> Consignação</span>;
       default: 
         return <span className="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill fw-bold border-0 shadow-none">{type}</span>;
     }

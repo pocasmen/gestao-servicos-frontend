@@ -12,13 +12,24 @@ export interface ConfirmOptions {
     onExtra?: () => void;
 }
 
+export interface ConfirmChoiceOptions {
+    title?: string;
+    message: React.ReactNode;
+    confirmText?: string;
+    extraText?: string;
+    cancelText?: string;
+    variant?: 'danger' | 'primary' | 'warning' | 'info';
+}
+
 interface ConfirmContextType {
     confirm: (options: ConfirmOptions | string) => Promise<boolean>;
+    confirmChoice: (options: ConfirmChoiceOptions) => Promise<'confirm' | 'extra' | 'cancel'>;
     alert: (message: string, title?: string) => Promise<void>;
 }
 
 const ConfirmContext = createContext<ConfirmContextType>({
     confirm: async () => false,
+    confirmChoice: async () => 'cancel',
     alert: async () => { },
 });
 
@@ -28,6 +39,7 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [options, setOptions] = useState<ConfirmOptions | null>(null);
     const [isOpen, setIsOpen] = useState(false);
     const resolveRef = useRef<(value: boolean) => void>(() => { });
+    const choiceResolveRef = useRef<((value: 'confirm' | 'extra' | 'cancel') => void) | null>(null);
 
     const confirm = useCallback((opts: ConfirmOptions | string) => {
         const defaultOptions: ConfirmOptions = {
@@ -49,9 +61,27 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
         setOptions(finalOptions);
         setIsOpen(true);
+        choiceResolveRef.current = null;
 
         return new Promise<boolean>((resolve) => {
             resolveRef.current = resolve;
+        });
+    }, []);
+
+    const confirmChoice = useCallback((opts: ConfirmChoiceOptions) => {
+        setOptions({
+            title: opts.title || 'Confirmação',
+            message: opts.message,
+            confirmText: opts.confirmText || 'Sim',
+            extraText: opts.extraText || 'Não',
+            cancelText: opts.cancelText || 'Cancelar',
+            variant: opts.variant || 'primary',
+            isAlert: false,
+        });
+        setIsOpen(true);
+
+        return new Promise<'confirm' | 'extra' | 'cancel'>((resolve) => {
+            choiceResolveRef.current = resolve;
         });
     }, []);
 
@@ -67,16 +97,34 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const handleConfirm = () => {
         setIsOpen(false);
-        resolveRef.current(true);
+        if (choiceResolveRef.current) {
+            choiceResolveRef.current('confirm');
+            choiceResolveRef.current = null;
+        } else {
+            resolveRef.current(true);
+        }
+    };
+
+    const handleExtra = () => {
+        setIsOpen(false);
+        if (choiceResolveRef.current) {
+            choiceResolveRef.current('extra');
+            choiceResolveRef.current = null;
+        }
     };
 
     const handleCancel = () => {
         setIsOpen(false);
-        resolveRef.current(false);
+        if (choiceResolveRef.current) {
+            choiceResolveRef.current('cancel');
+            choiceResolveRef.current = null;
+        } else {
+            resolveRef.current(false);
+        }
     };
 
     return (
-        <ConfirmContext.Provider value={{ confirm, alert }}>
+        <ConfirmContext.Provider value={{ confirm, confirmChoice, alert }}>
             {children}
             {options && (
                 <ConfirmModal
@@ -88,7 +136,7 @@ export const ConfirmProvider: React.FC<{ children: React.ReactNode }> = ({ child
                     variant={options.variant}
                     isAlert={options.isAlert}
                     extraText={options.extraText}
-                    onExtra={options.onExtra}
+                    onExtra={options.onExtra || handleExtra}
                     onConfirm={handleConfirm}
                     onCancel={handleCancel}
                 />
